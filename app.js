@@ -1257,62 +1257,84 @@ async function displayUnlockRequests() {
 async function displayAllProfiles() {
     const users = await fetchUsers();
     const grid = document.getElementById('admin-profiles-grid');
-    const totalCount = document.getElementById('total-count'); // Keep this line if totalCount is still used elsewhere or will be updated.
+    const totalCount = document.getElementById('total-count');
 
-    totalCount.textContent = users.length; // Update totalCount with fetched users count
+    if (totalCount) {
+        totalCount.textContent = users.length;
+    }
 
     grid.innerHTML = users.map(user => `
         <div class="admin-profile-card">
-                    <div class="detail-item">
-                        <div class="detail-label">종교</div>
-                        <div class="detail-value">${user.religion}</div>
+            <div class="profile-photos">
+                ${user.photos ? user.photos.slice(0, 3).map(photo => `
+                    <div class="profile-photo">
+                        <img src="${photo}" alt="Profile photo">
                     </div>
-                    <div class="detail-item">
-                        <div class="detail-label">키</div>
-                        <div class="detail-value">${user.height}cm</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">직업</div>
-                        <div class="detail-value">${user.job}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">직장명</div>
-                        <div class="detail-value">${user.workplace}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">학력</div>
-                        <div class="detail-value">${user.education}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">거주지</div>
-                        <div class="detail-value">${user.location}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">흡연</div>
-                        <div class="detail-value">${user.smoking}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">MBTI</div>
-                        <div class="detail-value">${user.mbti}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">결혼 계획</div>
-                        <div class="detail-value">${user.marriagePlan}</div>
-                    </div>
+                `).join('') : '<p>사진 없음</p>'}
+            </div>
+            <h3>${user.name || '이름 없음'}</h3>
+            <div class="profile-info-grid">
+                <div class="detail-item">
+                    <div class="detail-label">출생년도</div>
+                    <div class="detail-value">${user.birthYear || 'N/A'}년생 (${user.age || 'N/A'}세)</div>
                 </div>
-                <div class="match-hobbies">
-                    ${user.hobbies.map(hobby => `<span class="hobby-tag">${hobby}</span>`).join('')}
+                <div class="detail-item">
+                    <div class="detail-label">성별</div>
+                    <div class="detail-value">${user.gender === 'male' ? '남성' : user.gender === 'female' ? '여성' : 'N/A'}</div>
                 </div>
-                <div class="contact-info">
-                    <h4>📞 연락처</h4>
-                    <div class="contact-item">
-                        <strong>카카오톡:</strong>
-                        <span>${user.contactKakao}</span>
-                    </div>
-                    <div class="contact-item">
-                        <strong>인스타그램:</strong>
-                        <span>${user.contactInstagram}</span>
-                    </div>
+                <div class="detail-item">
+                    <div class="detail-label">종교</div>
+                    <div class="detail-value">${user.religion || 'N/A'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">키</div>
+                    <div class="detail-value">${user.height || 'N/A'}cm</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">음주</div>
+                    <div class="detail-value">${user.drinking || 'N/A'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">직업</div>
+                    <div class="detail-value">${user.job || 'N/A'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">직장명</div>
+                    <div class="detail-value">${user.workplace || 'N/A'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">학력</div>
+                    <div class="detail-value">${user.education || 'N/A'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">거주지</div>
+                    <div class="detail-value">${user.location || 'N/A'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">흡연</div>
+                    <div class="detail-value">${user.smoking || 'N/A'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">MBTI</div>
+                    <div class="detail-value">${user.mbti || 'N/A'}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">결혼 계획</div>
+                    <div class="detail-value">${user.marriagePlan || 'N/A'}</div>
+                </div>
+            </div>
+            <div class="match-hobbies">
+                ${user.hobbies && user.hobbies.length > 0 ? user.hobbies.map(hobby => `<span class="hobby-tag">${hobby}</span>`).join('') : '<span>취미 정보 없음</span>'}
+            </div>
+            <div class="contact-info">
+                <h4>📞 연락처</h4>
+                <div class="contact-item">
+                    <strong>카카오톡:</strong>
+                    <span>${user.contactKakao || 'N/A'}</span>
+                </div>
+                <div class="contact-item">
+                    <strong>인스타그램:</strong>
+                    <span>${user.contactInstagram || 'N/A'}</span>
                 </div>
             </div>
         </div>
