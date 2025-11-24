@@ -152,29 +152,35 @@ function setupRegistrationForm() {
         }
 
         const formData = new FormData(form);
-        const birthYear = parseInt(formData.get('birthYear'));
+        const birthYear = parseInt(document.getElementById('birth-year').value);
         const currentYear = new Date().getFullYear();
         const age = currentYear - birthYear + 1; // Korean age calculation
 
+        // Get location value (handle custom location)
+        const locationSelect = document.getElementById('location');
+        const location = locationSelect.value === '기타'
+            ? document.getElementById('custom-location').value
+            : locationSelect.value;
+
         const user = {
             id: Date.now().toString(),
-            name: formData.get('name'),
-            gender: formData.get('gender'),
+            name: document.getElementById('name').value,
+            gender: document.querySelector('input[name="gender"]:checked').value,
             birthYear: birthYear,
             age: age,
-            religion: formData.get('religion'),
-            height: parseInt(formData.get('height')),
-            drinking: formData.get('drinking'),
-            hobbies: formData.getAll('hobbies'),
-            job: formData.get('job'),
-            workplace: formData.get('workplace'),
-            education: formData.get('education'),
-            location: formData.get('location'),
-            smoking: formData.get('smoking'),
+            religion: document.getElementById('religion').value,
+            height: parseInt(document.getElementById('height').value),
+            drinking: document.getElementById('drinking').value,
+            hobbies: hobbies,
+            job: document.getElementById('job').value,
+            workplace: document.getElementById('workplace').value,
+            education: document.getElementById('education').value,
+            location: location,
+            smoking: document.getElementById('smoking').value,
             mbti: mbti,
-            marriagePlan: formData.get('marriagePlan'),
-            contactKakao: formData.get('contactKakao'),
-            contactInstagram: formData.get('contactInstagram'),
+            marriagePlan: document.getElementById('marriage-plan').value,
+            contactKakao: document.getElementById('contact-kakao').value,
+            contactInstagram: document.getElementById('contact-instagram').value,
             photos: photos,
             registeredAt: Date.now()
         };
