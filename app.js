@@ -176,7 +176,7 @@ function setupRegistrationForm() {
             workplace: document.getElementById('workplace').value,
             education: document.getElementById('education').value,
             location: location,
-            smoking: document.getElementById('smoking').value,
+            smoking: document.querySelector('input[name="smoking"]:checked').value,
             mbti: mbti,
             marriagePlan: document.getElementById('marriage-plan').value,
             contactKakao: document.getElementById('contact-kakao').value,
