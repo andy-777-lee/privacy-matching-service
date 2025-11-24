@@ -966,6 +966,13 @@ async function requestUnlock(targetId) {
 
                 await saveUnlockRequest(request);
 
+                // Send Discord Notification
+                try {
+                    await sendDiscordNotification(request, currentUser, targetId);
+                } catch (error) {
+                    console.error('Failed to send Discord notification:', error);
+                }
+
                 document.getElementById('unlock-modal').classList.remove('active');
                 document.getElementById('unlock-message').value = '';
 
@@ -1378,4 +1385,50 @@ async function updateUserCount() {
         const users = await fetchUsers();
         userCountElement.textContent = users.length;
     }
+}
+
+// Discord Notification
+async function sendDiscordNotification(request, requester, targetId) {
+    const users = await fetchUsers();
+    const target = users.find(u => u.id === targetId);
+
+    const webhookUrl = "https://discord.com/api/webhooks/1442381314396393624/McRV-roltEVoO6x4MQSsWmleG0wYOEK_0XK74ezzTqK4x1jcR62uzxEf4gq6DfqAC9jv";
+
+    const payload = {
+        embeds: [{
+            title: "🔐 새로운 프로필 공개 요청",
+            color: 0xFF69B4, // Hot Pink
+            fields: [
+                {
+                    name: "요청자",
+                    value: `${requester.name} (${requester.age}세, ${requester.gender === 'male' ? '남성' : '여성'})`,
+                    inline: true
+                },
+                {
+                    name: "대상",
+                    value: `${target ? target.name : '알 수 없음'} (${target ? target.age : '?'}세)`,
+                    inline: true
+                },
+                {
+                    name: "메시지",
+                    value: request.message
+                },
+                {
+                    name: "요청 시간",
+                    value: new Date(request.createdAt).toLocaleString('ko-KR')
+                }
+            ],
+            footer: {
+                text: "관리자 페이지에서 승인해주세요"
+            }
+        }]
+    };
+
+    await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
 }
