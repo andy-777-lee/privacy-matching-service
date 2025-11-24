@@ -109,10 +109,11 @@ function setupRegistrationForm() {
     });
 
     const form = document.getElementById('registration-form');
-    form.addEventListener('submit', (e) => {
+    // Single async submit handler for registration form
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Validate photos
+        // Validate photos (ensure three photos are uploaded)
         const photos = [];
         for (let i = 0; i < 3; i++) {
             const preview = document.querySelector(`[data-index="${i}"] .photo-preview`);
@@ -123,298 +124,285 @@ function setupRegistrationForm() {
             photos.push(preview.querySelector('img').src);
         }
 
-        // Get hobbies
-        const hobbies = Array.from(document.querySelectorAll('input[name="hobbies"]:checked'))
-            .map(cb => cb.value);
-
+        // Get selected hobbies
+        const hobbies = Array.from(document.querySelectorAll('input[name="hobbies"]:checked')).map(cb => cb.value);
         if (hobbies.length === 0) {
             alert('취미를 최소 1개 이상 선택해주세요.');
             return;
         }
 
-        // Validate MBTI
+        // Validate MBTI (must be 4 characters)
         const mbti = document.getElementById('mbti').value.toUpperCase();
         if (mbti.length !== 4) {
             alert('MBTI는 4자리로 입력해주세요 (예: INFP)');
             return;
         }
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
 
-            // Basic validation
-            if (uploadedPhotos.filter(p => p).length < 3) {
-                alert('사진을 3장 모두 등록해주세요.');
-                return;
-            }
+        const formData = new FormData(form);
+        const user = {
+            id: Date.now().toString(),
+            name: formData.get('name'),
+            gender: formData.get('gender'),
+            birthYear: parseInt(formData.get('birthYear')),
+            religion: formData.get('religion'),
+            height: parseInt(formData.get('height')),
+            drinking: formData.get('drinking'),
+            hobbies: formData.getAll('hobbies'),
+            job: formData.get('job'),
+            workplace: formData.get('workplace'),
+            education: formData.get('education'),
+            location: formData.get('location'),
+            smoking: formData.get('smoking'),
+            mbti: formData.get('mbti'),
+            marriagePlan: formData.get('marriagePlan'),
+            contactKakao: formData.get('contactKakao'),
+            contactInstagram: formData.get('contactInstagram'),
+            photos: uploadedPhotos,
+            registeredAt: Date.now()
+        };
 
-            const formData = new FormData(form);
-            const user = {
-                id: Date.now().toString(),
-                name: formData.get('name'),
-                gender: formData.get('gender'),
-                birthYear: parseInt(formData.get('birthYear')),
-                religion: formData.get('religion'),
-                height: parseInt(formData.get('height')),
-                drinking: formData.get('drinking'),
-                hobbies: formData.getAll('hobbies'),
-                job: formData.get('job'),
-                workplace: formData.get('workplace'),
-                education: formData.get('education'),
-                location: formData.get('location'),
-                smoking: formData.get('smoking'),
-                mbti: formData.get('mbti'),
-                marriagePlan: formData.get('marriagePlan'),
-                contactKakao: formData.get('contactKakao'),
-                contactInstagram: formData.get('contactInstagram'),
-                photos: uploadedPhotos,
-                registeredAt: Date.now()
-            };
+        await saveUser(user);
+        // Send Discord notification (non‑blocking)
+        sendNewUserDiscordNotification(user).catch(console.error);
+        currentUser = user;
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.id);
 
-            await saveUser(user);
+        alert('프로필이 등록되었습니다! 이제 이상형 조건을 설정해주세요.');
+        showPage('preference-page');
+        setupPreferenceSelection();
+    });
 
-            // Send Discord Notification (Non-blocking)
-            sendNewUserDiscordNotification(user).catch(console.error);
+    function setupPhotoUpload() {
+        document.querySelectorAll('.photo-input').forEach((input, index) => {
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('사진 크기는 5MB 이하여야 합니다.');
+                        return;
+                    }
 
-            currentUser = user;
-            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.id);
-
-            alert('프로필이 등록되었습니다! 이제 이상형 조건을 설정해주세요.');
-            showPage('preference-page');
-            setupPreferenceSelection();
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const preview = document.querySelector(`[data-index="${index}"] .photo-preview`);
+                        preview.innerHTML = `<img src="${event.target.result}" alt="Photo ${index + 1}">`;
+                        preview.classList.add('active');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
         });
     }
 
-function setupPhotoUpload() {
-            document.querySelectorAll('.photo-input').forEach((input, index) => {
-                input.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        if (file.size > 5 * 1024 * 1024) {
-                            alert('사진 크기는 5MB 이하여야 합니다.');
-                            return;
-                        }
+    // Preference Selection Page
+    function showPreferencePage() {
+        showPage('preference-page');
+        setupPreferenceSelection();
+    }
 
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            const preview = document.querySelector(`[data-index="${index}"] .photo-preview`);
-                            preview.innerHTML = `<img src="${event.target.result}" alt="Photo ${index + 1}">`;
-                            preview.classList.add('active');
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            });
-        }
+    function setupPreferenceSelection() {
+        const selectGrid = document.getElementById('preference-select');
+        const priorityCard = document.getElementById('priority-card');
+        const priorityList = document.getElementById('priority-list');
 
-// Preference Selection Page
-function showPreferencePage() {
-            showPage('preference-page');
-            setupPreferenceSelection();
-        }
-
-function setupPreferenceSelection() {
-            const selectGrid = document.getElementById('preference-select');
-            const priorityCard = document.getElementById('priority-card');
-            const priorityList = document.getElementById('priority-list');
-
-            // Populate preference options
-            selectGrid.innerHTML = PREFERENCE_FIELDS.map(field => `
+        // Populate preference options
+        selectGrid.innerHTML = PREFERENCE_FIELDS.map(field => `
         <div class="preference-option">
             <input type="checkbox" id="pref-${field.id}" value="${field.id}">
             <label for="pref-${field.id}">${field.label}</label>
         </div>
     `).join('');
 
-            // Listen for checkbox changes
-            selectGrid.addEventListener('change', () => {
-                const selected = Array.from(selectGrid.querySelectorAll('input:checked'))
-                    .map(cb => cb.value);
+        // Listen for checkbox changes
+        selectGrid.addEventListener('change', () => {
+            const selected = Array.from(selectGrid.querySelectorAll('input:checked'))
+                .map(cb => cb.value);
 
-                if (selected.length > 0) {
-                    // Save current values before regenerating
-                    const currentValues = saveCurrentPreferenceValues();
+            if (selected.length > 0) {
+                // Save current values before regenerating
+                const currentValues = saveCurrentPreferenceValues();
 
-                    showPreferenceValues(selected);
-                    priorityCard.style.display = 'block';
-                    updatePriorityList(selected);
+                showPreferenceValues(selected);
+                priorityCard.style.display = 'block';
+                updatePriorityList(selected);
 
-                    // Restore saved values
-                    restorePreferenceValues(currentValues);
-                } else {
-                    document.getElementById('preference-values-card').style.display = 'none';
-                    priorityCard.style.display = 'none';
-                }
-            });
+                // Restore saved values
+                restorePreferenceValues(currentValues);
+            } else {
+                document.getElementById('preference-values-card').style.display = 'none';
+                priorityCard.style.display = 'none';
+            }
+        });
 
-            // Setup form submission
-            // Submit Preferences
-            document.getElementById('submit-preferences').addEventListener('click', async () => {
-                const selected = Array.from(selectGrid.querySelectorAll('input:checked'))
-                    .map(cb => cb.value);
+        // Setup form submission
+        // Submit Preferences
+        document.getElementById('submit-preferences').addEventListener('click', async () => {
+            const selected = Array.from(selectGrid.querySelectorAll('input:checked'))
+                .map(cb => cb.value);
 
-                if (selected.length === 0) {
-                    alert('최소 1개 이상의 조건을 선택해주세요.');
-                    return;
-                }
+            if (selected.length === 0) {
+                alert('최소 1개 이상의 조건을 선택해주세요.');
+                return;
+            }
 
-                // Collect detailed values
-                const priorities = [];
-                const listItems = document.querySelectorAll('#sortable-list li');
+            // Collect detailed values
+            const priorities = [];
+            const listItems = document.querySelectorAll('#sortable-list li');
 
-                listItems.forEach((li, index) => {
-                    const fieldId = li.dataset.id;
-                    const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
-
-                    // Get value from input
-                    let value;
-                    const inputContainer = document.getElementById(`input-${fieldId}`);
-                    if (inputContainer) {
-                        if (field.type === 'range') {
-                            const min = inputContainer.querySelector('.min-input').value;
-                            const max = inputContainer.querySelector('.max-input').value;
-                            value = { min: parseInt(min), max: parseInt(max) };
-                        } else if (field.type === 'multi') {
-                            value = Array.from(inputContainer.querySelectorAll('input:checked')).map(cb => cb.value);
-                        } else if (field.type === 'text') {
-                            value = inputContainer.querySelector('input').value;
-                        } else {
-                            value = inputContainer.querySelector('select').value;
-                        }
-                    }
-
-                    priorities.push({
-                        field: fieldId,
-                        label: field.label,
-                        priority: index + 1,
-                        value: value
-                    });
-                });
-
-                // Update existing user instead of creating new one
-                if (currentUser) {
-                    currentUser.preferences = {
-                        priorities: priorities,
-                        updatedAt: Date.now()
-                    };
-
-                    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
-                    showMatchesPage();
-                }
-            });
-        }
-
-function updatePriorityList(selectedFields) {
-            const priorityList = document.getElementById('priority-list');
-            const currentOrder = Array.from(priorityList.children).map(item => item.dataset.fieldId);
-
-            // Keep existing order, add new ones at the end
-            const newOrder = currentOrder.filter(id => selectedFields.includes(id));
-            selectedFields.forEach(id => {
-                if (!newOrder.includes(id)) {
-                    newOrder.push(id);
-                }
-            });
-
-            priorityList.innerHTML = newOrder.map((fieldId, index) => {
+            listItems.forEach((li, index) => {
+                const fieldId = li.dataset.id;
                 const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
-                return `
+
+                // Get value from input
+                let value;
+                const inputContainer = document.getElementById(`input-${fieldId}`);
+                if (inputContainer) {
+                    if (field.type === 'range') {
+                        const min = inputContainer.querySelector('.min-input').value;
+                        const max = inputContainer.querySelector('.max-input').value;
+                        value = { min: parseInt(min), max: parseInt(max) };
+                    } else if (field.type === 'multi') {
+                        value = Array.from(inputContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+                    } else if (field.type === 'text') {
+                        value = inputContainer.querySelector('input').value;
+                    } else {
+                        value = inputContainer.querySelector('select').value;
+                    }
+                }
+
+                priorities.push({
+                    field: fieldId,
+                    label: field.label,
+                    priority: index + 1,
+                    value: value
+                });
+            });
+
+            // Update existing user instead of creating new one
+            if (currentUser) {
+                currentUser.preferences = {
+                    priorities: priorities,
+                    updatedAt: Date.now()
+                };
+
+                localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
+                showMatchesPage();
+            }
+        });
+    }
+
+    function updatePriorityList(selectedFields) {
+        const priorityList = document.getElementById('priority-list');
+        const currentOrder = Array.from(priorityList.children).map(item => item.dataset.fieldId);
+
+        // Keep existing order, add new ones at the end
+        const newOrder = currentOrder.filter(id => selectedFields.includes(id));
+        selectedFields.forEach(id => {
+            if (!newOrder.includes(id)) {
+                newOrder.push(id);
+            }
+        });
+
+        priorityList.innerHTML = newOrder.map((fieldId, index) => {
+            const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+            return `
             <div class="priority-item" draggable="true" data-field-id="${fieldId}">
                 <span class="priority-number">${index + 1}</span>
                 <span class="priority-label">${field.label}</span>
                 <span class="drag-handle">☰</span>
             </div>
         `;
-            }).join('');
+        }).join('');
 
-            setupDragAndDrop();
+        setupDragAndDrop();
+    }
+
+    function setupDragAndDrop() {
+        const items = document.querySelectorAll('.priority-item');
+
+        items.forEach(item => {
+            item.addEventListener('dragstart', handleDragStart);
+            item.addEventListener('dragend', handleDragEnd);
+            item.addEventListener('dragover', handleDragOver);
+            item.addEventListener('drop', handleDrop);
+            item.addEventListener('dragenter', handleDragEnter);
+            item.addEventListener('dragleave', handleDragLeave);
+        });
+    }
+
+    function handleDragStart(e) {
+        draggedElement = this;
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        document.querySelectorAll('.priority-item').forEach(item => {
+            item.classList.remove('drag-over');
+        });
+
+        // Update priority numbers
+        updatePriorityNumbers();
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function handleDragEnter(e) {
+        if (this !== draggedElement) {
+            this.classList.add('drag-over');
+        }
+    }
+
+    function handleDragLeave(e) {
+        this.classList.remove('drag-over');
+    }
+
+    function handleDrop(e) {
+        if (e.stopPropagation) {
+            e.stopPropagation();
         }
 
-function setupDragAndDrop() {
-            const items = document.querySelectorAll('.priority-item');
+        if (draggedElement !== this) {
+            const priorityList = document.getElementById('priority-list');
+            const allItems = Array.from(priorityList.children);
+            const draggedIndex = allItems.indexOf(draggedElement);
+            const targetIndex = allItems.indexOf(this);
 
-            items.forEach(item => {
-                item.addEventListener('dragstart', handleDragStart);
-                item.addEventListener('dragend', handleDragEnd);
-                item.addEventListener('dragover', handleDragOver);
-                item.addEventListener('drop', handleDrop);
-                item.addEventListener('dragenter', handleDragEnter);
-                item.addEventListener('dragleave', handleDragLeave);
-            });
-        }
-
-function handleDragStart(e) {
-            draggedElement = this;
-            this.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-        }
-
-function handleDragEnd(e) {
-            this.classList.remove('dragging');
-            document.querySelectorAll('.priority-item').forEach(item => {
-                item.classList.remove('drag-over');
-            });
-
-            // Update priority numbers
-            updatePriorityNumbers();
-        }
-
-function handleDragOver(e) {
-            if (e.preventDefault) {
-                e.preventDefault();
+            if (draggedIndex < targetIndex) {
+                this.parentNode.insertBefore(draggedElement, this.nextSibling);
+            } else {
+                this.parentNode.insertBefore(draggedElement, this);
             }
-            e.dataTransfer.dropEffect = 'move';
-            return false;
         }
 
-function handleDragEnter(e) {
-            if (this !== draggedElement) {
-                this.classList.add('drag-over');
-            }
+        return false;
+    }
+
+    // Show preference value inputs
+    function showPreferenceValues(selectedFields) {
+        const card = document.getElementById('preference-values-card');
+        const container = document.getElementById('preference-values-container');
+
+        if (selectedFields.length === 0) {
+            card.style.display = 'none';
+            return;
         }
 
-function handleDragLeave(e) {
-            this.classList.remove('drag-over');
-        }
+        card.style.display = 'block';
 
-function handleDrop(e) {
-            if (e.stopPropagation) {
-                e.stopPropagation();
-            }
+        container.innerHTML = selectedFields.map(fieldId => {
+            const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
 
-            if (draggedElement !== this) {
-                const priorityList = document.getElementById('priority-list');
-                const allItems = Array.from(priorityList.children);
-                const draggedIndex = allItems.indexOf(draggedElement);
-                const targetIndex = allItems.indexOf(this);
-
-                if (draggedIndex < targetIndex) {
-                    this.parentNode.insertBefore(draggedElement, this.nextSibling);
-                } else {
-                    this.parentNode.insertBefore(draggedElement, this);
-                }
-            }
-
-            return false;
-        }
-
-// Show preference value inputs
-function showPreferenceValues(selectedFields) {
-            const card = document.getElementById('preference-values-card');
-            const container = document.getElementById('preference-values-container');
-
-            if (selectedFields.length === 0) {
-                card.style.display = 'none';
-                return;
-            }
-
-            card.style.display = 'block';
-
-            container.innerHTML = selectedFields.map(fieldId => {
-                const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
-
-                if (field.type === 'range') {
-                    if (fieldId === 'birthYear') {
-                        return `
+            if (field.type === 'range') {
+                if (fieldId === 'birthYear') {
+                    return `
                     <div class="form-group">
                         <label>${field.label}</label>
                         <div class="range-input-group">
@@ -424,8 +412,8 @@ function showPreferenceValues(selectedFields) {
                         </div>
                     </div>
                 `;
-                    } else if (fieldId === 'height') {
-                        return `
+                } else if (fieldId === 'height') {
+                    return `
                     <div class="form-group">
                         <label>${field.label} (cm)</label>
                         <div class="range-input-group">
@@ -435,10 +423,10 @@ function showPreferenceValues(selectedFields) {
                         </div>
                     </div>
                 `;
-                    }
-                } else if (field.type === 'select') {
-                    if (fieldId === 'religion') {
-                        return `
+                }
+            } else if (field.type === 'select') {
+                if (fieldId === 'religion') {
+                    return `
                     <div class="form-group">
                         <label>${field.label}</label>
                         <select id="pref-value-${fieldId}" required>
@@ -451,8 +439,8 @@ function showPreferenceValues(selectedFields) {
                         </select>
                     </div>
                 `;
-                    } else if (fieldId === 'drinking') {
-                        return `
+                } else if (fieldId === 'drinking') {
+                    return `
                     <div class="form-group">
                         <label>${field.label}</label>
                         <select id="pref-value-${fieldId}" required>
@@ -463,8 +451,8 @@ function showPreferenceValues(selectedFields) {
                         </select>
                     </div>
                 `;
-                    } else if (fieldId === 'job') {
-                        return `
+                } else if (fieldId === 'job') {
+                    return `
                     <div class="form-group">
                         <label>${field.label}</label>
                         <select id="pref-value-${fieldId}" required>
@@ -477,8 +465,8 @@ function showPreferenceValues(selectedFields) {
                         </select>
                     </div>
                 `;
-                    } else if (fieldId === 'education') {
-                        return `
+                } else if (fieldId === 'education') {
+                    return `
                     <div class="form-group">
                         <label>${field.label}</label>
                         <select id="pref-value-${fieldId}" required>
@@ -490,8 +478,8 @@ function showPreferenceValues(selectedFields) {
                         </select>
                     </div>
                 `;
-                    } else if (fieldId === 'location') {
-                        return `
+                } else if (fieldId === 'location') {
+                    return `
                     <div class="form-group">
                         <label>${field.label}</label>
                         <select id="pref-value-${fieldId}" required>
@@ -510,8 +498,8 @@ function showPreferenceValues(selectedFields) {
                         </select>
                     </div>
                 `;
-                    } else if (fieldId === 'smoking') {
-                        return `
+                } else if (fieldId === 'smoking') {
+                    return `
                     <div class="form-group">
                         <label>${field.label}</label>
                         <select id="pref-value-${fieldId}" required>
@@ -521,8 +509,8 @@ function showPreferenceValues(selectedFields) {
                         </select>
                     </div>
                 `;
-                    } else if (fieldId === 'marriagePlan') {
-                        return `
+                } else if (fieldId === 'marriagePlan') {
+                    return `
                     <div class="form-group">
                         <label>${field.label}</label>
                         <select id="pref-value-${fieldId}" required>
@@ -534,9 +522,9 @@ function showPreferenceValues(selectedFields) {
                         </select>
                     </div>
                 `;
-                    }
-                } else if (field.type === 'multi' && fieldId === 'hobbies') {
-                    return `
+                }
+            } else if (field.type === 'multi' && fieldId === 'hobbies') {
+                return `
                 <div class="form-group">
                     <label>${field.label}</label>
                     <div class="hobby-grid">
@@ -575,133 +563,133 @@ function showPreferenceValues(selectedFields) {
                     </div>
                 </div>
             `;
-                } else if (field.type === 'text' && fieldId === 'mbti') {
-                    return `
+            } else if (field.type === 'text' && fieldId === 'mbti') {
+                return `
                 <div class="form-group">
                     <label>${field.label}</label>
                     <input type="text" id="pref-value-${fieldId}" maxlength="4" placeholder="예: INFP" required>
                 </div>
             `;
+            }
+            return '';
+        }).join('');
+    }
+
+    // Save current preference values before regenerating form
+    function saveCurrentPreferenceValues() {
+        const values = {};
+
+        PREFERENCE_FIELDS.forEach(field => {
+            if (field.type === 'range') {
+                const minInput = document.getElementById(`pref-value-${field.id}-min`);
+                const maxInput = document.getElementById(`pref-value-${field.id}-max`);
+                if (minInput && maxInput && minInput.value && maxInput.value) {
+                    values[field.id] = {
+                        min: minInput.value,
+                        max: maxInput.value
+                    };
                 }
-                return '';
-            }).join('');
-        }
-
-// Save current preference values before regenerating form
-function saveCurrentPreferenceValues() {
-            const values = {};
-
-            PREFERENCE_FIELDS.forEach(field => {
-                if (field.type === 'range') {
-                    const minInput = document.getElementById(`pref-value-${field.id}-min`);
-                    const maxInput = document.getElementById(`pref-value-${field.id}-max`);
-                    if (minInput && maxInput && minInput.value && maxInput.value) {
-                        values[field.id] = {
-                            min: minInput.value,
-                            max: maxInput.value
-                        };
-                    }
-                } else if (field.type === 'select') {
-                    const select = document.getElementById(`pref-value-${field.id}`);
-                    if (select && select.value) {
-                        values[field.id] = select.value;
-                    }
-                } else if (field.type === 'multi') {
-                    const checked = Array.from(document.querySelectorAll(`input[name="pref-value-${field.id}"]:checked`))
-                        .map(cb => cb.value);
-                    if (checked.length > 0) {
-                        values[field.id] = checked;
-                    }
-                } else if (field.type === 'text') {
-                    const input = document.getElementById(`pref-value-${field.id}`);
-                    if (input && input.value) {
-                        values[field.id] = input.value;
-                    }
+            } else if (field.type === 'select') {
+                const select = document.getElementById(`pref-value-${field.id}`);
+                if (select && select.value) {
+                    values[field.id] = select.value;
                 }
-            });
-
-            return values;
-        }
-
-// Restore preference values after regenerating form
-function restorePreferenceValues(savedValues) {
-            if (!savedValues) return;
-
-            Object.keys(savedValues).forEach(fieldId => {
-                const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
-                if (!field) return;
-
-                const value = savedValues[fieldId];
-
-                if (field.type === 'range') {
-                    const minInput = document.getElementById(`pref-value-${fieldId}-min`);
-                    const maxInput = document.getElementById(`pref-value-${fieldId}-max`);
-                    if (minInput && maxInput && value.min && value.max) {
-                        minInput.value = value.min;
-                        maxInput.value = value.max;
-                    }
-                } else if (field.type === 'select') {
-                    const select = document.getElementById(`pref-value-${fieldId}`);
-                    if (select && value) {
-                        select.value = value;
-                    }
-                } else if (field.type === 'multi') {
-                    if (Array.isArray(value)) {
-                        value.forEach(val => {
-                            const checkbox = document.querySelector(`input[name="pref-value-${fieldId}"][value="${val}"]`);
-                            if (checkbox) {
-                                checkbox.checked = true;
-                            }
-                        });
-                    }
-                } else if (field.type === 'text') {
-                    const input = document.getElementById(`pref-value-${fieldId}`);
-                    if (input && value) {
-                        input.value = value;
-                    }
+            } else if (field.type === 'multi') {
+                const checked = Array.from(document.querySelectorAll(`input[name="pref-value-${field.id}"]:checked`))
+                    .map(cb => cb.value);
+                if (checked.length > 0) {
+                    values[field.id] = checked;
                 }
-            });
-        }
+            } else if (field.type === 'text') {
+                const input = document.getElementById(`pref-value-${field.id}`);
+                if (input && input.value) {
+                    values[field.id] = input.value;
+                }
+            }
+        });
 
-function updatePriorityNumbers() {
-            const items = document.querySelectorAll('.priority-item');
-            items.forEach((item, index) => {
-                item.querySelector('.priority-number').textContent = index + 1;
-            });
-        }
+        return values;
+    }
 
-// Matches Page
-function showMatchesPage() {
-            showPage('matches-page');
-            displayMatches();
+    // Restore preference values after regenerating form
+    function restorePreferenceValues(savedValues) {
+        if (!savedValues) return;
 
-            // My profile button
-            document.getElementById('my-profile-btn').addEventListener('click', () => {
-                showProfileModal(currentUser, false, null, true); // true = isOwnProfile
-            });
-        }
+        Object.keys(savedValues).forEach(fieldId => {
+            const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+            if (!field) return;
 
-async function displayMatches() {
-            const matches = await findMatches(currentUser);
-            const grid = document.getElementById('matches-grid');
-            const noMatches = document.getElementById('no-matches');
+            const value = savedValues[fieldId];
 
-            if (matches.length === 0) {
-                grid.style.display = 'none';
-                noMatches.style.display = 'block';
+            if (field.type === 'range') {
+                const minInput = document.getElementById(`pref-value-${fieldId}-min`);
+                const maxInput = document.getElementById(`pref-value-${fieldId}-max`);
+                if (minInput && maxInput && value.min && value.max) {
+                    minInput.value = value.min;
+                    maxInput.value = value.max;
+                }
+            } else if (field.type === 'select') {
+                const select = document.getElementById(`pref-value-${fieldId}`);
+                if (select && value) {
+                    select.value = value;
+                }
+            } else if (field.type === 'multi') {
+                if (Array.isArray(value)) {
+                    value.forEach(val => {
+                        const checkbox = document.querySelector(`input[name="pref-value-${fieldId}"][value="${val}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+            } else if (field.type === 'text') {
+                const input = document.getElementById(`pref-value-${fieldId}`);
+                if (input && value) {
+                    input.value = value;
+                }
+            }
+        });
+    }
 
-                // Show mismatch analysis
-                const analysis = await analyzeMismatches(currentUser);
-                const mismatchList = analysis.mismatchDetails
-                    .sort((a, b) => b.count - a.count)
-                    .map(item => `
+    function updatePriorityNumbers() {
+        const items = document.querySelectorAll('.priority-item');
+        items.forEach((item, index) => {
+            item.querySelector('.priority-number').textContent = index + 1;
+        });
+    }
+
+    // Matches Page
+    function showMatchesPage() {
+        showPage('matches-page');
+        displayMatches();
+
+        // My profile button
+        document.getElementById('my-profile-btn').addEventListener('click', () => {
+            showProfileModal(currentUser, false, null, true); // true = isOwnProfile
+        });
+    }
+
+    async function displayMatches() {
+        const matches = await findMatches(currentUser);
+        const grid = document.getElementById('matches-grid');
+        const noMatches = document.getElementById('no-matches');
+
+        if (matches.length === 0) {
+            grid.style.display = 'none';
+            noMatches.style.display = 'block';
+
+            // Show mismatch analysis
+            const analysis = await analyzeMismatches(currentUser);
+            const mismatchList = analysis.mismatchDetails
+                .sort((a, b) => b.count - a.count)
+                .map(item => `
                 <div class="mismatch-item">
                     <span class="mismatch-label">${item.label}</span>
                     <span class="mismatch-count">${item.count}명 미매칭</span>
                 </div>
             `).join('');
 
-                noMatches.innerHTML = `
+            noMatches.innerHTML = `
             <div class="empty-state">
                 <span class="empty-icon">💔</span>
                 <h3>매칭되는 프로필이 없습니다</h3>
@@ -716,34 +704,34 @@ async function displayMatches() {
                 <button onclick="showPage('preference-page')" class="btn-secondary" style="margin-top: 1rem;">선호 조건 수정하기</button>
             </div>
         `;
-                return;
-            }
-            grid.style.display = 'grid';
-            noMatches.style.display = 'none';
-
-            const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
-
-            grid.innerHTML = matches.map(match => {
-                const isUnlocked = unlockedProfiles.includes(match.user.id);
-                return createMatchCard(match, isUnlocked);
-            }).join('');
-
-            // Add click handlers
-            grid.querySelectorAll('.match-card').forEach(card => {
-                card.addEventListener('click', () => {
-                    const userId = card.dataset.userId;
-                    const match = matches.find(m => m.user.id === userId);
-                    const isUnlocked = unlockedProfiles.includes(userId);
-                    showProfileModal(match.user, !isUnlocked, match.score);
-                });
-            });
+            return;
         }
+        grid.style.display = 'grid';
+        noMatches.style.display = 'none';
 
-function createMatchCard(match, isUnlocked) {
-            const user = match.user;
-            const score = match.score;
+        const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
 
-            return `
+        grid.innerHTML = matches.map(match => {
+            const isUnlocked = unlockedProfiles.includes(match.user.id);
+            return createMatchCard(match, isUnlocked);
+        }).join('');
+
+        // Add click handlers
+        grid.querySelectorAll('.match-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const userId = card.dataset.userId;
+                const match = matches.find(m => m.user.id === userId);
+                const isUnlocked = unlockedProfiles.includes(userId);
+                showProfileModal(match.user, !isUnlocked, match.score);
+            });
+        });
+    }
+
+    function createMatchCard(match, isUnlocked) {
+        const user = match.user;
+        const score = match.score;
+
+        return `
         <div class="match-card" data-user-id="${user.id}">
             <div class="match-photos">
                 <span class="match-percentage">${score}% 매칭</span>
@@ -772,17 +760,17 @@ function createMatchCard(match, isUnlocked) {
             </div>
         </div>
     `;
-        }
+    }
 
-// Profile Modal
-async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false) {
-            const modal = document.getElementById('profile-modal');
-            const detail = document.getElementById('profile-detail');
+    // Profile Modal
+    async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false) {
+        const modal = document.getElementById('profile-modal');
+        const detail = document.getElementById('profile-detail');
 
-            const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
-            const isUnlocked = unlockedProfiles.includes(user.id) || isOwnProfile; // Own profile is always unlocked
+        const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
+        const isUnlocked = unlockedProfiles.includes(user.id) || isOwnProfile; // Own profile is always unlocked
 
-            detail.innerHTML = `
+        detail.innerHTML = `
         ${matchScore ? `<div class="match-percentage" style="position: static; margin-bottom: 1rem;">${matchScore}% 매칭</div>` : ''}
         <div class="profile-photos">
             ${user.photos.map(photo => `
@@ -870,143 +858,172 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
         ` : ''}
     `;
 
-            modal.classList.add('active');
+        modal.classList.add('active');
 
-            // Close button
-            modal.querySelector('.modal-close').onclick = () => {
+        // Close button
+        modal.querySelector('.modal-close').onclick = () => {
+            modal.classList.remove('active');
+        };
+
+        // Click outside to close
+        modal.onclick = (e) => {
+            if (e.target === modal) {
                 modal.classList.remove('active');
-            };
+            }
+        };
+    }
 
-            // Click outside to close
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
-                }
-            };
-        }
+    // Edit Preferences
+    function editPreferences() {
+        document.getElementById('profile-modal').classList.remove('active');
+        showPreferencePage();
 
-// Edit Preferences
-function editPreferences() {
-            document.getElementById('profile-modal').classList.remove('active');
-            showPreferencePage();
+        // Pre-populate existing preferences
+        const selectGrid = document.getElementById('preference-select');
+        const selectedFields = currentUser.preferences.priorities.map(p => p.field);
 
-            // Pre-populate existing preferences
-            const selectGrid = document.getElementById('preference-select');
-            const selectedFields = currentUser.preferences.priorities.map(p => p.field);
+        // Check the selected preferences
+        selectedFields.forEach(fieldId => {
+            const checkbox = document.getElementById(`pref-${fieldId}`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
 
-            // Check the selected preferences
-            selectedFields.forEach(fieldId => {
-                const checkbox = document.getElementById(`pref-${fieldId}`);
-                if (checkbox) {
-                    checkbox.checked = true;
+        // Trigger change event to show values and priority list
+        if (selectedFields.length > 0) {
+            showPreferenceValues(selectedFields);
+            document.getElementById('priority-card').style.display = 'block';
+            updatePriorityList(selectedFields);
+
+            // Pre-fill preference values
+            currentUser.preferences.priorities.forEach(pref => {
+                const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
+                if (!field || !pref.value) return;
+
+                if (field.type === 'range') {
+                    const minInput = document.getElementById(`pref-value-${pref.field}-min`);
+                    const maxInput = document.getElementById(`pref-value-${pref.field}-max`);
+                    if (minInput && maxInput && pref.value.min && pref.value.max) {
+                        minInput.value = pref.value.min;
+                        maxInput.value = pref.value.max;
+                    }
+                } else if (field.type === 'select') {
+                    const select = document.getElementById(`pref-value-${pref.field}`);
+                    if (select && pref.value) {
+                        select.value = pref.value;
+                    }
+                } else if (field.type === 'multi') {
+                    if (Array.isArray(pref.value)) {
+                        pref.value.forEach(val => {
+                            const checkbox = document.querySelector(`input[name="pref-value-${pref.field}"][value="${val}"]`);
+                            if (checkbox) {
+                                checkbox.checked = true;
+                            }
+                        });
+                    }
+                } else if (field.type === 'text') {
+                    const input = document.getElementById(`pref-value-${pref.field}`);
+                    if (input && pref.value) {
+                        input.value = pref.value;
+                    }
                 }
             });
+        }
+    }
 
-            // Trigger change event to show values and priority list
-            if (selectedFields.length > 0) {
-                showPreferenceValues(selectedFields);
-                document.getElementById('priority-card').style.display = 'block';
-                updatePriorityList(selectedFields);
+    // Unlock Request
+    async function requestUnlock(targetId) {
+        document.getElementById('profile-modal').classList.remove('active');
+        document.getElementById('unlock-modal').classList.add('active');
+        document.getElementById('unlock-target-id').value = targetId;
 
-                // Pre-fill preference values
-                currentUser.preferences.priorities.forEach(pref => {
-                    const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
-                    if (!field || !pref.value) return;
+        const form = document.getElementById('unlock-request-form');
+        form.onsubmit = async (e) => {
+            e.preventDefault();
 
-                    if (field.type === 'range') {
-                        const minInput = document.getElementById(`pref-value-${pref.field}-min`);
-                        const maxInput = document.getElementById(`pref-value-${pref.field}-max`);
-                        if (minInput && maxInput && pref.value.min && pref.value.max) {
-                            minInput.value = pref.value.min;
-                            maxInput.value = pref.value.max;
-                        }
-                    } else if (field.type === 'select') {
-                        const select = document.getElementById(`pref-value-${pref.field}`);
-                        if (select && pref.value) {
-                            select.value = pref.value;
-                        }
-                    } else if (field.type === 'multi') {
-                        if (Array.isArray(pref.value)) {
-                            pref.value.forEach(val => {
-                                const checkbox = document.querySelector(`input[name="pref-value-${pref.field}"][value="${val}"]`);
-                                if (checkbox) {
-                                    checkbox.checked = true;
-                                }
-                            });
-                        }
-                    } else if (field.type === 'text') {
-                        const input = document.getElementById(`pref-value-${pref.field}`);
-                        if (input && pref.value) {
-                            input.value = pref.value;
-                        }
-                    }
-                });
+            const message = document.getElementById('unlock-message').value.trim();
+            if (!message) {
+                alert('메시지를 입력해주세요.');
+                return;
             }
-        }
 
-// Unlock Request
-async function requestUnlock(targetId) {
-            document.getElementById('profile-modal').classList.remove('active');
-            document.getElementById('unlock-modal').classList.add('active');
-            document.getElementById('unlock-target-id').value = targetId;
-
-            const form = document.getElementById('unlock-request-form');
-            form.onsubmit = async (e) => {
-                e.preventDefault();
-
-                const message = document.getElementById('unlock-message').value.trim();
-                if (!message) {
-                    alert('메시지를 입력해주세요.');
-                    return;
-                }
-
-                const request = {
-                    id: 'request_' + Date.now(),
-                    requesterId: currentUser.id,
-                    targetId: targetId,
-                    message: message,
-                    status: 'pending',
-                    createdAt: Date.now()
-                };
-
-                await saveUnlockRequest(request);
-
-                // Send Discord Notification
-                try {
-                    await sendDiscordNotification(request, currentUser, targetId);
-                } catch (error) {
-                    console.error('Failed to send Discord notification:', error);
-                }
-
-                document.getElementById('unlock-modal').classList.remove('active');
-                document.getElementById('unlock-message').value = '';
-
-                alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
+            const request = {
+                id: 'request_' + Date.now(),
+                requesterId: currentUser.id,
+                targetId: targetId,
+                message: message,
+                status: 'pending',
+                createdAt: Date.now()
             };
 
-            // Close button
-            const modal = document.getElementById('unlock-modal');
-            modal.querySelector('.modal-close').onclick = () => {
+            await saveUnlockRequest(request);
+
+            // Send Discord Notification
+            try {
+                await sendDiscordNotification(request, currentUser, targetId);
+            } catch (error) {
+                console.error('Failed to send Discord notification:', error);
+            }
+
+            document.getElementById('unlock-modal').classList.remove('active');
+            document.getElementById('unlock-message').value = '';
+
+            alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
+        };
+
+        // Close button
+        const modal = document.getElementById('unlock-modal');
+        modal.querySelector('.modal-close').onclick = () => {
+            modal.classList.remove('active');
+        };
+
+        modal.onclick = (e) => {
+            if (e.target === modal) {
                 modal.classList.remove('active');
-            };
+            }
+        };
+    }
 
-            modal.onclick = (e) => {
-                if (e.target === modal) {
-                    modal.classList.remove('active');
+    // Analyze why there are no matches
+    async function analyzeMismatches(user) {
+        const allUsers = await fetchUsers();
+        const candidates = allUsers.filter(u =>
+            u.id !== user.id && u.gender !== user.gender
+        );
+
+        const mismatchCounts = {};
+
+        // Initialize mismatch counts for each preference
+        user.preferences.priorities.forEach(pref => {
+            const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
+            if (field) {
+                mismatchCounts[pref.field] = {
+                    label: field.label,
+                    count: 0
+                };
+            }
+        });
+
+        // Count mismatches for each candidate
+        candidates.forEach(candidate => {
+            user.preferences.priorities.forEach(pref => {
+                if (!matchesPreference(candidate, pref.field, user)) {
+                    mismatchCounts[pref.field].count++;
                 }
-            };
-        }
+            });
+        });
 
-// Analyze why there are no matches
-            // Convert to array and sort by count (descending)
-            const mismatchDetails = Object.keys(mismatchCounts)
-        .map(field => mismatchCounts[field])
-        .sort((a, b) => b.count - a.count);
+        // Convert to array and sort by count (descending)
+        const mismatchDetails = Object.keys(mismatchCounts)
+            .map(field => mismatchCounts[field])
+            .sort((a, b) => b.count - a.count);
 
-    return {
-        totalCandidates: candidates.length,
-        mismatchDetails: mismatchDetails
-    };
+        return {
+            totalCandidates: candidates.length,
+            mismatchDetails: mismatchDetails
+        };
+    }
 }
 
 // Matching Algorithm
@@ -1119,7 +1136,7 @@ function showAdminLogin() {
     };
 }
 
-function showAdminDashboard() {
+async function showAdminDashboard() {
     showPage('admin-dashboard-page');
 
     // Logout button
