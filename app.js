@@ -17,7 +17,7 @@ const STORAGE_KEYS = {
     ADMIN_LOGGED_IN: 'matchingService_adminLoggedIn'
 };
 
-const ADMIN_PASSWORD_HASH = 'b8b8eb83374c0bf3b1c3224159f6119dbfff1b7ed6dfecdd80d4e8a895790a34'; // SHA-256 hash of 'admin2024'
+const ADMIN_PASSWORD_HASH = 'b8b8eb83374c0bf3b1c3224159f6119dbfff1b7ed6dfecdd80d4e8a895790a34';
 
 // Preference field definitions
 const PREFERENCE_FIELDS = [
