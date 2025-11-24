@@ -27,7 +27,6 @@ const PREFERENCE_FIELDS = [
     { id: 'drinking', label: '음주', type: 'select' },
     { id: 'hobbies', label: '취미', type: 'multi' },
     { id: 'job', label: '직업/직군', type: 'select' },
-    { id: 'education', label: '학력', type: 'select' },
     { id: 'location', label: '거주 지역', type: 'select' },
     { id: 'smoking', label: '흡연 여부', type: 'select' },
     { id: 'mbti', label: 'MBTI', type: 'text' },
