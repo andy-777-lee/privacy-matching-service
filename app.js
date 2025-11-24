@@ -1488,17 +1488,17 @@ async function sendNewUserDiscordNotification(user) {
             fields: [
                 {
                     name: "이름",
-                    value: `${user.name} (${user.birthYear}년생, ${user.gender === 'male' ? '남성' : '여성'})`,
+                    value: `${user.name || '정보 없음'} (${user.birthYear}년생, ${user.gender === 'male' ? '남성' : '여성'})`,
                     inline: true
                 },
                 {
                     name: "직업",
-                    value: user.job,
+                    value: user.job || '정보 없음',
                     inline: true
                 },
                 {
                     name: "거주지",
-                    value: user.location,
+                    value: user.location || '정보 없음',
                     inline: true
                 },
                 {
@@ -1513,13 +1513,20 @@ async function sendNewUserDiscordNotification(user) {
     };
 
     try {
-        await fetch(webhookUrl, {
+        const response = await fetch(webhookUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
         });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Discord webhook failed:', response.status, errorText);
+        } else {
+            console.log('Discord notification sent successfully');
+        }
     } catch (error) {
         console.error("Discord notification failed:", error);
     }
