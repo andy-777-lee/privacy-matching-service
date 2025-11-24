@@ -174,7 +174,7 @@ function setupRegistrationForm() {
             hobbies: hobbies,
             job: document.getElementById('job').value,
             workplace: document.getElementById('workplace').value,
-            education: document.getElementById('education').value,
+            highSchool: document.getElementById('high-school').value,
             location: location,
             smoking: document.querySelector('input[name="smoking"]:checked').value,
             mbti: mbti,
@@ -806,7 +806,7 @@ function setupRegistrationForm() {
                 </div>
                 <div class="match-details">
                     <span class="match-tag">${user.workplace || '정보 없음'}</span>
-                    <span class="match-tag">${user.education || '정보 없음'}</span>
+                    <span class="match-tag">${user.highSchool || '정보 없음'}</span>
                     <span class="match-tag">${user.location || '정보 없음'}</span>
                     <span class="match-tag">${user.smoking || '정보 없음'}</span>
                     <span class="match-tag">${user.mbti || '?'}</span>
@@ -867,8 +867,8 @@ function setupRegistrationForm() {
                 <div class="info-value">${user.workplace}</div>
             </div>
             <div class="info-item">
-                <div class="info-label">학력</div>
-                <div class="info-value">${user.education}</div>
+                <div class="info-label">고등학교</div>
+                <div class="info-value">${user.highSchool || '정보 없음'}</div>
             </div>
             <div class="info-item">
                 <div class="info-label">거주지</div>
@@ -1396,8 +1396,8 @@ async function displayAllProfiles() {
                     <div class="detail-value">${user.workplace || 'N/A'}</div>
                 </div>
                 <div class="detail-item">
-                    <div class="detail-label">학력</div>
-                    <div class="detail-value">${user.education || 'N/A'}</div>
+                    <div class="detail-label">고등학교</div>
+                    <div class="detail-value">${user.highSchool || 'N/A'}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">거주지</div>
