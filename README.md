@@ -39,14 +39,8 @@ http://localhost:8001 접속
 - 백엔드 서버 없음
 - 실제 서비스를 위해서는 백엔드 필요
 
-## 📝 관리자 정보
-
-- 관리자 페이지: `#admin`
-- 비밀번호: `admin2024`
-
 ## 🔧 기술 스택
 
 - HTML5, CSS3, Vanilla JavaScript
 - Browser localStorage
-- Google Fonts (Inter)
 
