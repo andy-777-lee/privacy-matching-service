@@ -152,11 +152,16 @@ function setupRegistrationForm() {
         }
 
         const formData = new FormData(form);
+        const birthYear = parseInt(formData.get('birthYear'));
+        const currentYear = new Date().getFullYear();
+        const age = currentYear - birthYear + 1; // Korean age calculation
+
         const user = {
             id: Date.now().toString(),
             name: formData.get('name'),
             gender: formData.get('gender'),
-            birthYear: parseInt(formData.get('birthYear')),
+            birthYear: birthYear,
+            age: age,
             religion: formData.get('religion'),
             height: parseInt(formData.get('height')),
             drinking: formData.get('drinking'),
@@ -166,7 +171,7 @@ function setupRegistrationForm() {
             education: formData.get('education'),
             location: formData.get('location'),
             smoking: formData.get('smoking'),
-            mbti: formData.get('mbti'),
+            mbti: mbti,
             marriagePlan: formData.get('marriagePlan'),
             contactKakao: formData.get('contactKakao'),
             contactInstagram: formData.get('contactInstagram'),
@@ -751,27 +756,27 @@ function setupRegistrationForm() {
         <div class="match-card" data-user-id="${user.id}">
             <div class="match-photos">
                 <span class="match-percentage">${score}% 매칭</span>
-                <img src="${user.photos[0]}" class="${isUnlocked ? '' : 'blurred-photo'}" alt="Profile">
+                <img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" class="${isUnlocked ? '' : 'blurred-photo'}" alt="Profile">
             </div>
             <div class="match-info">
                 <div class="match-name ${isUnlocked ? '' : 'hidden-name'}">
-                    ${isUnlocked ? user.name : '***'}
+                    ${isUnlocked ? (user.name || '이름 없음') : '***'}
                 </div>
                 <div class="match-details">
-                    <span class="match-tag">${user.birthYear}년생 (${user.age}세)</span>
-                    <span class="match-tag">${user.religion}</span>
-                    <span class="match-tag">${user.height}cm</span>
-                    <span class="match-tag">${user.job}</span>
+                    <span class="match-tag">${user.birthYear || '?'}년생 (${user.age || '?'}세)</span>
+                    <span class="match-tag">${user.religion || '정보 없음'}</span>
+                    <span class="match-tag">${user.height || '?'}cm</span>
+                    <span class="match-tag">${user.job || '정보 없음'}</span>
                 </div>
                 <div class="match-details">
-                    <span class="match-tag">${user.workplace}</span>
-                    <span class="match-tag">${user.education}</span>
-                    <span class="match-tag">${user.location}</span>
-                    <span class="match-tag">${user.smoking}</span>
-                    <span class="match-tag">${user.mbti}</span>
+                    <span class="match-tag">${user.workplace || '정보 없음'}</span>
+                    <span class="match-tag">${user.education || '정보 없음'}</span>
+                    <span class="match-tag">${user.location || '정보 없음'}</span>
+                    <span class="match-tag">${user.smoking || '정보 없음'}</span>
+                    <span class="match-tag">${user.mbti || '?'}</span>
                 </div>
                 <div class="match-hobbies">
-                    ${user.hobbies.slice(0, 3).map(h => `<span class="hobby-tag">${h}</span>`).join('')}
+                    ${user.hobbies && user.hobbies.length > 0 ? user.hobbies.slice(0, 3).map(h => `<span class="hobby-tag">${h}</span>`).join('') : '<span class="hobby-tag">취미 정보 없음</span>'}
                 </div>
             </div>
         </div>
