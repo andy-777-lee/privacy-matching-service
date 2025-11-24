@@ -295,7 +295,8 @@ function setupPreferenceSelection() {
 
                     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
                     showMatchesPage();
-                });
+                }
+            });
         }
 
 function updatePriorityList(selectedFields) {
