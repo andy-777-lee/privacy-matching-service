@@ -75,7 +75,8 @@ async function initializeApp() {
                     showPage('preference-page');
                     setupPreferenceSelection();
                 } else {
-                    showMatchesPage();
+                    showPage('matches-page');
+                    setupRegistrationForm(); // This will set up all nested functions including displayMatches
                 }
                 return;
             }
