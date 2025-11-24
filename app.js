@@ -1042,6 +1042,37 @@ function setupRegistrationForm() {
     }
 }
 
+// Global function for editing preferences (called from HTML onclick)
+function editPreferences() {
+    document.getElementById('profile-modal').classList.remove('active');
+    showPage('preference-page');
+    setupPreferenceSelection();
+
+    // Pre-populate existing preferences if user has them
+    if (currentUser && currentUser.preferences) {
+        setTimeout(() => {
+            const selectGrid = document.getElementById('preference-select');
+            const selectedFields = currentUser.preferences.priorities.map(p => p.field);
+
+            // Check the selected preferences
+            selectedFields.forEach(fieldId => {
+                const checkbox = document.getElementById(`pref-${fieldId}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+
+            // Trigger change event to show values and priority list
+            if (selectedFields.length > 0) {
+                // Manually trigger the checkbox change to update UI
+                const event = new Event('change');
+                selectGrid.querySelector('input:checked')?.dispatchEvent(event);
+            }
+        }, 100); // Small delay to ensure DOM is ready
+    }
+}
+
+
 // Matching Algorithm
 // Matching Algorithm
 async function findMatches(user) {
