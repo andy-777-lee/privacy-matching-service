@@ -157,7 +157,7 @@ function setupRegistrationForm() {
             marriagePlan: formData.get('marriagePlan'),
             contactKakao: formData.get('contactKakao'),
             contactInstagram: formData.get('contactInstagram'),
-            photos: uploadedPhotos,
+            photos: photos,
             registeredAt: Date.now()
         };
 
