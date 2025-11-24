@@ -17,7 +17,7 @@ const STORAGE_KEYS = {
     ADMIN_LOGGED_IN: 'matchingService_adminLoggedIn'
 };
 
-const ADMIN_PASSWORD = 'admin2024';
+const ADMIN_PASSWORD_HASH = 'b8b8eb83374c0bf3b1c3224159f6119dbfff1b7ed6dfecdd80d4e8a895790a34'; // SHA-256 hash of 'admin2024'
 
 // Preference field definitions
 const PREFERENCE_FIELDS = [
@@ -1093,18 +1093,25 @@ function showAdminLogin() {
     const form = document.getElementById('admin-login-form');
     const errorDiv = document.getElementById('admin-error');
 
-    form.addEventListener('submit', (e) => {
+    form.onsubmit = async (e) => {
         e.preventDefault();
         const password = document.getElementById('admin-password').value;
+        const errorMsg = document.getElementById('admin-error');
 
-        if (password === ADMIN_PASSWORD) {
+        // Simple SHA-256 hash function for client-side
+        const msgBuffer = new TextEncoder().encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        if (hashHex === ADMIN_PASSWORD_HASH) {
             localStorage.setItem(STORAGE_KEYS.ADMIN_LOGGED_IN, 'true');
             showAdminDashboard();
         } else {
-            errorDiv.textContent = '비밀번호가 올바르지 않습니다.';
-            errorDiv.classList.add('active');
+            errorMsg.textContent = '비밀번호가 올바르지 않습니다.';
+            errorMsg.style.display = 'block';
         }
-    });
+    };
 }
 
 function showAdminDashboard() {
