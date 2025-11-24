@@ -171,6 +171,10 @@ function setupRegistrationForm() {
             };
 
             await saveUser(user);
+
+            // Send Discord Notification (Non-blocking)
+            sendNewUserDiscordNotification(user).catch(console.error);
+
             currentUser = user;
             localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.id);
 
@@ -1441,4 +1445,53 @@ async function sendDiscordNotification(request, requester, targetId) {
         },
         body: JSON.stringify(payload)
     });
+}
+
+async function sendNewUserDiscordNotification(user) {
+    const webhookUrl = "https://discord.com/api/webhooks/1442381314396393624/McRV-roltEVoO6x4MQSsWmleG0wYOEK_0XK74ezzTqK4x1jcR62uzxEf4gq6DfqAC9jv";
+    const adminUrl = window.location.origin + '/#admin';
+
+    const payload = {
+        embeds: [{
+            title: "🎉 새로운 사용자 등록!",
+            description: `[👉 관리자 페이지 바로가기](${adminUrl})`,
+            color: 0x00FF00, // Green
+            fields: [
+                {
+                    name: "이름",
+                    value: `${user.name} (${user.birthYear}년생, ${user.gender === 'male' ? '남성' : '여성'})`,
+                    inline: true
+                },
+                {
+                    name: "직업",
+                    value: user.job,
+                    inline: true
+                },
+                {
+                    name: "거주지",
+                    value: user.location,
+                    inline: true
+                },
+                {
+                    name: "등록 시간",
+                    value: new Date(user.registeredAt).toLocaleString('ko-KR')
+                }
+            ],
+            footer: {
+                text: "새로운 매칭 후보가 등장했습니다!"
+            }
+        }]
+    };
+
+    try {
+        await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+    } catch (error) {
+        console.error("Discord notification failed:", error);
+    }
 }
