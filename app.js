@@ -200,11 +200,41 @@ function setupRegistrationForm() {
                         return;
                     }
 
+                    // Compress image before storing
                     const reader = new FileReader();
                     reader.onload = (event) => {
-                        const preview = document.querySelector(`[data-index="${index}"] .photo-preview`);
-                        preview.innerHTML = `<img src="${event.target.result}" alt="Photo ${index + 1}">`;
-                        preview.classList.add('active');
+                        const img = new Image();
+                        img.onload = () => {
+                            // Create canvas for compression
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+
+                            // Calculate new dimensions (max 800px on longest side)
+                            let width = img.width;
+                            let height = img.height;
+                            const maxSize = 800;
+
+                            if (width > height && width > maxSize) {
+                                height = (height * maxSize) / width;
+                                width = maxSize;
+                            } else if (height > maxSize) {
+                                width = (width * maxSize) / height;
+                                height = maxSize;
+                            }
+
+                            canvas.width = width;
+                            canvas.height = height;
+
+                            // Draw and compress
+                            ctx.drawImage(img, 0, 0, width, height);
+                            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
+
+                            // Display preview
+                            const preview = document.querySelector(`[data-index="${index}"] .photo-preview`);
+                            preview.innerHTML = `<img src="${compressedDataUrl}" alt="Photo ${index + 1}">`;
+                            preview.classList.add('active');
+                        };
+                        img.src = event.target.result;
                     };
                     reader.readAsDataURL(file);
                 }
