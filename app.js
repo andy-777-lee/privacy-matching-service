@@ -1092,6 +1092,47 @@ function editPreferences() {
     setupRegistrationForm();
 }
 
+// Global function for requesting profile unlock (called from HTML onclick)
+async function requestUnlock(targetId) {
+    document.getElementById('profile-modal').classList.remove('active');
+    document.getElementById('unlock-modal').classList.add('active');
+    document.getElementById('unlock-target-id').value = targetId;
+
+    const form = document.getElementById('unlock-request-form');
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+
+        const message = document.getElementById('unlock-message').value.trim();
+        if (!message) {
+            alert('메시지를 입력해주세요.');
+            return;
+        }
+
+        const request = {
+            id: 'request_' + Date.now(),
+            requesterId: currentUser.id,
+            targetId: targetId,
+            message: message,
+            status: 'pending',
+            createdAt: Date.now()
+        };
+
+        await saveUnlockRequest(request);
+
+        // Send Discord Notification
+        try {
+            await sendDiscordNotification(request, currentUser, targetId);
+        } catch (error) {
+            console.error('Failed to send Discord notification:', error);
+        }
+
+        document.getElementById('unlock-modal').classList.remove('active');
+        document.getElementById('unlock-message').value = '';
+
+        alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
+    };
+}
+
 
 // Matching Algorithm
 // Matching Algorithm
