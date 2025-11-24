@@ -13,8 +13,38 @@
 
 <body>
     <div id="app">
+        <!-- Login Page -->
+        <div id="login-page" class="page active">
+            <div class="container">
+                <div class="hero">
+                    <div class="logo">💕</div>
+                    <h1 class="gradient-text">프라이버시 보장 매칭</h1>
+                    <p class="subtitle">연말인데 추울걸?</p>
+                </div>
+
+                <div class="card glass">
+                    <h2>로그인</h2>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label>카카오톡 ID *</label>
+                            <input type="text" id="login-kakao-id" placeholder="카카오톡 ID" required>
+                        </div>
+                        <div class="form-group">
+                            <label>비밀번호 (4자리) *</label>
+                            <input type="password" id="login-password" maxlength="4" pattern="[0-9]{4}"
+                                placeholder="4자리 숫자" required>
+                        </div>
+                        <div id="login-error" style="color: #ff4444; display: none; margin-bottom: 1rem;"></div>
+                        <button type="submit" class="btn btn-primary btn-large">로그인</button>
+                        <button type="button" id="go-to-register" class="btn btn-secondary btn-large"
+                            style="margin-top: 0.5rem;">회원가입</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Registration Page -->
-        <div id="registration-page" class="page active">
+        <div id="registration-page" class="page">
             <div class="container">
                 <div class="hero">
                     <div class="logo">💕</div>
@@ -293,6 +323,12 @@
                         <div class="form-group">
                             <label>인스타그램 ID (선택)</label>
                             <input type="text" id="instagram-id" placeholder="@username">
+                        </div>
+                        <div class="form-group">
+                            <label>비밀번호 (4자리) *</label>
+                            <input type="password" id="password" maxlength="4" pattern="[0-9]{4}" placeholder="4자리 숫자"
+                                required>
+                            <small style="color: #888;">로그인 시 사용할 4자리 숫자를 입력하세요</small>
                         </div>
                     </div>
 

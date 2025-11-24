@@ -80,8 +80,9 @@ async function initializeApp() {
                 return;
             }
         }
-        showPage('registration-page');
-        setupRegistrationForm();
+        // Show login page if not logged in
+        showPage('login-page');
+        setupLoginPage();
     }
 }
 
@@ -97,6 +98,73 @@ function showPage(pageId) {
         page.classList.remove('active');
     });
     document.getElementById(pageId).classList.add('active');
+}
+
+// Password Hashing
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+// Login Page Setup
+function setupLoginPage() {
+    const loginForm = document.getElementById('login-form');
+    const goToRegisterBtn = document.getElementById('go-to-register');
+    const loginError = document.getElementById('login-error');
+
+    // Handle login
+    loginForm.onsubmit = async (e) => {
+        e.preventDefault();
+        loginError.style.display = 'none';
+
+        const kakaoId = document.getElementById('login-kakao-id').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        try {
+            const users = await fetchUsers();
+            const user = users.find(u => u.contactKakao === kakaoId);
+
+            if (!user) {
+                loginError.textContent = '등록되지 않은 카카오톡 ID입니다.';
+                loginError.style.display = 'block';
+                return;
+            }
+
+            const hashedPassword = await hashPassword(password);
+            if (user.password !== hashedPassword) {
+                loginError.textContent = '비밀번호가 올바르지 않습니다.';
+                loginError.style.display = 'block';
+                return;
+            }
+
+            // Login successful
+            currentUser = user;
+            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.id);
+
+            // Navigate to appropriate page
+            if (!user.preferences) {
+                showPage('preference-page');
+                setupPreferenceSelection();
+            } else {
+                showPage('matches-page');
+                setupRegistrationForm();
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            loginError.textContent = '로그인 중 오류가 발생했습니다.';
+            loginError.style.display = 'block';
+        }
+    };
+
+    // Handle go to register
+    goToRegisterBtn.onclick = () => {
+        showPage('registration-page');
+        setupRegistrationForm();
+    };
 }
 
 // Registration Form
@@ -180,6 +248,7 @@ function setupRegistrationForm() {
             marriagePlan: document.getElementById('marriage-plan').value,
             contactKakao: document.getElementById('kakao-id').value,
             contactInstagram: document.getElementById('instagram-id').value,
+            password: await hashPassword(document.getElementById('password').value),
             photos: photos,
             registeredAt: Date.now()
         };
