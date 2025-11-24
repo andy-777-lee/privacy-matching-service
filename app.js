@@ -297,6 +297,9 @@ function setupRegistrationForm() {
                     updatedAt: Date.now()
                 };
 
+                // Save to Firestore
+                await saveUser(currentUser);
+
                 localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
                 showMatchesPage();
             }
