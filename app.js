@@ -44,6 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initializeApp() {
+    // Ensure user is authenticated (anonymous login for Firestore security rules)
+    try {
+        if (!firebase.auth().currentUser) {
+            await firebase.auth().signInAnonymously();
+            console.log('Anonymous authentication successful');
+        }
+    } catch (error) {
+        console.error('Anonymous authentication failed:', error);
+        alert('인증에 실패했습니다. 페이지를 새로고침해주세요.');
+        return;
+    }
+
     const hash = window.location.hash;
 
     if (hash === '#admin') {
