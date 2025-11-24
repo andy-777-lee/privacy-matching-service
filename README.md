@@ -49,3 +49,4 @@ http://localhost:8001 접속
 - HTML5, CSS3, Vanilla JavaScript
 - Browser localStorage
 - Google Fonts (Inter)
+
