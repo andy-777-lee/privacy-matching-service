@@ -1393,10 +1393,12 @@ async function sendDiscordNotification(request, requester, targetId) {
     const target = users.find(u => u.id === targetId);
 
     const webhookUrl = "https://discord.com/api/webhooks/1442381314396393624/McRV-roltEVoO6x4MQSsWmleG0wYOEK_0XK74ezzTqK4x1jcR62uzxEf4gq6DfqAC9jv";
+    const adminUrl = window.location.origin + '/#admin';
 
     const payload = {
         embeds: [{
             title: "🔐 새로운 프로필 공개 요청",
+            description: `[👉 관리자 페이지 바로가기](${adminUrl})`,
             color: 0xFF69B4, // Hot Pink
             fields: [
                 {
