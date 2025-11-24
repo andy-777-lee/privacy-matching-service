@@ -179,8 +179,8 @@ function setupRegistrationForm() {
             smoking: document.querySelector('input[name="smoking"]:checked').value,
             mbti: mbti,
             marriagePlan: document.getElementById('marriage-plan').value,
-            contactKakao: document.getElementById('contact-kakao').value,
-            contactInstagram: document.getElementById('contact-instagram').value,
+            contactKakao: document.getElementById('kakao-id').value,
+            contactInstagram: document.getElementById('instagram-id').value,
             photos: photos,
             registeredAt: Date.now()
         };
