@@ -1805,6 +1805,12 @@ textarea:focus {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.photo-preview-edit:hover img {
+    opacity: 0.8;
+    transform: scale(1.02);
 }
 
 .photo-preview-edit.active~.photo-label {

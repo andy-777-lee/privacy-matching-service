@@ -1643,6 +1643,13 @@ function populateEditProfileForm() {
         if (preview) {
             preview.innerHTML = `<img src="${photo}" alt="Photo ${index + 1}">`;
             preview.classList.add('active');
+
+            // Make photo clickable to change
+            preview.style.cursor = 'pointer';
+            preview.onclick = () => {
+                const input = document.getElementById(`photo-edit-${index}`);
+                if (input) input.click();
+            };
         }
     });
 
