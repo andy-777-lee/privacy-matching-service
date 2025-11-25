@@ -1647,11 +1647,19 @@ function showAdminLogin() {
 
             // For development convenience: Create admin account if not found
             // Only allow creation for the specific 'admin' ID to prevent multiple admin accounts
-            if (error.code === 'auth/user-not-found') {
+            // Note: Newer Firebase Auth returns 'auth/invalid-login-credentials' or 'auth/invalid-credential' instead of specific user-not-found
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-login-credentials' || error.code === 'auth/invalid-credential') {
                 // Only allow 'admin' ID to create the account
                 if (email === 'admin@matching.app') {
                     try {
-                        if (confirm('초기 관리자 계정(admin)이 없습니다. 생성하시겠습니까?')) {
+                        // First try to create user directly. If it fails because it exists (wrong password case), catch that.
+                        // But we can't distinguish "wrong password" from "user not found" easily with the new error code without trying.
+                        // So we'll ask the user if they want to create/reset.
+
+                        // However, if the user exists but password is wrong, createUser will fail with 'auth/email-already-in-use'.
+                        // So we can try to create it.
+
+                        if (confirm('관리자 계정 로그인을 시도했으나 실패했습니다.\n\n초기 관리자 계정(admin)이 없다면 생성하시겠습니까?\n(이미 계정이 있다면 취소 후 비밀번호를 확인하세요)')) {
                             await auth.createUserWithEmailAndPassword(email, password);
                             localStorage.setItem(STORAGE_KEYS.ADMIN_LOGGED_IN, 'true');
                             showAdminDashboard();
@@ -1659,15 +1667,14 @@ function showAdminLogin() {
                         }
                     } catch (createError) {
                         console.error('Error creating admin:', createError);
-                        errorMsg.textContent = '관리자 계정 생성 실패: ' + createError.message;
+                        if (createError.code === 'auth/email-already-in-use') {
+                            errorMsg.textContent = '이미 존재하는 계정입니다. 비밀번호를 확인하세요.';
+                        } else {
+                            errorMsg.textContent = '관리자 계정 생성 실패: ' + createError.message;
+                        }
                         errorMsg.style.display = 'block';
                         return;
                     }
-                } else {
-                    // For other IDs, show generic error
-                    errorMsg.textContent = '존재하지 않는 관리자 계정입니다.';
-                    errorMsg.style.display = 'block';
-                    return;
                 }
             }
 
@@ -1676,6 +1683,8 @@ function showAdminLogin() {
                 msg = '비밀번호가 올바르지 않습니다.';
             } else if (error.code === 'auth/invalid-email') {
                 msg = '유효하지 않은 이메일 형식입니다.';
+            } else if (error.code === 'auth/invalid-login-credentials' || error.code === 'auth/invalid-credential') {
+                msg = '아이디가 없거나 비밀번호가 올바르지 않습니다.';
             }
             errorMsg.textContent = msg;
             errorMsg.style.display = 'block';
