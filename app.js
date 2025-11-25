@@ -1918,6 +1918,12 @@ async function fetchNotifications(userId) {
             .get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
+        // Handle missing index error
+        if (error.code === 'failed-precondition' && error.message.includes('index')) {
+            console.warn('Firestore index required for notifications. Create it at:', error.message.match(/https:\/\/[^\s]+/)?.[0]);
+            // Return empty array until index is created
+            return [];
+        }
         // Silently handle permission errors (notifications feature may not be set up yet)
         if (error.code !== 'permission-denied') {
             console.error("Error fetching notifications:", error);
