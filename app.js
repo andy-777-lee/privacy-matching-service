@@ -25,15 +25,17 @@ const ADMIN_PASSWORD_HASH = 'b8b8eb83374c0bf3b1c3224159f6119dbfff1b7ed6dfecdd80d
 // Preference field definitions
 const PREFERENCE_FIELDS = [
     { id: 'birthYear', label: '나이 (출생년도)', type: 'range' },
-    { id: 'religion', label: '종교', type: 'select' },
+    { id: 'religion', label: '종교', type: 'multi' },
     { id: 'height', label: '키', type: 'range' },
+    { id: 'bodyType', label: '체격', type: 'multi' },
     { id: 'drinking', label: '음주', type: 'select' },
     { id: 'hobbies', label: '취미', type: 'multi' },
     { id: 'job', label: '직업/직군', type: 'select' },
     { id: 'location', label: '거주 지역', type: 'select' },
     { id: 'smoking', label: '흡연 여부', type: 'select' },
     { id: 'mbti', label: 'MBTI', type: 'text' },
-    { id: 'marriagePlan', label: '결혼 계획', type: 'select' }
+    { id: 'marriagePlan', label: '결혼 계획', type: 'select' },
+    { id: 'education', label: '학력', type: 'select' }
 ];
 
 let draggedElement = null;
@@ -869,21 +871,7 @@ function handleDrop(e) {
     return false;
 }
 
-// Preference field definitions
-const PREFERENCE_FIELDS = [
-    { id: 'birthYear', label: '나이 (출생년도)', type: 'range' },
-    { id: 'religion', label: '종교', type: 'multi' }, // Changed to multi
-    { id: 'height', label: '키', type: 'range' },
-    { id: 'bodyType', label: '체격', type: 'multi' }, // Added bodyType
-    { id: 'drinking', label: '음주', type: 'select' },
-    { id: 'hobbies', label: '취미', type: 'multi' },
-    { id: 'job', label: '직업/직군', type: 'select' },
-    { id: 'location', label: '거주 지역', type: 'select' },
-    { id: 'smoking', label: '흡연 여부', type: 'select' },
-    { id: 'mbti', label: 'MBTI', type: 'text' },
-    { id: 'marriagePlan', label: '결혼 계획', type: 'select' },
-    { id: 'education', label: '학력', type: 'select' } // Added education field
-];
+
 
 // Show preference value inputs
 function showPreferenceValues(selectedFields) {
