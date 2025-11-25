@@ -699,10 +699,10 @@ function setupRegistrationForm() {
 
         // Collect detailed values
         const priorities = [];
-        const listItems = document.querySelectorAll('#sortable-list li');
+        const listItems = document.querySelectorAll('#priority-list .priority-item');
 
         listItems.forEach((li, index) => {
-            const fieldId = li.dataset.id;
+            const fieldId = li.dataset.fieldId;
             const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
 
             // Get value from input
