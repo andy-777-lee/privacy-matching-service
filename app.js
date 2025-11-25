@@ -271,6 +271,11 @@ function setupNotifications() {
                         badge.style.display = 'none';
                     }
                 }
+
+                // Update modal list if it's open
+                if (notificationModal && notificationModal.style.display === 'block') {
+                    displayNotifications(notifications);
+                }
             }
         }, 5000); // Check every 5 seconds
     } catch (error) {
