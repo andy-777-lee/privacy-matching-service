@@ -744,6 +744,13 @@ function setupRegistrationForm() {
                 await saveUser(currentUser);
                 console.log('Saved to Firestore successfully');
 
+                // Reload user data from Firestore to ensure consistency
+                const userDoc = await db.collection('users').doc(currentUser.id).get();
+                if (userDoc.exists) {
+                    currentUser = userDoc.data();
+                    console.log('Reloaded currentUser from Firestore:', currentUser);
+                }
+
                 localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
 
                 // Show matches page using custom event
