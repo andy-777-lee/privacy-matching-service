@@ -888,6 +888,12 @@ function showPreferenceValues(selectedFields) {
     container.innerHTML = selectedFields.map(fieldId => {
         const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
 
+        // Skip if field is not found in PREFERENCE_FIELDS
+        if (!field) {
+            console.warn(`Field ${fieldId} not found in PREFERENCE_FIELDS`);
+            return '';
+        }
+
         if (field.type === 'range') {
             if (fieldId === 'birthYear') {
                 return `
