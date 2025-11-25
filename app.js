@@ -562,6 +562,8 @@ function setupRegistrationForm() {
     }
 
 
+    let preferenceSelectionInitialized = false;
+
     function setupPreferenceSelection() {
         const selectGrid = document.getElementById('preference-select');
         const priorityCard = document.getElementById('priority-card');
@@ -576,11 +578,9 @@ function setupRegistrationForm() {
             return;
         }
 
-        // Check if already initialized (has checkboxes)
-        const alreadyInitialized = selectGrid.querySelectorAll('input[type="checkbox"]').length > 0;
-
-        if (!alreadyInitialized) {
-            // Populate preference options only if not already done
+        // Only generate HTML once
+        if (!preferenceSelectionInitialized) {
+            // Populate preference options
             selectGrid.innerHTML = PREFERENCE_FIELDS.map(field => `
             <div class="preference-option">
                 <input type="checkbox" id="pref-${field.id}" value="${field.id}">
@@ -589,8 +589,29 @@ function setupRegistrationForm() {
         `).join('');
 
             console.log('Checkboxes created, innerHTML length:', selectGrid.innerHTML.length);
-        } else {
-            console.log('Checkboxes already exist, skipping HTML generation');
+
+            // Listen for checkbox changes (only once)
+            selectGrid.addEventListener('change', () => {
+                const selected = Array.from(selectGrid.querySelectorAll('input:checked'))
+                    .map(cb => cb.value);
+
+                if (selected.length > 0) {
+                    // Save current values before regenerating
+                    const currentValues = saveCurrentPreferenceValues();
+
+                    showPreferenceValues(selected);
+                    priorityCard.style.display = 'block';
+                    updatePriorityList(selected);
+
+                    // Restore saved values
+                    restorePreferenceValues(currentValues);
+                } else {
+                    document.getElementById('preference-values-card').style.display = 'none';
+                    priorityCard.style.display = 'none';
+                }
+            });
+
+            preferenceSelectionInitialized = true;
         }
 
         // Load existing preferences if user has them
@@ -598,31 +619,32 @@ function setupRegistrationForm() {
             const existingPrefs = currentUser.preferences.priorities;
             const selectedFields = existingPrefs.map(p => p.field);
 
+            console.log('Restoring preferences:', selectedFields);
+
             // Clear all checkboxes first
             selectGrid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                 cb.checked = false;
             });
 
-            // Use setTimeout to ensure DOM is ready
-            setTimeout(() => {
-                // Check the checkboxes for existing preferences
-                selectedFields.forEach(fieldId => {
-                    const checkbox = document.getElementById(`pref-${fieldId}`);
-                    if (checkbox) {
-                        checkbox.checked = true;
-                        console.log(`Checked preference: ${fieldId}`);
-                    } else {
-                        console.warn(`Checkbox not found for: ${fieldId}`);
-                    }
-                });
+            // Check the checkboxes for existing preferences (immediately, no setTimeout)
+            selectedFields.forEach(fieldId => {
+                const checkbox = document.getElementById(`pref-${fieldId}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    console.log(`✓ Checked preference: ${fieldId}`);
+                } else {
+                    console.warn(`✗ Checkbox not found for: ${fieldId}`);
+                }
+            });
 
-                // Show preference values and priority list
-                if (selectedFields.length > 0) {
+            // Show preference values and priority list
+            if (selectedFields.length > 0) {
+                setTimeout(() => {
                     showPreferenceValues(selectedFields);
                     priorityCard.style.display = 'block';
                     updatePriorityList(selectedFields);
 
-                    // Restore the actual values with another setTimeout
+                    // Restore the actual values
                     setTimeout(() => {
                         existingPrefs.forEach(pref => {
                             const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
@@ -658,30 +680,9 @@ function setupRegistrationForm() {
                             }
                         });
                     }, 100);
-                }
-            }, 50);
-        }
-
-        // Listen for checkbox changes
-        selectGrid.addEventListener('change', () => {
-            const selected = Array.from(selectGrid.querySelectorAll('input:checked'))
-                .map(cb => cb.value);
-
-            if (selected.length > 0) {
-                // Save current values before regenerating
-                const currentValues = saveCurrentPreferenceValues();
-
-                showPreferenceValues(selected);
-                priorityCard.style.display = 'block';
-                updatePriorityList(selected);
-
-                // Restore saved values
-                restorePreferenceValues(currentValues);
-            } else {
-                document.getElementById('preference-values-card').style.display = 'none';
-                priorityCard.style.display = 'none';
+                }, 50);
             }
-        });
+        }
 
         // Setup form submission
         // Submit Preferences
