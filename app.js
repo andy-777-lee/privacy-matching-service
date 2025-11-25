@@ -1892,7 +1892,9 @@ async function findMatches(user) {
 
     console.log('Matching User:', matchingUser.name);
     if (matchingUser.preferences && matchingUser.preferences.priorities) {
-        console.log('Priorities count:', matchingUser.preferences.priorities.length);
+        console.log('--- User Preferences ---');
+        console.table(matchingUser.preferences.priorities); // Table view for better readability
+        console.log('------------------------');
     } else {
         console.error('CRITICAL: User still has no preferences!');
     }
@@ -1914,6 +1916,23 @@ async function findMatches(user) {
         }
         return b.score - a.score; // Different percentage: higher percentage first
     });
+
+    console.log('\n=== Final Match Results (Top 10) ===');
+    matches.slice(0, 10).forEach((m, i) => {
+        console.log(`#${i + 1} ${m.user.name} | Score: ${m.score}% | Priority Score: ${m.priorityScore}`);
+        console.log('   Candidate Info:', {
+            birthYear: m.user.birthYear,
+            height: m.user.height,
+            mbti: m.user.mbti,
+            religion: m.user.religion,
+            drinking: m.user.drinking,
+            smoking: m.user.smoking,
+            hobbies: m.user.hobbies,
+            job: m.user.job,
+            location: m.user.location
+        });
+    });
+    console.log('====================================\n');
 
     return matches;
 }
