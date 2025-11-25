@@ -1063,7 +1063,7 @@ function setupRegistrationForm() {
     // Listen for unlocked profile event from notifications
     window.addEventListener('showUnlockedProfile', (event) => {
         const { user } = event.detail;
-        showProfileModal(user, false, null, false); // Show unlocked profile
+        showProfileModal(user, false, null, false, true); // forceUnlocked = true for approved profiles
     });
 
 
@@ -1179,12 +1179,13 @@ function setupRegistrationForm() {
     }
 
     // Profile Modal
-    async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false) {
+    async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false, forceUnlocked = false) {
         const modal = document.getElementById('profile-modal');
         const detail = document.getElementById('profile-detail');
 
         const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
-        const isUnlocked = unlockedProfiles.includes(user.id) || isOwnProfile; // Own profile is always unlocked
+        const isUnlocked = forceUnlocked || unlockedProfiles.includes(user.id) || isOwnProfile; // Own profile is always unlocked
+
 
         detail.innerHTML = `
         ${matchScore ? `<div class="match-percentage" style="position: static; margin-bottom: 1rem;">${matchScore}% 매칭</div>` : ''}
