@@ -1892,12 +1892,15 @@ async function findMatches(user) {
 
     console.log('Matching User:', matchingUser ? matchingUser.name : 'Unknown');
 
-    if (!matchingUser || !matchingUser.preferences || !matchingUser.preferences.priorities) {
-        console.error('CRITICAL: User data is invalid or missing preferences. Cannot proceed with matching.');
-        console.error('Current matchingUser state:', matchingUser);
+    // Check if preferences exist AND are not empty
+    if (!matchingUser || !matchingUser.preferences || !matchingUser.preferences.priorities || matchingUser.preferences.priorities.length === 0) {
+        console.warn('User has no preferences set (empty priorities list).');
+        console.log('Current matchingUser state:', matchingUser);
 
-        // Alert the user about the issue
-        alert('사용자 정보를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
+        // Alert the user to set preferences
+        if (confirm('선호 조건이 설정되지 않았습니다. 선호 조건 설정 페이지로 이동하시겠습니까?')) {
+            showPreferencePage();
+        }
 
         return []; // Stop matching process
     }
