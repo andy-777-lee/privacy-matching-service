@@ -977,8 +977,8 @@ function showPreferenceValues(selectedFields) {
         } else if (field.type === 'text' && fieldId === 'mbti') {
             return `
                 <div class="form-group" id="input-${fieldId}">
-                    <label>${field.label}</label>
-                    <input type="text" id="pref-value-${fieldId}" maxlength="4" placeholder="예: INFP" required>
+                    <label>${field.label} <small>(쉼표로 구분하여 여러 개 입력 가능)</small></label>
+                    <input type="text" id="pref-value-${fieldId}" placeholder="예: INFP,ENTP,ISTP" required>
                 </div>
             `;
         }
@@ -1955,9 +1955,12 @@ function matchesPreference(candidate, fieldId, pref) {
         return prefVal.includes(candVal);
     }
     // Default – direct equality (for select, text, etc.)
-    // Special handling for MBTI to be case-insensitive
+    // Special handling for MBTI to support multiple values (comma-separated) and case-insensitive
     if (fieldId === 'mbti') {
-        return String(candVal).toUpperCase() === String(prefVal).toUpperCase();
+        const candMbti = String(candVal).toUpperCase().trim();
+        // prefVal can be a comma-separated list like "INFP,ENTP,ISTP"
+        const prefMbtis = String(prefVal).toUpperCase().split(',').map(m => m.trim());
+        return prefMbtis.includes(candMbti);
     }
     return candVal === prefVal;
 }
