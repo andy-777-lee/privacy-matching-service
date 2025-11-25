@@ -405,11 +405,24 @@
 
                 <div id="matches-grid" class="matches-grid"></div>
 
+
                 <div id="no-matches" class="no-matches" style="display: none;">
                     <div class="empty-state">
                         <span class="empty-icon">💔</span>
                         <h3>매칭되는 프로필이 없습니다</h3>
                         <p>조건을 조정해보세요</p>
+                    </div>
+                </div>
+
+                <!-- Notification Modal -->
+                <div id="notification-modal" class="modal">
+                    <div class="modal-content card glass">
+                        <span class="close-modal" id="close-notification-modal">&times;</span>
+                        <h2>알림</h2>
+                        <div id="notification-list" class="notification-list">
+                            <!-- Notifications will be populated here -->
+                            <div class="empty-notifications">알림이 없습니다.</div>
+                        </div>
                     </div>
                 </div>
 

@@ -76,6 +76,7 @@ async function initializeApp() {
                 } else {
                     showPage('matches-page');
                     setupRegistrationForm(); // This will set up all nested functions including displayMatches
+                    setupNotifications();
                 }
                 return;
             }
@@ -178,6 +179,7 @@ function setupLoginPage() {
             } else {
                 showPage('matches-page');
                 setupRegistrationForm();
+                setupNotifications();
             }
         } catch (error) {
             console.error('Login error:', error);
@@ -191,6 +193,63 @@ function setupLoginPage() {
         showPage('registration-page');
         setupRegistrationForm();
     };
+}
+
+// Notification Setup
+function setupNotifications() {
+    const notificationBtn = document.getElementById('notification-btn');
+    const notificationModal = document.getElementById('notification-modal');
+    const closeBtn = document.getElementById('close-notification-modal');
+
+    // Toggle modal
+    notificationBtn.onclick = async () => {
+        if (notificationModal.style.display === 'block') {
+            notificationModal.style.display = 'none';
+        } else {
+            const notifications = await fetchNotifications(currentUser.id);
+            displayNotifications(notifications);
+            notificationModal.style.display = 'block';
+        }
+    };
+
+    // Close modal
+    closeBtn.onclick = () => {
+        notificationModal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target === notificationModal) {
+            notificationModal.style.display = 'none';
+        }
+    };
+
+    // Poll for new notifications
+    setInterval(async () => {
+        if (currentUser) {
+            const notifications = await fetchNotifications(currentUser.id);
+            const unreadCount = notifications.filter(n => !n.read).length;
+
+            const badge = document.getElementById('notification-badge');
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.style.display = 'flex';
+
+                // Show toast for latest unread notification if it's new (simple check)
+                const latest = notifications[0];
+                if (!latest.read && Date.now() - latest.createdAt < 10000) { // Created within last 10 seconds
+                    // Prevent duplicate toasts (basic implementation)
+                    if (!window.lastToastId || window.lastToastId !== latest.id) {
+                        showToast(`🔔 ${latest.message}`, () => {
+                            notificationBtn.click();
+                        });
+                        window.lastToastId = latest.id;
+                    }
+                }
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }, 5000); // Check every 5 seconds
 }
 
 // Registration Form
@@ -1246,6 +1305,16 @@ async function requestUnlock(targetId) {
             console.error('Failed to send Discord notification:', error);
         }
 
+        // Create Notification for Requester
+        await saveNotification({
+            userId: currentUser.id,
+            type: 'unlock_request_sent',
+            message: '관리자에게 프로필 공개 요청을 보냈습니다.',
+            targetId: targetId,
+            read: false,
+            createdAt: Date.now()
+        });
+
         document.getElementById('unlock-modal').classList.remove('active');
         document.getElementById('unlock-message').value = '';
 
@@ -1566,6 +1635,16 @@ async function approveRequest(requestId) {
         // Add to unlocked profiles
         await addUnlockedProfile(request.requesterId, request.targetId);
 
+        // Create Notification for Requester
+        await saveNotification({
+            userId: request.requesterId,
+            type: 'unlock_approved',
+            message: '관리자가 프로필 공개 요청을 승인했습니다.',
+            targetId: request.targetId,
+            read: false,
+            createdAt: Date.now()
+        });
+
         alert('승인되었습니다.');
         displayUnlockRequests();
     }
@@ -1617,6 +1696,7 @@ async function fetchUnlockRequests() {
     }
 }
 
+
 async function saveUnlockRequest(request) {
     try {
         await db.collection('unlockRequests').doc(request.id).set(request);
@@ -1624,6 +1704,111 @@ async function saveUnlockRequest(request) {
         console.error("Error saving request:", error);
         alert('요청 저장 중 오류가 발생했습니다.');
     }
+}
+
+// Notification Functions
+async function saveNotification(notification) {
+    try {
+        await db.collection('notifications').add(notification);
+    } catch (error) {
+        console.error("Error saving notification:", error);
+    }
+}
+
+async function fetchNotifications(userId) {
+    try {
+        const snapshot = await db.collection('notifications')
+            .where('userId', '==', userId)
+            .orderBy('createdAt', 'desc')
+            .limit(20)
+            .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching notifications:", error);
+        return [];
+    }
+}
+
+async function markNotificationAsRead(notificationId) {
+    try {
+        await db.collection('notifications').doc(notificationId).update({ read: true });
+    } catch (error) {
+        console.error("Error marking notification as read:", error);
+    }
+}
+
+function displayNotifications(notifications) {
+    const list = document.getElementById('notification-list');
+    const badge = document.getElementById('notification-badge');
+
+    if (notifications.length === 0) {
+        list.innerHTML = '<div class="empty-notifications">알림이 없습니다.</div>';
+        badge.style.display = 'none';
+        return;
+    }
+
+    const unreadCount = notifications.filter(n => !n.read).length;
+    if (unreadCount > 0) {
+        badge.textContent = unreadCount;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+
+    list.innerHTML = notifications.map(n => `
+        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}', '${n.type}', '${n.targetId}')">
+            <div class="notification-header">
+                <span>${new Date(n.createdAt).toLocaleDateString()}</span>
+                ${!n.read ? '<span style="color: var(--primary);">●</span>' : ''}
+            </div>
+            <div class="notification-content">${n.message}</div>
+            ${n.type === 'unlock_approved' ? `
+                <div class="notification-action">
+                    <button class="notification-btn">프로필 보기</button>
+                </div>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+async function handleNotificationClick(notificationId, type, targetId) {
+    await markNotificationAsRead(notificationId);
+
+    // Refresh notifications to update UI
+    const notifications = await fetchNotifications(currentUser.id);
+    displayNotifications(notifications);
+
+    if (type === 'unlock_approved') {
+        document.getElementById('notification-modal').style.display = 'none';
+        showProfileModal(targetId);
+    }
+}
+
+// Toast Notification
+function showToast(message, onClick) {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+
+    if (onClick) {
+        toast.onclick = onClick;
+    }
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease-in reverse';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 5000);
 }
 
 async function fetchUnlockedProfiles(userId) {
