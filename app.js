@@ -791,6 +791,13 @@ function updatePriorityList(selectedFields) {
 
     priorityList.innerHTML = newOrder.map((fieldId, index) => {
         const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+
+        // Skip if field is not found
+        if (!field) {
+            console.warn(`Field ${fieldId} not found in PREFERENCE_FIELDS (updatePriorityList)`);
+            return '';
+        }
+
         return `
             <div class="priority-item" draggable="true" data-field-id="${fieldId}">
                 <span class="priority-number">${index + 1}</span>
