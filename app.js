@@ -1646,17 +1646,26 @@ function showAdminLogin() {
             console.error('Admin login error:', error);
 
             // For development convenience: Create admin account if not found
+            // Only allow creation for the specific 'admin' ID to prevent multiple admin accounts
             if (error.code === 'auth/user-not-found') {
-                try {
-                    if (confirm('관리자 계정이 없습니다. 이 정보로 새 관리자 계정을 생성하시겠습니까?')) {
-                        await auth.createUserWithEmailAndPassword(email, password);
-                        localStorage.setItem(STORAGE_KEYS.ADMIN_LOGGED_IN, 'true');
-                        showAdminDashboard();
+                // Only allow 'admin' ID to create the account
+                if (email === 'admin@matching.app') {
+                    try {
+                        if (confirm('초기 관리자 계정(admin)이 없습니다. 생성하시겠습니까?')) {
+                            await auth.createUserWithEmailAndPassword(email, password);
+                            localStorage.setItem(STORAGE_KEYS.ADMIN_LOGGED_IN, 'true');
+                            showAdminDashboard();
+                            return;
+                        }
+                    } catch (createError) {
+                        console.error('Error creating admin:', createError);
+                        errorMsg.textContent = '관리자 계정 생성 실패: ' + createError.message;
+                        errorMsg.style.display = 'block';
                         return;
                     }
-                } catch (createError) {
-                    console.error('Error creating admin:', createError);
-                    errorMsg.textContent = '관리자 계정 생성 실패: ' + createError.message;
+                } else {
+                    // For other IDs, show generic error
+                    errorMsg.textContent = '존재하지 않는 관리자 계정입니다.';
                     errorMsg.style.display = 'block';
                     return;
                 }
