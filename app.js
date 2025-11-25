@@ -1873,7 +1873,7 @@ async function saveUser(user) {
 
 async function fetchUnlockRequests() {
     try {
-        const snapshot = await db.collection('unlockRequests').get();
+        const snapshot = await db.collection('unlock_requests').get();
         return snapshot.docs.map(doc => doc.data());
     } catch (error) {
         console.error("Error fetching requests:", error);
