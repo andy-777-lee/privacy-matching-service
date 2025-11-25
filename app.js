@@ -615,283 +615,294 @@ function setupRegistrationForm() {
         }
 
         // Load existing preferences if user has them
-        if (currentUser && currentUser.preferences && currentUser.preferences.priorities) {
-            const existingPrefs = currentUser.preferences.priorities;
-            const selectedFields = existingPrefs.map(p => p.field);
+        // When preferences are stored as a map, extract the field keys for UI restoration
+        if (currentUser && currentUser.preferences) {
+            const selectedFields = Object.keys(currentUser.preferences);
+            // The UI code that expects an array of field IDs can still use this list
+            // Existing restoration logic will work with `selectedFields`
+        } preferences: ', selectedFields);
 
-            console.log('Restoring preferences:', selectedFields);
+        // Clear all checkboxes first
+        selectGrid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+        });
 
-            // Clear all checkboxes first
-            selectGrid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
-
-            // Check the checkboxes for existing preferences (immediately, no setTimeout)
-            selectedFields.forEach(fieldId => {
-                const checkbox = document.getElementById(`pref-${fieldId}`);
-                if (checkbox) {
-                    checkbox.checked = true;
-                    console.log(`✓ Checked preference: ${fieldId}`);
-                } else {
-                    console.warn(`✗ Checkbox not found for: ${fieldId}`);
-                }
-            });
-
-            // Show preference values and priority list
-            if (selectedFields.length > 0) {
-                setTimeout(() => {
-                    showPreferenceValues(selectedFields);
-                    priorityCard.style.display = 'block';
-                    updatePriorityList(selectedFields);
-
-                    // Restore the actual values
-                    setTimeout(() => {
-                        existingPrefs.forEach(pref => {
-                            const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
-                            if (!field) return;
-
-                            const inputContainer = document.getElementById(`input-${pref.field}`);
-                            if (!inputContainer) return;
-
-                            if (field.type === 'range') {
-                                const minInput = inputContainer.querySelector('.min-input');
-                                const maxInput = inputContainer.querySelector('.max-input');
-                                if (minInput && maxInput && pref.value) {
-                                    minInput.value = pref.value.min;
-                                    maxInput.value = pref.value.max;
-                                }
-                            } else if (field.type === 'multi') {
-                                if (Array.isArray(pref.value)) {
-                                    pref.value.forEach(val => {
-                                        const checkbox = inputContainer.querySelector(`input[value="${val}"]`);
-                                        if (checkbox) checkbox.checked = true;
-                                    });
-                                }
-                            } else if (field.type === 'text') {
-                                const input = inputContainer.querySelector('input');
-                                if (input && pref.value) {
-                                    input.value = pref.value;
-                                }
-                            } else if (field.type === 'select') {
-                                const select = inputContainer.querySelector('select');
-                                if (select && pref.value) {
-                                    select.value = pref.value;
-                                }
-                            }
-                        });
-                    }, 100);
-                }, 50);
-            }
-        }
-
-        // Setup form submission
-        // Submit Preferences
-        document.getElementById('submit-preferences').addEventListener('click', async () => {
-            const selected = Array.from(selectGrid.querySelectorAll('input:checked'))
-                .map(cb => cb.value);
-
-            if (selected.length === 0) {
-                alert('최소 1개 이상의 조건을 선택해주세요.');
-                return;
-            }
-
-            // Collect detailed values
-            const priorities = [];
-            const listItems = document.querySelectorAll('#sortable-list li');
-
-            listItems.forEach((li, index) => {
-                const fieldId = li.dataset.id;
-                const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
-
-                // Get value from input
-                let value;
-                const inputContainer = document.getElementById(`input-${fieldId}`);
-                if (inputContainer) {
-                    if (field.type === 'range') {
-                        const min = inputContainer.querySelector('.min-input').value;
-                        const max = inputContainer.querySelector('.max-input').value;
-                        value = { min: parseInt(min), max: parseInt(max) };
-                    } else if (field.type === 'multi') {
-                        value = Array.from(inputContainer.querySelectorAll('input:checked')).map(cb => cb.value);
-                    } else if (field.type === 'text') {
-                        value = inputContainer.querySelector('input').value;
-                    } else {
-                        value = inputContainer.querySelector('select').value;
-                    }
-                }
-
-                priorities.push({
-                    field: fieldId,
-                    label: field.label,
-                    priority: index + 1,
-                    value: value
-                });
-            });
-
-            console.log('Saving preferences:', priorities);
-
-            // Update existing user instead of creating new one
-            if (currentUser) {
-                console.log('Updating currentUser preferences...');
-                currentUser.preferences = {
-                    priorities: priorities,
-                    updatedAt: Date.now()
-                };
-
-                console.log('Updated currentUser:', currentUser);
-
-                // Save to Firestore
-                await saveUser(currentUser);
-                console.log('Saved to Firestore successfully');
-
-                // Reload user data from Firestore to ensure consistency
-                const userDoc = await db.collection('users').doc(currentUser.id).get();
-                if (userDoc.exists) {
-                    currentUser = userDoc.data();
-                    console.log('Reloaded currentUser from Firestore:', currentUser);
-                }
-
-                localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
-
-                // Show matches page using custom event
-                showPage('matches-page');
-
-                // Force display matches with updated user
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('showMatches'));
-                }, 100);
+        // Check the checkboxes for existing preferences (immediately, no setTimeout)
+        selectedFields.forEach(fieldId => {
+            const checkbox = document.getElementById(`pref-${fieldId}`);
+            if (checkbox) {
+                checkbox.checked = true;
+                console.log(`✓ Checked preference: ${fieldId}`);
+            } else {
+                console.warn(`✗ Checkbox not found for: ${fieldId}`);
             }
         });
+
+        // Show preference values and priority list
+        if (selectedFields.length > 0) {
+            setTimeout(() => {
+                showPreferenceValues(selectedFields);
+                priorityCard.style.display = 'block';
+                updatePriorityList(selectedFields);
+
+                // Restore the actual values
+                setTimeout(() => {
+                    // Iterate over the map entries to restore values
+                    Object.entries(currentUser.preferences).forEach(([fieldId, pref]) => {
+                        const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+                        if (!field) return;
+
+                        const inputContainer = document.getElementById(`input-${fieldId}`);
+                        if (!inputContainer) return;
+
+                        if (field.type === 'range') {
+                            const minInput = inputContainer.querySelector('.min-input');
+                            const maxInput = inputContainer.querySelector('.max-input');
+                            if (minInput && maxInput && pref.value) {
+                                minInput.value = pref.value.min;
+                                maxInput.value = pref.value.max;
+                            }
+                        } else if (field.type === 'multi') {
+                            if (Array.isArray(pref.value)) {
+                                pref.value.forEach(val => {
+                                    const checkbox = inputContainer.querySelector(`input[value="${val}"]`);
+                                    if (checkbox) checkbox.checked = true;
+                                });
+                            }
+                        } else if (field.type === 'text') {
+                            const input = inputContainer.querySelector('input');
+                            if (input && pref.value) {
+                                input.value = pref.value;
+                            }
+                        } else if (field.type === 'select') {
+                            const select = inputContainer.querySelector('select');
+                            if (select && pref.value) {
+                                select.value = pref.value;
+                            }
+                        }
+                    });
+                }, 100);
+            }, 50);
+        }
     }
 
-    function updatePriorityList(selectedFields) {
-        const priorityList = document.getElementById('priority-list');
-        const currentOrder = Array.from(priorityList.children).map(item => item.dataset.fieldId);
+    // Setup form submission
+    // Submit Preferences
+    document.getElementById('submit-preferences').addEventListener('click', async () => {
+        const selected = Array.from(selectGrid.querySelectorAll('input:checked'))
+            .map(cb => cb.value);
 
-        // Keep existing order, add new ones at the end
-        const newOrder = currentOrder.filter(id => selectedFields.includes(id));
-        selectedFields.forEach(id => {
-            if (!newOrder.includes(id)) {
-                newOrder.push(id);
+        if (selected.length === 0) {
+            alert('최소 1개 이상의 조건을 선택해주세요.');
+            return;
+        }
+
+        // Collect detailed values
+        const priorities = [];
+        const listItems = document.querySelectorAll('#sortable-list li');
+
+        listItems.forEach((li, index) => {
+            const fieldId = li.dataset.id;
+            const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+
+            // Get value from input
+            let value;
+            const inputContainer = document.getElementById(`input-${fieldId}`);
+            if (inputContainer) {
+                if (field.type === 'range') {
+                    const min = inputContainer.querySelector('.min-input').value;
+                    const max = inputContainer.querySelector('.max-input').value;
+                    value = { min: parseInt(min), max: parseInt(max) };
+                } else if (field.type === 'multi') {
+                    value = Array.from(inputContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+                } else if (field.type === 'text') {
+                    value = inputContainer.querySelector('input').value;
+                } else {
+                    value = inputContainer.querySelector('select').value;
+                }
             }
+
+            priorities.push({
+                field: fieldId,
+                label: field.label,
+                priority: index + 1,
+                value: value
+            });
         });
 
-        priorityList.innerHTML = newOrder.map((fieldId, index) => {
-            const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
-            return `
+        console.log('Saving preferences:', priorities);
+
+        // Update existing user instead of creating new one
+        if (currentUser) {
+            console.log('Updating currentUser preferences...');
+            // Convert the array of priority objects into a map for efficient storage
+            const prefMap = {};
+            priorities.forEach(p => {
+                prefMap[p.field] = {
+                    label: p.label,
+                    priority: p.priority,
+                    value: p.value
+                };
+            });
+            // Store preferences as a map (field -> {label, priority, value})
+            currentUser.preferences = prefMap;
+            // Also keep a timestamp for debugging
+            currentUser.preferencesUpdatedAt = Date.now();
+
+            console.log('Updated currentUser:', currentUser);
+
+            // Save to Firestore
+            await saveUser(currentUser);
+            console.log('Saved to Firestore successfully');
+
+            // Reload user data from Firestore to ensure consistency
+            const userDoc = await db.collection('users').doc(currentUser.id).get();
+            if (userDoc.exists) {
+                currentUser = userDoc.data();
+                console.log('Reloaded currentUser from Firestore:', currentUser);
+            }
+
+            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
+
+            // Show matches page using custom event
+            showPage('matches-page');
+
+            // Force display matches with updated user
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('showMatches'));
+            }, 100);
+        }
+    });
+}
+
+function updatePriorityList(selectedFields) {
+    const priorityList = document.getElementById('priority-list');
+    const currentOrder = Array.from(priorityList.children).map(item => item.dataset.fieldId);
+
+    // Keep existing order, add new ones at the end
+    const newOrder = currentOrder.filter(id => selectedFields.includes(id));
+    selectedFields.forEach(id => {
+        if (!newOrder.includes(id)) {
+            newOrder.push(id);
+        }
+    });
+
+    priorityList.innerHTML = newOrder.map((fieldId, index) => {
+        const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+        return `
             <div class="priority-item" draggable="true" data-field-id="${fieldId}">
                 <span class="priority-number">${index + 1}</span>
                 <span class="priority-label">${field.label}</span>
                 <span class="drag-handle">☰</span>
             </div>
         `;
-        }).join('');
+    }).join('');
 
-        setupDragAndDrop();
+    setupDragAndDrop();
+}
+
+function setupDragAndDrop() {
+    const items = document.querySelectorAll('.priority-item');
+
+    items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragenter', handleDragEnter);
+        item.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+function handleDragStart(e) {
+    draggedElement = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    document.querySelectorAll('.priority-item').forEach(item => {
+        item.classList.remove('drag-over');
+    });
+
+    // Update priority numbers
+    updatePriorityNumbers();
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    if (this !== draggedElement) {
+        this.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
     }
 
-    function setupDragAndDrop() {
-        const items = document.querySelectorAll('.priority-item');
+    if (draggedElement !== this) {
+        const priorityList = document.getElementById('priority-list');
+        const allItems = Array.from(priorityList.children);
+        const draggedIndex = allItems.indexOf(draggedElement);
+        const targetIndex = allItems.indexOf(this);
 
-        items.forEach(item => {
-            item.addEventListener('dragstart', handleDragStart);
-            item.addEventListener('dragend', handleDragEnd);
-            item.addEventListener('dragover', handleDragOver);
-            item.addEventListener('drop', handleDrop);
-            item.addEventListener('dragenter', handleDragEnter);
-            item.addEventListener('dragleave', handleDragLeave);
-        });
-    }
-
-    function handleDragStart(e) {
-        draggedElement = this;
-        this.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-    }
-
-    function handleDragEnd(e) {
-        this.classList.remove('dragging');
-        document.querySelectorAll('.priority-item').forEach(item => {
-            item.classList.remove('drag-over');
-        });
-
-        // Update priority numbers
-        updatePriorityNumbers();
-    }
-
-    function handleDragOver(e) {
-        if (e.preventDefault) {
-            e.preventDefault();
+        if (draggedIndex < targetIndex) {
+            this.parentNode.insertBefore(draggedElement, this.nextSibling);
+        } else {
+            this.parentNode.insertBefore(draggedElement, this);
         }
-        e.dataTransfer.dropEffect = 'move';
-        return false;
     }
 
-    function handleDragEnter(e) {
-        if (this !== draggedElement) {
-            this.classList.add('drag-over');
-        }
+    return false;
+}
+
+// Preference field definitions
+const PREFERENCE_FIELDS = [
+    { id: 'birthYear', label: '나이 (출생년도)', type: 'range' },
+    { id: 'religion', label: '종교', type: 'multi' }, // Changed to multi
+    { id: 'height', label: '키', type: 'range' },
+    { id: 'bodyType', label: '체격', type: 'multi' }, // Added bodyType
+    { id: 'drinking', label: '음주', type: 'select' },
+    { id: 'hobbies', label: '취미', type: 'multi' },
+    { id: 'job', label: '직업/직군', type: 'select' },
+    { id: 'location', label: '거주 지역', type: 'select' },
+    { id: 'smoking', label: '흡연 여부', type: 'select' },
+    { id: 'mbti', label: 'MBTI', type: 'text' },
+    { id: 'marriagePlan', label: '결혼 계획', type: 'select' },
+    { id: 'education', label: '학력', type: 'select' } // Added education field
+];
+
+// Show preference value inputs
+function showPreferenceValues(selectedFields) {
+    const card = document.getElementById('preference-values-card');
+    const container = document.getElementById('preference-values-container');
+
+    if (selectedFields.length === 0) {
+        card.style.display = 'none';
+        return;
     }
 
-    function handleDragLeave(e) {
-        this.classList.remove('drag-over');
-    }
+    card.style.display = 'block';
 
-    function handleDrop(e) {
-        if (e.stopPropagation) {
-            e.stopPropagation();
-        }
+    container.innerHTML = selectedFields.map(fieldId => {
+        const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
 
-        if (draggedElement !== this) {
-            const priorityList = document.getElementById('priority-list');
-            const allItems = Array.from(priorityList.children);
-            const draggedIndex = allItems.indexOf(draggedElement);
-            const targetIndex = allItems.indexOf(this);
-
-            if (draggedIndex < targetIndex) {
-                this.parentNode.insertBefore(draggedElement, this.nextSibling);
-            } else {
-                this.parentNode.insertBefore(draggedElement, this);
-            }
-        }
-
-        return false;
-    }
-
-    // Preference field definitions
-    const PREFERENCE_FIELDS = [
-        { id: 'birthYear', label: '나이 (출생년도)', type: 'range' },
-        { id: 'religion', label: '종교', type: 'multi' }, // Changed to multi
-        { id: 'height', label: '키', type: 'range' },
-        { id: 'bodyType', label: '체격', type: 'multi' }, // Added bodyType
-        { id: 'drinking', label: '음주', type: 'select' },
-        { id: 'hobbies', label: '취미', type: 'multi' },
-        { id: 'job', label: '직업/직군', type: 'select' },
-        { id: 'location', label: '거주 지역', type: 'select' },
-        { id: 'smoking', label: '흡연 여부', type: 'select' },
-        { id: 'mbti', label: 'MBTI', type: 'text' },
-        { id: 'marriagePlan', label: '결혼 계획', type: 'select' },
-        { id: 'education', label: '학력', type: 'select' } // Added education field
-    ];
-
-    // Show preference value inputs
-    function showPreferenceValues(selectedFields) {
-        const card = document.getElementById('preference-values-card');
-        const container = document.getElementById('preference-values-container');
-
-        if (selectedFields.length === 0) {
-            card.style.display = 'none';
-            return;
-        }
-
-        card.style.display = 'block';
-
-        container.innerHTML = selectedFields.map(fieldId => {
-            const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
-
-            if (field.type === 'range') {
-                if (fieldId === 'birthYear') {
-                    return `
+        if (field.type === 'range') {
+            if (fieldId === 'birthYear') {
+                return `
                     <div class="form-group" id="input-${fieldId}">
                         <label>${field.label}</label>
                         <div class="range-input-group">
@@ -901,8 +912,8 @@ function setupRegistrationForm() {
                         </div>
                     </div>
                 `;
-                } else if (fieldId === 'height') {
-                    return `
+            } else if (fieldId === 'height') {
+                return `
                     <div class="form-group" id="input-${fieldId}">
                         <label>${field.label} (cm)</label>
                         <div class="range-input-group">
@@ -912,24 +923,24 @@ function setupRegistrationForm() {
                         </div>
                     </div>
                 `;
-                }
-            } else if (field.type === 'select') {
-                let options = [];
-                if (fieldId === 'drinking') {
-                    options = ['안 마심', '가끔', '자주'];
-                } else if (fieldId === 'job') {
-                    options = ['학생', '직장인', '자영업', '프리랜서', '기타'];
-                } else if (fieldId === 'education') {
-                    options = ['고졸', '전문대졸', '대졸', '대학원'];
-                } else if (fieldId === 'location') {
-                    options = ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '김해', '창원', '포항'];
-                } else if (fieldId === 'smoking') {
-                    options = ['비흡연', '흡연'];
-                } else if (fieldId === 'marriagePlan') {
-                    options = ['1년 내', '2-3년 내', '5년 이내', '천천히', '미정']; // Added '5년 이내'
-                }
+            }
+        } else if (field.type === 'select') {
+            let options = [];
+            if (fieldId === 'drinking') {
+                options = ['안 마심', '가끔', '자주'];
+            } else if (fieldId === 'job') {
+                options = ['학생', '직장인', '자영업', '프리랜서', '기타'];
+            } else if (fieldId === 'education') {
+                options = ['고졸', '전문대졸', '대졸', '대학원'];
+            } else if (fieldId === 'location') {
+                options = ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '김해', '창원', '포항'];
+            } else if (fieldId === 'smoking') {
+                options = ['비흡연', '흡연'];
+            } else if (fieldId === 'marriagePlan') {
+                options = ['1년 내', '2-3년 내', '5년 이내', '천천히', '미정']; // Added '5년 이내'
+            }
 
-                return `
+            return `
                     <div class="form-group" id="input-${fieldId}">
                         <label>${field.label}</label>
                         <select id="pref-value-${fieldId}" required>
@@ -938,17 +949,17 @@ function setupRegistrationForm() {
                         </select>
                     </div>
                 `;
-            } else if (field.type === 'multi') {
-                let options = [];
-                if (fieldId === 'hobbies') {
-                    options = ['운동', '영화', '음악', '독서', '여행', '요리', '게임', '기타'];
-                } else if (fieldId === 'religion') {
-                    options = ['무교', '기독교', '천주교', '불교', '기타'];
-                } else if (fieldId === 'bodyType') {
-                    options = ['마름', '보통', '통통', '건장', '근육'];
-                }
+        } else if (field.type === 'multi') {
+            let options = [];
+            if (fieldId === 'hobbies') {
+                options = ['운동', '영화', '음악', '독서', '여행', '요리', '게임', '기타'];
+            } else if (fieldId === 'religion') {
+                options = ['무교', '기독교', '천주교', '불교', '기타'];
+            } else if (fieldId === 'bodyType') {
+                options = ['마름', '보통', '통통', '건장', '근육'];
+            }
 
-                return `
+            return `
                 <div class="form-group" id="input-${fieldId}">
                     <label>${field.label}</label>
                     <div class="hobby-grid">
@@ -961,170 +972,170 @@ function setupRegistrationForm() {
                     </div>
                 </div>
                 `;
-            } else if (field.type === 'text' && fieldId === 'mbti') {
-                return `
+        } else if (field.type === 'text' && fieldId === 'mbti') {
+            return `
                 <div class="form-group" id="input-${fieldId}">
                     <label>${field.label}</label>
                     <input type="text" id="pref-value-${fieldId}" maxlength="4" placeholder="예: INFP" required>
                 </div>
             `;
+        }
+        return '';
+    }).join('');
+}
+
+// Save current preference values before regenerating form
+function saveCurrentPreferenceValues() {
+    const values = {};
+
+    PREFERENCE_FIELDS.forEach(field => {
+        if (field.type === 'range') {
+            const minInput = document.getElementById(`pref-value-${field.id}-min`);
+            const maxInput = document.getElementById(`pref-value-${field.id}-max`);
+            if (minInput && maxInput && minInput.value && maxInput.value) {
+                values[field.id] = {
+                    min: minInput.value,
+                    max: maxInput.value
+                };
             }
-            return '';
-        }).join('');
-    }
-
-    // Save current preference values before regenerating form
-    function saveCurrentPreferenceValues() {
-        const values = {};
-
-        PREFERENCE_FIELDS.forEach(field => {
-            if (field.type === 'range') {
-                const minInput = document.getElementById(`pref-value-${field.id}-min`);
-                const maxInput = document.getElementById(`pref-value-${field.id}-max`);
-                if (minInput && maxInput && minInput.value && maxInput.value) {
-                    values[field.id] = {
-                        min: minInput.value,
-                        max: maxInput.value
-                    };
-                }
-            } else if (field.type === 'select') {
-                const select = document.getElementById(`pref-value-${field.id}`);
-                if (select && select.value) {
-                    values[field.id] = select.value;
-                }
-            } else if (field.type === 'multi') {
-                const checked = Array.from(document.querySelectorAll(`input[name="pref-value-${field.id}"]:checked`))
-                    .map(cb => cb.value);
-                if (checked.length > 0) {
-                    values[field.id] = checked;
-                }
-            } else if (field.type === 'text') {
-                const input = document.getElementById(`pref-value-${field.id}`);
-                if (input && input.value) {
-                    values[field.id] = input.value;
-                }
+        } else if (field.type === 'select') {
+            const select = document.getElementById(`pref-value-${field.id}`);
+            if (select && select.value) {
+                values[field.id] = select.value;
             }
-        });
+        } else if (field.type === 'multi') {
+            const checked = Array.from(document.querySelectorAll(`input[name="pref-value-${field.id}"]:checked`))
+                .map(cb => cb.value);
+            if (checked.length > 0) {
+                values[field.id] = checked;
+            }
+        } else if (field.type === 'text') {
+            const input = document.getElementById(`pref-value-${field.id}`);
+            if (input && input.value) {
+                values[field.id] = input.value;
+            }
+        }
+    });
 
-        return values;
-    }
+    return values;
+}
 
-    // Restore preference values after regenerating form
-    function restorePreferenceValues(savedValues) {
-        if (!savedValues) return;
+// Restore preference values after regenerating form
+function restorePreferenceValues(savedValues) {
+    if (!savedValues) return;
 
-        Object.keys(savedValues).forEach(fieldId => {
-            const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
-            if (!field) return;
+    Object.keys(savedValues).forEach(fieldId => {
+        const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+        if (!field) return;
 
-            const value = savedValues[fieldId];
+        const value = savedValues[fieldId];
 
-            if (field.type === 'range') {
-                const minInput = document.getElementById(`pref-value-${fieldId}-min`);
-                const maxInput = document.getElementById(`pref-value-${fieldId}-max`);
-                if (minInput && maxInput && value.min && value.max) {
-                    minInput.value = value.min;
-                    maxInput.value = value.max;
-                }
-            } else if (field.type === 'select') {
-                const select = document.getElementById(`pref-value-${fieldId}`);
-                if (select && value) {
-                    select.value = value;
-                }
-            } else if (field.type === 'multi') {
-                if (Array.isArray(value)) {
-                    value.forEach(val => {
-                        const checkbox = document.querySelector(`input[name="pref-value-${fieldId}"][value="${val}"]`);
-                        if (checkbox) {
-                            checkbox.checked = true;
-                        }
-                    });
-                } else if (typeof value === 'string') {
-                    // Handle legacy single string values (e.g. religion was previously a string)
-                    const checkbox = document.querySelector(`input[name="pref-value-${fieldId}"][value="${value}"]`);
+        if (field.type === 'range') {
+            const minInput = document.getElementById(`pref-value-${fieldId}-min`);
+            const maxInput = document.getElementById(`pref-value-${fieldId}-max`);
+            if (minInput && maxInput && value.min && value.max) {
+                minInput.value = value.min;
+                maxInput.value = value.max;
+            }
+        } else if (field.type === 'select') {
+            const select = document.getElementById(`pref-value-${fieldId}`);
+            if (select && value) {
+                select.value = value;
+            }
+        } else if (field.type === 'multi') {
+            if (Array.isArray(value)) {
+                value.forEach(val => {
+                    const checkbox = document.querySelector(`input[name="pref-value-${fieldId}"][value="${val}"]`);
                     if (checkbox) {
                         checkbox.checked = true;
                     }
-                }
-            } else if (field.type === 'text') {
-                const input = document.getElementById(`pref-value-${fieldId}`);
-                if (input && value) {
-                    input.value = value;
+                });
+            } else if (typeof value === 'string') {
+                // Handle legacy single string values (e.g. religion was previously a string)
+                const checkbox = document.querySelector(`input[name="pref-value-${fieldId}"][value="${value}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
                 }
             }
-        });
-    }
+        } else if (field.type === 'text') {
+            const input = document.getElementById(`pref-value-${fieldId}`);
+            if (input && value) {
+                input.value = value;
+            }
+        }
+    });
+}
 
-    function updatePriorityNumbers() {
-        const items = document.querySelectorAll('.priority-item');
-        items.forEach((item, index) => {
-            item.querySelector('.priority-number').textContent = index + 1;
-        });
-    }
+function updatePriorityNumbers() {
+    const items = document.querySelectorAll('.priority-item');
+    items.forEach((item, index) => {
+        item.querySelector('.priority-number').textContent = index + 1;
+    });
+}
 
-    // Matches Page
-    function showMatchesPage() {
-        showPage('matches-page');
-        displayMatches();
+// Matches Page
+function showMatchesPage() {
+    showPage('matches-page');
+    displayMatches();
 
-        // My profile button
-        document.getElementById('my-profile-btn').addEventListener('click', () => {
+    // My profile button
+    document.getElementById('my-profile-btn').addEventListener('click', () => {
+        showProfileModal(currentUser, false, null, true); // true = isOwnProfile
+    });
+
+    // Setup notifications after page is shown
+    setupNotifications();
+}
+
+// Listen for custom event to trigger displayMatches from outside
+window.addEventListener('showMatches', () => {
+    displayMatches();
+
+    // Setup my profile button
+    const myProfileBtn = document.getElementById('my-profile-btn');
+    if (myProfileBtn && !myProfileBtn.onclick) {
+        myProfileBtn.addEventListener('click', () => {
             showProfileModal(currentUser, false, null, true); // true = isOwnProfile
         });
-
-        // Setup notifications after page is shown
-        setupNotifications();
     }
 
-    // Listen for custom event to trigger displayMatches from outside
-    window.addEventListener('showMatches', () => {
-        displayMatches();
+    // Setup notifications after page is shown
+    setupNotifications();
+});
 
-        // Setup my profile button
-        const myProfileBtn = document.getElementById('my-profile-btn');
-        if (myProfileBtn && !myProfileBtn.onclick) {
-            myProfileBtn.addEventListener('click', () => {
-                showProfileModal(currentUser, false, null, true); // true = isOwnProfile
-            });
-        }
-
-        // Setup notifications after page is shown
-        setupNotifications();
-    });
-
-    // Listen for unlocked profile event from notifications
-    window.addEventListener('showUnlockedProfile', (event) => {
-        const { user } = event.detail;
-        showProfileModal(user, false, null, false, true); // forceUnlocked = true for approved profiles
-    });
+// Listen for unlocked profile event from notifications
+window.addEventListener('showUnlockedProfile', (event) => {
+    const { user } = event.detail;
+    showProfileModal(user, false, null, false, true); // forceUnlocked = true for approved profiles
+});
 
 
-    async function displayMatches() {
-        console.log('--- displayMatches called ---');
-        console.log('Current User for matching:', currentUser);
-        if (!currentUser || !currentUser.preferences) {
-            console.warn('Current user has no preferences in displayMatches!');
-        }
-        const matches = await findMatches(currentUser);
-        const grid = document.getElementById('matches-grid');
-        const noMatches = document.getElementById('no-matches');
+async function displayMatches() {
+    console.log('--- displayMatches called ---');
+    console.log('Current User for matching:', currentUser);
+    if (!currentUser || !currentUser.preferences) {
+        console.warn('Current user has no preferences in displayMatches!');
+    }
+    const matches = await findMatches(currentUser);
+    const grid = document.getElementById('matches-grid');
+    const noMatches = document.getElementById('no-matches');
 
-        if (matches.length === 0) {
-            grid.style.display = 'none';
-            noMatches.style.display = 'block';
+    if (matches.length === 0) {
+        grid.style.display = 'none';
+        noMatches.style.display = 'block';
 
-            // Show mismatch analysis
-            const analysis = await analyzeMismatches(currentUser);
-            const mismatchList = analysis.mismatchDetails
-                .sort((a, b) => b.count - a.count)
-                .map(item => `
+        // Show mismatch analysis
+        const analysis = await analyzeMismatches(currentUser);
+        const mismatchList = analysis.mismatchDetails
+            .sort((a, b) => b.count - a.count)
+            .map(item => `
                 <div class="mismatch-item">
                     <span class="mismatch-label">${item.label}</span>
                     <span class="mismatch-count">${item.count}명 미매칭</span>
                 </div>
             `).join('');
 
-            noMatches.innerHTML = `
+        noMatches.innerHTML = `
             <div class="empty-state">
                 <span class="empty-icon">💔</span>
                 <h3>매칭되는 프로필이 없습니다</h3>
@@ -1157,34 +1168,34 @@ function setupRegistrationForm() {
                 </button>
             </div>
         `;
-            return;
-        }
-        grid.style.display = 'grid';
-        noMatches.style.display = 'none';
-
-        const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
-
-        grid.innerHTML = matches.map(match => {
-            const isUnlocked = unlockedProfiles.includes(match.user.id);
-            return createMatchCard(match, isUnlocked);
-        }).join('');
-
-        // Add click handlers
-        grid.querySelectorAll('.match-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const userId = card.dataset.userId;
-                const match = matches.find(m => m.user.id === userId);
-                const isUnlocked = unlockedProfiles.includes(userId);
-                showProfileModal(match.user, !isUnlocked, match.score);
-            });
-        });
+        return;
     }
+    grid.style.display = 'grid';
+    noMatches.style.display = 'none';
 
-    function createMatchCard(match, isUnlocked) {
-        const user = match.user;
-        const score = match.score;
+    const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
 
-        return `
+    grid.innerHTML = matches.map(match => {
+        const isUnlocked = unlockedProfiles.includes(match.user.id);
+        return createMatchCard(match, isUnlocked);
+    }).join('');
+
+    // Add click handlers
+    grid.querySelectorAll('.match-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const userId = card.dataset.userId;
+            const match = matches.find(m => m.user.id === userId);
+            const isUnlocked = unlockedProfiles.includes(userId);
+            showProfileModal(match.user, !isUnlocked, match.score);
+        });
+    });
+}
+
+function createMatchCard(match, isUnlocked) {
+    const user = match.user;
+    const score = match.score;
+
+    return `
         <div class="match-card ${isUnlocked ? 'unlocked' : ''}" data-user-id="${user.id}">
             <div class="match-photos">
                 <span class="match-percentage">${score}% 매칭</span>
@@ -1214,18 +1225,18 @@ function setupRegistrationForm() {
             </div>
         </div>
     `;
-    }
+}
 
-    // Profile Modal
-    async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false, forceUnlocked = false) {
-        const modal = document.getElementById('profile-modal');
-        const detail = document.getElementById('profile-detail');
+// Profile Modal
+async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false, forceUnlocked = false) {
+    const modal = document.getElementById('profile-modal');
+    const detail = document.getElementById('profile-detail');
 
-        const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
-        const isUnlocked = forceUnlocked || unlockedProfiles.includes(user.id) || isOwnProfile; // Own profile is always unlocked
+    const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
+    const isUnlocked = forceUnlocked || unlockedProfiles.includes(user.id) || isOwnProfile; // Own profile is always unlocked
 
 
-        detail.innerHTML = `
+    detail.innerHTML = `
         ${matchScore ? `<div class="match-percentage" style="position: static; margin-bottom: 1rem;">${matchScore}% 매칭</div>` : ''}
         <div class="profile-photos">
             ${user.photos.map(photo => `
@@ -1316,172 +1327,172 @@ function setupRegistrationForm() {
         ` : ''}
     `;
 
-        modal.classList.add('active');
+    modal.classList.add('active');
 
-        // Close button
-        modal.querySelector('.modal-close').onclick = () => {
+    // Close button
+    modal.querySelector('.modal-close').onclick = () => {
+        modal.classList.remove('active');
+    };
+
+    // Click outside to close
+    modal.onclick = (e) => {
+        if (e.target === modal) {
             modal.classList.remove('active');
-        };
-
-        // Click outside to close
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-            }
-        };
-    }
-
-    // Edit Preferences
-    function editPreferences() {
-        document.getElementById('profile-modal').classList.remove('active');
-        showPreferencePage();
-
-        // Pre-populate existing preferences
-        const selectGrid = document.getElementById('preference-select');
-        const selectedFields = currentUser.preferences.priorities.map(p => p.field);
-
-        // Check the selected preferences
-        selectedFields.forEach(fieldId => {
-            const checkbox = document.getElementById(`pref-${fieldId}`);
-            if (checkbox) {
-                checkbox.checked = true;
-            }
-        });
-
-        // Trigger change event to show values and priority list
-        if (selectedFields.length > 0) {
-            showPreferenceValues(selectedFields);
-            document.getElementById('priority-card').style.display = 'block';
-            updatePriorityList(selectedFields);
-
-            // Pre-fill preference values
-            currentUser.preferences.priorities.forEach(pref => {
-                const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
-                if (!field || !pref.value) return;
-
-                if (field.type === 'range') {
-                    const minInput = document.getElementById(`pref-value-${pref.field}-min`);
-                    const maxInput = document.getElementById(`pref-value-${pref.field}-max`);
-                    if (minInput && maxInput && pref.value.min && pref.value.max) {
-                        minInput.value = pref.value.min;
-                        maxInput.value = pref.value.max;
-                    }
-                } else if (field.type === 'select') {
-                    const select = document.getElementById(`pref-value-${pref.field}`);
-                    if (select && pref.value) {
-                        select.value = pref.value;
-                    }
-                } else if (field.type === 'multi') {
-                    if (Array.isArray(pref.value)) {
-                        pref.value.forEach(val => {
-                            const checkbox = document.querySelector(`input[name="pref-value-${pref.field}"][value="${val}"]`);
-                            if (checkbox) {
-                                checkbox.checked = true;
-                            }
-                        });
-                    }
-                } else if (field.type === 'text') {
-                    const input = document.getElementById(`pref-value-${pref.field}`);
-                    if (input && pref.value) {
-                        input.value = pref.value;
-                    }
-                }
-            });
         }
-    }
+    };
+}
 
-    // Unlock Request
-    async function requestUnlock(targetId) {
-        document.getElementById('profile-modal').classList.remove('active');
-        document.getElementById('unlock-modal').classList.add('active');
-        document.getElementById('unlock-target-id').value = targetId;
+// Edit Preferences
+function editPreferences() {
+    document.getElementById('profile-modal').classList.remove('active');
+    showPreferencePage();
 
-        const form = document.getElementById('unlock-request-form');
-        form.onsubmit = async (e) => {
-            e.preventDefault();
+    // Pre-populate existing preferences
+    const selectGrid = document.getElementById('preference-select');
+    const selectedFields = currentUser.preferences.priorities.map(p => p.field);
 
-            const message = document.getElementById('unlock-message').value.trim();
-            if (!message) {
-                alert('메시지를 입력해주세요.');
-                return;
-            }
+    // Check the selected preferences
+    selectedFields.forEach(fieldId => {
+        const checkbox = document.getElementById(`pref-${fieldId}`);
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+    });
 
-            const request = {
-                id: 'request_' + Date.now(),
-                requesterId: currentUser.id,
-                targetId: targetId,
-                message: message,
-                status: 'pending',
-                createdAt: Date.now()
-            };
+    // Trigger change event to show values and priority list
+    if (selectedFields.length > 0) {
+        showPreferenceValues(selectedFields);
+        document.getElementById('priority-card').style.display = 'block';
+        updatePriorityList(selectedFields);
 
-            await saveUnlockRequest(request);
-
-            // Send Discord Notification
-            try {
-                await sendDiscordNotification(request, currentUser, targetId);
-            } catch (error) {
-                console.error('Failed to send Discord notification:', error);
-            }
-
-            document.getElementById('unlock-modal').classList.remove('active');
-            document.getElementById('unlock-message').value = '';
-
-            alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
-        };
-
-        // Close button
-        const modal = document.getElementById('unlock-modal');
-        modal.querySelector('.modal-close').onclick = () => {
-            modal.classList.remove('active');
-        };
-
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-            }
-        };
-    }
-
-    // Analyze why there are no matches
-    async function analyzeMismatches(user) {
-        const allUsers = await fetchUsers();
-        const candidates = allUsers.filter(u =>
-            u.id !== user.id && u.gender !== user.gender
-        );
-
-        const mismatchCounts = {};
-
-        // Initialize mismatch counts for each preference
-        user.preferences.priorities.forEach(pref => {
+        // Pre-fill preference values
+        currentUser.preferences.priorities.forEach(pref => {
             const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
-            if (field) {
-                mismatchCounts[pref.field] = {
-                    label: field.label,
-                    count: 0
-                };
+            if (!field || !pref.value) return;
+
+            if (field.type === 'range') {
+                const minInput = document.getElementById(`pref-value-${pref.field}-min`);
+                const maxInput = document.getElementById(`pref-value-${pref.field}-max`);
+                if (minInput && maxInput && pref.value.min && pref.value.max) {
+                    minInput.value = pref.value.min;
+                    maxInput.value = pref.value.max;
+                }
+            } else if (field.type === 'select') {
+                const select = document.getElementById(`pref-value-${pref.field}`);
+                if (select && pref.value) {
+                    select.value = pref.value;
+                }
+            } else if (field.type === 'multi') {
+                if (Array.isArray(pref.value)) {
+                    pref.value.forEach(val => {
+                        const checkbox = document.querySelector(`input[name="pref-value-${pref.field}"][value="${val}"]`);
+                        if (checkbox) {
+                            checkbox.checked = true;
+                        }
+                    });
+                }
+            } else if (field.type === 'text') {
+                const input = document.getElementById(`pref-value-${pref.field}`);
+                if (input && pref.value) {
+                    input.value = pref.value;
+                }
             }
         });
-
-        // Count mismatches for each candidate
-        candidates.forEach(candidate => {
-            user.preferences.priorities.forEach(pref => {
-                if (!matchesPreference(candidate, pref.field, user)) {
-                    mismatchCounts[pref.field].count++;
-                }
-            });
-        });
-
-        // Convert to array and sort by count (descending)
-        const mismatchDetails = Object.keys(mismatchCounts)
-            .map(field => mismatchCounts[field])
-            .sort((a, b) => b.count - a.count);
-
-        return {
-            totalCandidates: candidates.length,
-            mismatchDetails: mismatchDetails
-        };
     }
+}
+
+// Unlock Request
+async function requestUnlock(targetId) {
+    document.getElementById('profile-modal').classList.remove('active');
+    document.getElementById('unlock-modal').classList.add('active');
+    document.getElementById('unlock-target-id').value = targetId;
+
+    const form = document.getElementById('unlock-request-form');
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+
+        const message = document.getElementById('unlock-message').value.trim();
+        if (!message) {
+            alert('메시지를 입력해주세요.');
+            return;
+        }
+
+        const request = {
+            id: 'request_' + Date.now(),
+            requesterId: currentUser.id,
+            targetId: targetId,
+            message: message,
+            status: 'pending',
+            createdAt: Date.now()
+        };
+
+        await saveUnlockRequest(request);
+
+        // Send Discord Notification
+        try {
+            await sendDiscordNotification(request, currentUser, targetId);
+        } catch (error) {
+            console.error('Failed to send Discord notification:', error);
+        }
+
+        document.getElementById('unlock-modal').classList.remove('active');
+        document.getElementById('unlock-message').value = '';
+
+        alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
+    };
+
+    // Close button
+    const modal = document.getElementById('unlock-modal');
+    modal.querySelector('.modal-close').onclick = () => {
+        modal.classList.remove('active');
+    };
+
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('active');
+        }
+    };
+}
+
+// Analyze why there are no matches
+async function analyzeMismatches(user) {
+    const allUsers = await fetchUsers();
+    const candidates = allUsers.filter(u =>
+        u.id !== user.id && u.gender !== user.gender
+    );
+
+    const mismatchCounts = {};
+
+    // Initialize mismatch counts for each preference
+    Object.keys(user.preferences).forEach(fieldId => {
+        const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+        if (field) {
+            mismatchCounts[fieldId] = {
+                label: field.label,
+                count: 0
+            };
+        }
+    });
+
+    // Count mismatches for each candidate
+    candidates.forEach(candidate => {
+        Object.entries(user.preferences).forEach(([fieldId, pref]) => {
+            if (!matchesPreference(candidate, fieldId, pref)) {
+                mismatchCounts[fieldId].count++;
+            }
+        });
+    });
+
+    // Convert to array and sort by count (descending)
+    const mismatchDetails = Object.keys(mismatchCounts)
+        .map(field => mismatchCounts[field])
+        .sort((a, b) => b.count - a.count);
+
+    return {
+        totalCandidates: candidates.length,
+        mismatchDetails: mismatchDetails
+    };
+}
 }
 
 // Global function for editing preferences (called from HTML onclick)
@@ -1806,9 +1817,9 @@ async function findMatches(user) {
 
     // Fallback to global currentUser if user argument is missing preferences
     let matchingUser = user;
-    if (!matchingUser || !matchingUser.preferences || !matchingUser.preferences.priorities) {
+    if (!matchingUser || !matchingUser.preferences || Object.keys(matchingUser.preferences).length === 0) {
         console.warn('User argument has no preferences, checking global currentUser...');
-        if (currentUser && currentUser.preferences && currentUser.preferences.priorities) {
+        if (currentUser && currentUser.preferences && Object.keys(currentUser.preferences).length > 0) {
             console.log('Using global currentUser instead');
             matchingUser = currentUser;
         } else {
@@ -1816,7 +1827,7 @@ async function findMatches(user) {
             try {
                 // Try to fetch fresh user data
                 const freshUser = await getUser(user.id || currentUser.id);
-                if (freshUser && freshUser.preferences) {
+                if (freshUser && freshUser.preferences && Object.keys(freshUser.preferences).length > 0) {
                     console.log('Fetched fresh user data with preferences');
                     matchingUser = freshUser;
                     // Update global currentUser
@@ -1833,7 +1844,7 @@ async function findMatches(user) {
     console.log('Matching User:', matchingUser ? matchingUser.name : 'Unknown');
 
     // Check if preferences exist AND are not empty
-    if (!matchingUser || !matchingUser.preferences || !matchingUser.preferences.priorities || matchingUser.preferences.priorities.length === 0) {
+    if (!matchingUser || !matchingUser.preferences || Object.keys(matchingUser.preferences).length === 0) {
         console.warn('User has no preferences set (empty priorities list).');
         console.log('Current matchingUser state:', matchingUser);
 
@@ -1848,7 +1859,7 @@ async function findMatches(user) {
 
     console.log('--- User Preferences ---');
     // Use JSON.stringify for guaranteed output in all consoles
-    console.log(JSON.stringify(matchingUser.preferences.priorities, null, 2));
+    console.log(JSON.stringify(matchingUser.preferences, null, 2));
     console.log('------------------------');
 
     const allUsers = await fetchUsers();
@@ -1890,141 +1901,63 @@ async function findMatches(user) {
 }
 
 function calculateMatchScore(user, candidate) {
-    // console.log(`\n--- Calculating Match Score for Candidate: ${candidate.name} ---`);
-
-    if (!user || !user.preferences || !user.preferences.priorities || user.preferences.priorities.length === 0) {
+    // Ensure preferences are stored as a map (field -> {value, ...})
+    if (!user || !user.preferences || Object.keys(user.preferences).length === 0) {
         console.error('ERROR: No preferences set for user in calculateMatchScore');
-        // console.log('Received User Object:', user); 
         return { percentage: 0, priorityScore: 0 };
     }
 
     let matchedCount = 0;
-    let priorityScore = 0; // Sum of priority weights for matched items
-    const totalCount = user.preferences.priorities.length;
+    let priorityScore = 0;
+    const prefEntries = Object.entries(user.preferences);
+    const totalCount = prefEntries.length;
 
-    user.preferences.priorities.forEach((pref, index) => {
-        // console.log(`Checking preference: ${pref.field} (Priority ${index + 1})`);
-        const isMatch = matchesPreference(candidate, pref.field, user);
-
+    prefEntries.forEach(([fieldId, pref]) => { // Changed index to fieldId for clarity
+        const isMatch = matchesPreference(candidate, fieldId, pref);
         if (isMatch) {
             matchedCount++;
-            // Higher priority = higher weight (1st: 10, 2nd: 9, 3rd: 8, ...)
-            priorityScore += (10 - index);
-            // console.log(`  -> MATCHED! (+1 count, +${10 - index} priority)`);
-        } else {
-            // console.log(`  -> Not matched`);
+            priorityScore += pref.priority; // Use the stored priority from the preference object
         }
     });
 
-    // Calculate percentage: (matched / total) * 100
     const percentage = totalCount > 0 ? Math.round((matchedCount / totalCount) * 100) : 0;
-
-    // console.log(`Final Result: ${matchedCount}/${totalCount} matched (${percentage}%), Priority Score: ${priorityScore}`);
-    // console.log('--------------------------------------------------\n');
-
     return { percentage, priorityScore };
 }
 
-function matchesPreference(candidate, fieldId, user) {
-    // Get the preference value from user's preferences
-    const pref = user.preferences.priorities.find(p => p.field === fieldId);
-
+function matchesPreference(candidate, fieldId, pref) {
+    // pref is already the preference object from the map (contains value, label, priority)
     if (!pref) {
-        console.warn(`Preference not found for field: ${fieldId}`);
+        console.warn(`Preference object missing for field: ${fieldId}`);
         return false;
     }
-
-    if (!pref.value) {
+    if (pref.value === undefined || pref.value === null) {
         console.warn(`Preference value is missing for field: ${fieldId}`, pref);
         return false;
     }
 
-    const prefValue = pref.value;
-    console.log(`Comparing ${fieldId}: Candidate [${candidate[fieldId]}] vs Preference [${JSON.stringify(prefValue)}]`);
+    // Type-specific matching logic (range, multi, select, text, etc.)
+    const candVal = candidate[fieldId];
+    const prefVal = pref.value;
 
-    switch (fieldId) {
-        case 'birthYear':
-            // Check if candidate's birth year is within the range
-            const birthYearMin = parseInt(prefValue.min);
-            const birthYearMax = parseInt(prefValue.max);
-            const candidateBirthYear = parseInt(candidate.birthYear);
-            const birthYearMatch = candidateBirthYear >= birthYearMin && candidateBirthYear <= birthYearMax;
-            console.log(`Birth Year Match: ${candidateBirthYear} in [${birthYearMin}, ${birthYearMax}] = ${birthYearMatch}`);
-            return birthYearMatch;
-        case 'religion':
-            return candidate.religion === prefValue;
-        case 'height':
-            // Check if candidate's height is within the range
-            const heightMin = parseInt(prefValue.min);
-            const heightMax = parseInt(prefValue.max);
-            const candidateHeight = parseInt(candidate.height);
-            const heightMatch = candidateHeight >= heightMin && candidateHeight <= heightMax;
-            console.log(`Height Match: ${candidateHeight} in [${heightMin}, ${heightMax}] = ${heightMatch}`);
-            return heightMatch;
-        case 'drinking':
-            const drinkingMatch = candidate.drinking === prefValue;
-            console.log(`Drinking Match: "${candidate.drinking}" === "${prefValue}" = ${drinkingMatch}`);
-            return drinkingMatch;
-        case 'hobbies':
-            // At least one common hobby from preferred hobbies
-            if (Array.isArray(prefValue) && prefValue.length > 0) {
-                const hobbiesMatch = prefValue.some(h => candidate.hobbies.includes(h));
-                const commonHobbies = prefValue.filter(h => candidate.hobbies.includes(h));
-                console.log(`Hobbies Match: Preferred [${prefValue.join(', ')}] vs Candidate [${candidate.hobbies.join(', ')}] = ${hobbiesMatch} (Common: ${commonHobbies.join(', ') || 'none'})`);
-                return hobbiesMatch;
-            }
-            console.log(`Hobbies Match: No preferred hobbies set = false`);
-            return false;
-        case 'job':
-            const jobMatch = candidate.job === prefValue;
-            console.log(`Job Match: "${candidate.job}" === "${prefValue}" = ${jobMatch}`);
-            return jobMatch;
-        case 'education':
-            const educationMatch = candidate.education === prefValue;
-            console.log(`Education Match: "${candidate.education}" === "${prefValue}" = ${educationMatch}`);
-            return educationMatch;
-        case 'religion':
-            // Multi-select check
-            if (Array.isArray(prefValue) && prefValue.length > 0) {
-                const religionMatch = prefValue.includes(candidate.religion);
-                console.log(`Religion Match: Candidate "${candidate.religion}" in [${prefValue.join(', ')}] = ${religionMatch}`);
-                return religionMatch;
-            }
-            // Fallback for legacy single value preference
-            const singleReligionMatch = candidate.religion === prefValue;
-            console.log(`Religion Match: "${candidate.religion}" === "${prefValue}" = ${singleReligionMatch}`);
-            return singleReligionMatch;
-
-        case 'bodyType':
-            // Multi-select check
-            if (Array.isArray(prefValue) && prefValue.length > 0) {
-                const bodyTypeMatch = prefValue.includes(candidate.bodyType);
-                console.log(`BodyType Match: Candidate "${candidate.bodyType}" in [${prefValue.join(', ')}] = ${bodyTypeMatch}`);
-                return bodyTypeMatch;
-            }
-            console.log(`BodyType Match: No preferred body types set = false`);
-            return false;
-
-        case 'location':
-            const locationMatch = candidate.location === prefValue;
-            console.log(`Location Match: "${candidate.location}" === "${prefValue}" = ${locationMatch}`);
-            return locationMatch;
-        case 'smoking':
-            const smokingMatch = candidate.smoking === prefValue;
-            console.log(`Smoking Match: "${candidate.smoking}" === "${prefValue}" = ${smokingMatch}`);
-            return smokingMatch;
-        case 'mbti':
-            const mbtiMatch = candidate.mbti.toUpperCase() === prefValue.toUpperCase();
-            console.log(`MBTI Match: "${candidate.mbti.toUpperCase()}" === "${prefValue.toUpperCase()}" = ${mbtiMatch}`);
-            return mbtiMatch;
-        case 'marriagePlan':
-            const marriagePlanMatch = candidate.marriagePlan === prefValue;
-            console.log(`Marriage Plan Match: "${candidate.marriagePlan}" === "${prefValue}" = ${marriagePlanMatch}`);
-            return marriagePlanMatch;
-        default:
-            console.warn(`Unknown field: ${fieldId}`);
-            return false;
+    // Range (object with min/max)
+    if (typeof prefVal === 'object' && prefVal.min !== undefined) {
+        return candVal >= prefVal.min && candVal <= prefVal.max;
     }
+    // Multi-select (array)
+    if (Array.isArray(prefVal)) {
+        // For hobbies, check if candidate has ANY of the preferred hobbies
+        if (fieldId === 'hobbies') {
+            return prefVal.some(h => candVal && candVal.includes(h));
+        }
+        // For other multi-selects (like religion, bodyType), check if candidate's single value is in preferred list
+        return prefVal.includes(candVal);
+    }
+    // Default – direct equality (for select, text, etc.)
+    // Special handling for MBTI to be case-insensitive
+    if (fieldId === 'mbti') {
+        return String(candVal).toUpperCase() === String(prefVal).toUpperCase();
+    }
+    return candVal === prefVal;
 }
 
 // Admin Functions
@@ -2448,11 +2381,13 @@ async function fetchUsers() {
     }
 }
 
+// Save user with partial update (merge) to avoid overwriting whole document
 async function saveUser(user) {
     try {
-        console.log('Saving user to Firestore:', user.id);
-        await db.collection('users').doc(user.id).set(user);
-        console.log('User saved successfully');
+        console.log('Saving user to Firestore (merge):', user.id);
+        // Use merge:true so only provided fields are updated
+        await db.collection('users').doc(user.id).set(user, { merge: true });
+        console.log('User saved (merged) successfully');
     } catch (error) {
         console.error("Error saving user:", error);
         alert('저장 중 오류가 발생했습니다.');
