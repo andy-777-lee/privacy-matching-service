@@ -1853,32 +1853,42 @@ async function findMatches(user) {
     );
 
     const matches = candidates.map(candidate => {
-        const score = calculateMatchScore(user, candidate);
-        return { user: candidate, score };
+        const scoreData = calculateMatchScore(user, candidate);
+        return { user: candidate, score: scoreData.percentage, priorityScore: scoreData.priorityScore };
     });
 
-    // Sort by score descending
-    matches.sort((a, b) => b.score - a.score);
+    // Sort by percentage first, then by priority score (higher priority matches first)
+    matches.sort((a, b) => {
+        if (b.score === a.score) {
+            return b.priorityScore - a.priorityScore; // Same percentage: higher priority score first
+        }
+        return b.score - a.score; // Different percentage: higher percentage first
+    });
 
     return matches;
 }
 
 function calculateMatchScore(user, candidate) {
     if (!user.preferences || !user.preferences.priorities || user.preferences.priorities.length === 0) {
-        return 0; // No preferences set
+        return { percentage: 0, priorityScore: 0 }; // No preferences set
     }
 
     let matchedCount = 0;
+    let priorityScore = 0; // Sum of priority weights for matched items
     const totalCount = user.preferences.priorities.length;
 
-    user.preferences.priorities.forEach((pref) => {
+    user.preferences.priorities.forEach((pref, index) => {
         if (matchesPreference(candidate, pref.field, user)) {
             matchedCount++;
+            // Higher priority = higher weight (1st: 10, 2nd: 9, 3rd: 8, ...)
+            priorityScore += (10 - index);
         }
     });
 
     // Calculate percentage: (matched / total) * 100
-    return Math.round((matchedCount / totalCount) * 100);
+    const percentage = Math.round((matchedCount / totalCount) * 100);
+
+    return { percentage, priorityScore };
 }
 
 function matchesPreference(candidate, fieldId, user) {
