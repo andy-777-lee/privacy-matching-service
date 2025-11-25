@@ -1869,7 +1869,9 @@ async function findMatches(user) {
 }
 
 function calculateMatchScore(user, candidate) {
+    console.log(`\n--- Calculating Match Score for Candidate: ${candidate.name} ---`);
     if (!user.preferences || !user.preferences.priorities || user.preferences.priorities.length === 0) {
+        console.log('No preferences set for user');
         return { percentage: 0, priorityScore: 0 }; // No preferences set
     }
 
@@ -1878,15 +1880,24 @@ function calculateMatchScore(user, candidate) {
     const totalCount = user.preferences.priorities.length;
 
     user.preferences.priorities.forEach((pref, index) => {
-        if (matchesPreference(candidate, pref.field, user)) {
+        console.log(`Checking preference: ${pref.field} (Priority ${index + 1})`);
+        const isMatch = matchesPreference(candidate, pref.field, user);
+
+        if (isMatch) {
             matchedCount++;
             // Higher priority = higher weight (1st: 10, 2nd: 9, 3rd: 8, ...)
             priorityScore += (10 - index);
+            console.log(`  -> MATCHED! (+1 count, +${10 - index} priority)`);
+        } else {
+            console.log(`  -> Not matched`);
         }
     });
 
     // Calculate percentage: (matched / total) * 100
-    const percentage = Math.round((matchedCount / totalCount) * 100);
+    const percentage = totalCount > 0 ? Math.round((matchedCount / totalCount) * 100) : 0;
+
+    console.log(`Final Result: ${matchedCount}/${totalCount} matched (${percentage}%), Priority Score: ${priorityScore}`);
+    console.log('--------------------------------------------------\n');
 
     return { percentage, priorityScore };
 }
@@ -1894,11 +1905,19 @@ function calculateMatchScore(user, candidate) {
 function matchesPreference(candidate, fieldId, user) {
     // Get the preference value from user's preferences
     const pref = user.preferences.priorities.find(p => p.field === fieldId);
-    if (!pref || !pref.value) {
+
+    if (!pref) {
+        console.warn(`Preference not found for field: ${fieldId}`);
+        return false;
+    }
+
+    if (!pref.value) {
+        console.warn(`Preference value is missing for field: ${fieldId}`, pref);
         return false;
     }
 
     const prefValue = pref.value;
+    console.log(`Comparing ${fieldId}: Candidate [${candidate[fieldId]}] vs Preference [${JSON.stringify(prefValue)}]`);
 
     switch (fieldId) {
         case 'birthYear':
@@ -1920,26 +1939,45 @@ function matchesPreference(candidate, fieldId, user) {
             console.log(`Height Match: ${candidateHeight} in [${heightMin}, ${heightMax}] = ${heightMatch}`);
             return heightMatch;
         case 'drinking':
-            return candidate.drinking === prefValue;
+            const drinkingMatch = candidate.drinking === prefValue;
+            console.log(`Drinking Match: "${candidate.drinking}" === "${prefValue}" = ${drinkingMatch}`);
+            return drinkingMatch;
         case 'hobbies':
             // At least one common hobby from preferred hobbies
             if (Array.isArray(prefValue) && prefValue.length > 0) {
-                return prefValue.some(h => candidate.hobbies.includes(h));
+                const hobbiesMatch = prefValue.some(h => candidate.hobbies.includes(h));
+                const commonHobbies = prefValue.filter(h => candidate.hobbies.includes(h));
+                console.log(`Hobbies Match: Preferred [${prefValue.join(', ')}] vs Candidate [${candidate.hobbies.join(', ')}] = ${hobbiesMatch} (Common: ${commonHobbies.join(', ') || 'none'})`);
+                return hobbiesMatch;
             }
+            console.log(`Hobbies Match: No preferred hobbies set = false`);
             return false;
         case 'job':
-            return candidate.job === prefValue;
+            const jobMatch = candidate.job === prefValue;
+            console.log(`Job Match: "${candidate.job}" === "${prefValue}" = ${jobMatch}`);
+            return jobMatch;
         case 'education':
-            return candidate.education === prefValue;
+            const educationMatch = candidate.education === prefValue;
+            console.log(`Education Match: "${candidate.education}" === "${prefValue}" = ${educationMatch}`);
+            return educationMatch;
         case 'location':
-            return candidate.location === prefValue;
+            const locationMatch = candidate.location === prefValue;
+            console.log(`Location Match: "${candidate.location}" === "${prefValue}" = ${locationMatch}`);
+            return locationMatch;
         case 'smoking':
-            return candidate.smoking === prefValue;
+            const smokingMatch = candidate.smoking === prefValue;
+            console.log(`Smoking Match: "${candidate.smoking}" === "${prefValue}" = ${smokingMatch}`);
+            return smokingMatch;
         case 'mbti':
-            return candidate.mbti.toUpperCase() === prefValue.toUpperCase();
+            const mbtiMatch = candidate.mbti.toUpperCase() === prefValue.toUpperCase();
+            console.log(`MBTI Match: "${candidate.mbti.toUpperCase()}" === "${prefValue.toUpperCase()}" = ${mbtiMatch}`);
+            return mbtiMatch;
         case 'marriagePlan':
-            return candidate.marriagePlan === prefValue;
+            const marriagePlanMatch = candidate.marriagePlan === prefValue;
+            console.log(`Marriage Plan Match: "${candidate.marriagePlan}" === "${prefValue}" = ${marriagePlanMatch}`);
+            return marriagePlanMatch;
         default:
+            console.warn(`Unknown field: ${fieldId}`);
             return false;
     }
 }
