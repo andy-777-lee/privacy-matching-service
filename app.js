@@ -46,59 +46,88 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initializeApp() {
-    // Check for admin login
-    const adminLoggedIn = localStorage.getItem(STORAGE_KEYS.ADMIN_LOGGED_IN);
-    if (adminLoggedIn) {
-        if (window.location.hash === '#admin') {
-            showAdminDashboard();
-            return;
-        } else {
-            showAdminLogin();
-        }
-    } else {
-        // Listen for Auth State Changes
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                console.log("User is signed in:", user.uid);
-                try {
-                    const userDoc = await db.collection('users').doc(user.uid).get();
-                    if (userDoc.exists) {
-                        currentUser = userDoc.data();
-                        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
+    // Listen for Auth State Changes globally
+    auth.onAuthStateChanged(async (user) => {
+        const adminLoggedIn = localStorage.getItem(STORAGE_KEYS.ADMIN_LOGGED_IN);
 
-                        // Always setup registration form first to register event listeners
-                        setupRegistrationForm();
+        if (user) {
+            console.log("User is signed in:", user.uid);
 
-                        if (!currentUser.preferences) {
-                            showPage('preference-page');
-                            // Trigger setup after registration form is ready
-                            setTimeout(() => {
-                                window.dispatchEvent(new CustomEvent('setupPreferences'));
-                            }, 100);
-                        } else {
-                            showPage('matches-page');
-                            setTimeout(() => {
-                                window.dispatchEvent(new CustomEvent('showMatches'));
-                            }, 100);
-                        }
+            // If admin is logged in locally, stay on admin dashboard
+            if (adminLoggedIn) {
+                if (window.location.hash === '#admin') {
+                    showAdminDashboard();
+                } else {
+                    // If logged in but hash is not #admin, maybe redirect or just show dashboard
+                    // But if they are on main page, they might want to see main page?
+                    // For simplicity, if admin flag is set, assume admin mode
+                    showAdminDashboard();
+                }
+                return;
+            }
+
+            // Regular user logic
+            try {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists) {
+                    currentUser = userDoc.data();
+                    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
+
+                    // Always setup registration form first to register event listeners
+                    setupRegistrationForm();
+
+                    if (!currentUser.preferences) {
+                        showPage('preference-page');
+                        // Trigger setup after registration form is ready
+                        setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('setupPreferences'));
+                        }, 100);
                     } else {
-                        console.error("Firestore document not found for user", user.uid);
-                        auth.signOut();
+                        showPage('matches-page');
+                        setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('showMatches'));
+                        }, 100);
                     }
-                } catch (error) {
-                    console.error("Error fetching user data:", error);
+                } else {
+                    // User authenticated but no Firestore doc (could be admin account logging in as user, or error)
+                    console.warn("Firestore document not found for user", user.uid);
+                    // If not admin, sign out
+                    if (!adminLoggedIn) {
+                        // Check if it might be a new registration flow? 
+                        // Actually registration creates auth then doc. 
+                        // If we are here, it might be a partial registration or admin account.
+                        // Don't auto sign out immediately to allow debugging or admin handling
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching user data:", error);
+                // Only alert if not admin (admin might not have user doc)
+                if (!adminLoggedIn) {
                     alert('사용자 정보를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.');
                     auth.signOut();
                 }
+            }
+        } else {
+            console.log("User is signed out");
+            currentUser = null;
+            localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+
+            // If admin flag was set but auth is gone, clear flag
+            if (adminLoggedIn) {
+                // Wait a bit to see if it's just initialization delay? 
+                // No, onAuthStateChanged with null means definitely signed out.
+                localStorage.removeItem(STORAGE_KEYS.ADMIN_LOGGED_IN);
+            }
+
+            // Check if trying to access admin page
+            if (window.location.hash === '#admin') {
+                showAdminLogin();
             } else {
-                console.log("User is signed out");
-                currentUser = null;
-                localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
                 showPage('login-page');
                 setupLoginPage();
             }
-        });
-    }
+        }
+    });
 }
 
 const hash = window.location.hash;
@@ -1595,20 +1624,46 @@ function showAdminLogin() {
 
     form.onsubmit = async (e) => {
         e.preventDefault();
+        const email = document.getElementById('admin-email').value.trim();
         const password = document.getElementById('admin-password').value;
         const errorMsg = document.getElementById('admin-error');
+        errorMsg.style.display = 'none';
 
-        // Simple SHA-256 hash function for client-side
-        const msgBuffer = new TextEncoder().encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        try {
+            // Try to sign in
+            await auth.signInWithEmailAndPassword(email, password);
 
-        if (hashHex === ADMIN_PASSWORD_HASH) {
+            // Login successful
             localStorage.setItem(STORAGE_KEYS.ADMIN_LOGGED_IN, 'true');
             showAdminDashboard();
-        } else {
-            errorMsg.textContent = '비밀번호가 올바르지 않습니다.';
+
+        } catch (error) {
+            console.error('Admin login error:', error);
+
+            // For development convenience: Create admin account if not found
+            if (error.code === 'auth/user-not-found') {
+                try {
+                    if (confirm('관리자 계정이 없습니다. 이 정보로 새 관리자 계정을 생성하시겠습니까?')) {
+                        await auth.createUserWithEmailAndPassword(email, password);
+                        localStorage.setItem(STORAGE_KEYS.ADMIN_LOGGED_IN, 'true');
+                        showAdminDashboard();
+                        return;
+                    }
+                } catch (createError) {
+                    console.error('Error creating admin:', createError);
+                    errorMsg.textContent = '관리자 계정 생성 실패: ' + createError.message;
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+            }
+
+            let msg = '로그인 실패';
+            if (error.code === 'auth/wrong-password') {
+                msg = '비밀번호가 올바르지 않습니다.';
+            } else if (error.code === 'auth/invalid-email') {
+                msg = '유효하지 않은 이메일 형식입니다.';
+            }
+            errorMsg.textContent = msg;
             errorMsg.style.display = 'block';
         }
     };
