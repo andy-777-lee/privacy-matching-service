@@ -11,10 +11,13 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
+
 
 // Data Storage Keys (Legacy - keeping for admin login)
 const STORAGE_KEYS = {
-    ADMIN_LOGGED_IN: 'matchingService_adminLoggedIn'
+    ADMIN_LOGGED_IN: 'matchingService_adminLoggedIn',
+    CURRENT_USER: 'matchingService_currentUser' // Added back for local usage if needed
 };
 
 const ADMIN_PASSWORD_HASH = 'b8b8eb83374c0bf3b1c3224159f6119dbfff1b7ed6dfecdd80d4e8a895790a34';
@@ -43,52 +46,58 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initializeApp() {
-    // Ensure user is authenticated (anonymous login for Firestore security rules)
-    try {
-        if (!firebase.auth().currentUser) {
-            await firebase.auth().signInAnonymously();
-            console.log('Anonymous authentication successful');
-        }
-    } catch (error) {
-        console.error('Anonymous authentication failed:', error);
-        alert('인증에 실패했습니다. 페이지를 새로고침해주세요.');
-        return;
-    }
-
-    const hash = window.location.hash;
-
-    if (hash === '#admin') {
-        if (localStorage.getItem(STORAGE_KEYS.ADMIN_LOGGED_IN) === 'true') {
+    // Check for admin login
+    const adminLoggedIn = localStorage.getItem(STORAGE_KEYS.ADMIN_LOGGED_IN);
+    if (adminLoggedIn) {
+        if (window.location.hash === '#admin') {
             showAdminDashboard();
+            return;
         } else {
             showAdminLogin();
         }
     } else {
-        const userId = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-        if (userId) {
-            const users = await fetchUsers();
-            const user = users.find(u => u.id === userId);
+        // Listen for Auth State Changes
+        auth.onAuthStateChanged(async (user) => {
             if (user) {
-                currentUser = user;
-                if (!user.preferences) {
-                    showPage('preference-page');
-                    setupPreferenceSelection();
-                } else {
-                    // Show matches page
-                    showPage('matches-page');
-                    setupRegistrationForm(); // This defines displayMatches and other nested functions
-                    setTimeout(() => {
-                        window.dispatchEvent(new CustomEvent('showMatches'));
-                    }, 100);
+                console.log("User is signed in:", user.uid);
+                try {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (userDoc.exists) {
+                        currentUser = userDoc.data();
+                        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
+                        if (!currentUser.preferences) {
+                            showPage('preference-page');
+                            setupPreferenceSelection();
+                        } else {
+                            showPage('matches-page');
+                            setupRegistrationForm();
+                            setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('showMatches'));
+                            }, 100);
+                        }
+                    } else {
+                        console.error("Firestore document not found for user", user.uid);
+                        auth.signOut();
+                    }
+                } catch (error) {
+                    console.error("Error fetching user data:", error);
+                    alert('사용자 정보를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.');
+                    auth.signOut();
                 }
-                return;
+            } else {
+                console.log("User is signed out");
+                currentUser = null;
+                localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+                showPage('login-page');
+                setupLoginPage();
             }
-        }
-        // Show login page if not logged in
-        showPage('login-page');
-        setupLoginPage();
+        });
     }
 }
+
+const hash = window.location.hash;
+
+// Duplicate auth listener removed – initialization handled in initializeApp()
 
 function setupHashNavigation() {
     window.addEventListener('hashchange', () => {
@@ -155,49 +164,25 @@ function setupLoginPage() {
         const password = passwordHidden.value;
 
         try {
-            const users = await fetchUsers();
-            const user = users.find(u => u.contactKakao === kakaoId);
+            // Use Kakao ID to create a synthetic email for Firebase Auth
+            const email = `${kakaoId}@matching.app`;
 
-            if (!user) {
-                loginError.textContent = '등록되지 않은 카카오톡 ID입니다.';
-                loginError.style.display = 'block';
-                return;
-            }
+            // Pad password to 6 characters to match registration format
+            const paddedPassword = password.padEnd(6, '0');
 
-            const hashedPassword = await hashPassword(password);
+            // Sign in with Firebase Auth
+            await auth.signInWithEmailAndPassword(email, paddedPassword);
 
-            // Debugging logs
-            console.log('Input Password:', password);
-            console.log('Hashed Input:', hashedPassword);
-            console.log('Stored Password:', user.password);
-
-            if (user.password !== hashedPassword) {
-                loginError.textContent = '비밀번호가 올바르지 않습니다.';
-                loginError.style.display = 'block';
-                return;
-            }
-
-            // Login successful
-            currentUser = user;
-            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.id);
-
-            // Navigate to appropriate page
-            if (!user.preferences) {
-                showPage('preference-page');
-                setupPreferenceSelection();
-            } else {
-                // Show matches page
-                showPage('matches-page');
-                setupRegistrationForm(); // This defines displayMatches and other nested functions
-                // Now we need to manually trigger what showMatchesPage does
-                setTimeout(() => {
-                    // Trigger displayMatches and setup through custom event
-                    window.dispatchEvent(new CustomEvent('showMatches'));
-                }, 100);
-            }
+            // Note: Navigation will be handled by onAuthStateChanged in initializeApp
         } catch (error) {
             console.error('Login error:', error);
-            loginError.textContent = '로그인 중 오류가 발생했습니다.';
+            let msg = '로그인 중 오류가 발생했습니다.';
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                msg = '아이디 또는 비밀번호가 올바르지 않습니다.';
+            } else if (error.code === 'auth/invalid-email') {
+                msg = '유효하지 않은 아이디 형식입니다.';
+            }
+            loginError.textContent = msg;
             loginError.style.display = 'block';
         }
     };
@@ -368,26 +353,13 @@ function setupRegistrationForm() {
             alert('비밀번호 4자리를 모두 입력해주세요.');
             return;
         }
-        const hashedPwd = await hashPassword(rawPassword);
-        console.log('Hashed password to store:', hashedPwd);
+        // const hashedPwd = await hashPassword(rawPassword); // No longer hashing password for Firestore
+        // console.log('Hashed password to store:', hashedPwd);
 
-        const formData = new FormData(form);
-        const birthYear = parseInt(document.getElementById('birth-year').value);
-        const currentYear = new Date().getFullYear();
-        const age = currentYear - birthYear + 1; // Korean age calculation
-
-        // Get location value (handle custom location)
-        const locationSelect = document.getElementById('location');
-        const location = locationSelect.value === '기타'
-            ? document.getElementById('custom-location').value
-            : locationSelect.value;
-
-        const user = {
-            id: Date.now().toString(),
+        const formData = {
             name: document.getElementById('name').value,
             gender: document.querySelector('input[name="gender"]:checked').value,
-            birthYear: birthYear,
-            age: age,
+            birthYear: parseInt(document.getElementById('birth-year').value),
             religion: document.getElementById('religion').value,
             height: parseInt(document.getElementById('height').value),
             drinking: document.getElementById('drinking').value,
@@ -395,28 +367,61 @@ function setupRegistrationForm() {
             job: document.getElementById('job').value,
             workplace: document.getElementById('workplace').value,
             highSchool: document.getElementById('high-school').value,
-            location: location,
+            location: document.getElementById('location').value === '기타'
+                ? document.getElementById('custom-location').value
+                : document.getElementById('location').value,
             smoking: document.querySelector('input[name="smoking"]:checked').value,
             mbti: mbti,
             marriagePlan: document.getElementById('marriage-plan').value,
             contactKakao: document.getElementById('kakao-id').value,
             contactInstagram: document.getElementById('instagram-id').value,
-            password: hashedPwd,
+            password: rawPassword, // Use raw password for Firebase Auth
             photos: photos,
-            registeredAt: Date.now()
         };
 
-        console.log('User object before saving:', user);
-        console.log('Password field in user object:', user.password);
-        await saveUser(user);
-        // Send Discord notification (non‑blocking)
-        sendNewUserDiscordNotification(user).catch(console.error);
-        currentUser = user;
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.id);
+        const currentYear = new Date().getFullYear();
+        formData.age = currentYear - formData.birthYear + 1; // Korean age calculation
 
-        alert('프로필이 등록되었습니다! 이제 이상형 조건을 설정해주세요.');
-        showPage('preference-page');
-        setupPreferenceSelection();
+        try {
+            // 1. Create Authentication User
+            const email = `${formData.contactKakao}@matching.app`;
+
+            // Firebase Auth requires minimum 6 characters for password
+            // Pad the 4-digit password to meet this requirement
+            const paddedPassword = formData.password.padEnd(6, '0');
+
+            const userCredential = await auth.createUserWithEmailAndPassword(email, paddedPassword);
+            const authUser = userCredential.user;
+
+            // 2. Create Firestore User Document
+            // createUserWithEmailAndPassword automatically signs in the user,
+            // so we can now write to Firestore with proper authentication
+            const user = {
+                id: authUser.uid, // IMPORTANT: Link Auth ID to Firestore ID
+                ...formData,
+                password: null, // Don't store password in Firestore! Auth handles it.
+                createdAt: Date.now()
+            };
+
+            // Wait a moment to ensure auth state is fully propagated
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            await saveUser(user);
+
+            alert('회원가입이 완료되었습니다!');
+            // Navigation will be handled by onAuthStateChanged
+        } catch (error) {
+            console.error('Registration error:', error);
+            let msg = '회원가입 중 오류가 발생했습니다.';
+            if (error.code === 'auth/email-already-in-use') {
+                msg = '이미 등록된 카카오 ID입니다.';
+            } else if (error.code === 'auth/weak-password') {
+                msg = '비밀번호는 6자 이상이어야 합니다.'; // Firebase Auth requires 6+ chars
+            } else if (error.code === 'permission-denied') {
+                msg = '권한 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+            }
+            alert(msg);
+        }
     });
 
     function setupPhotoUpload() {
@@ -1068,7 +1073,7 @@ function setupRegistrationForm() {
                 <span class="empty-icon">💔</span>
                 <h3>매칭되는 프로필이 없습니다</h3>
                 <p>총 ${analysis.totalCandidates}명의 프로필이 있지만 조건이 맞지 않습니다</p>
-                
+
                 <div class="mismatch-analysis">
                     <h4>조건별 미매칭 분석</h4>
                     ${mismatchList}
@@ -1595,6 +1600,11 @@ async function showAdminDashboard() {
     // Logout button
     document.getElementById('admin-logout-btn').addEventListener('click', () => {
         localStorage.removeItem(STORAGE_KEYS.ADMIN_LOGGED_IN);
+        auth.signOut().then(() => {
+            alert('로그아웃되었습니다.');
+        }).catch((error) => {
+            console.error('Logout error:', error);
+        });
         window.location.hash = '';
         location.reload();
     });
