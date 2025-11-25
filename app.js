@@ -1863,21 +1863,47 @@ async function handleEditProfileSubmit() {
 // Matching Algorithm
 async function findMatches(user) {
     console.log('--- findMatches called ---');
-    console.log('User:', user.name);
-    console.log('Preferences:', user.preferences);
-    if (user.preferences && user.preferences.priorities) {
-        console.log('Priorities count:', user.preferences.priorities.length);
+
+    // Fallback to global currentUser if user argument is missing preferences
+    let matchingUser = user;
+    if (!matchingUser || !matchingUser.preferences || !matchingUser.preferences.priorities) {
+        console.warn('User argument has no preferences, checking global currentUser...');
+        if (currentUser && currentUser.preferences && currentUser.preferences.priorities) {
+            console.log('Using global currentUser instead');
+            matchingUser = currentUser;
+        } else {
+            console.error('Global currentUser also has no preferences! Fetching from Firestore...');
+            try {
+                // Try to fetch fresh user data
+                const freshUser = await getUser(user.id || currentUser.id);
+                if (freshUser && freshUser.preferences) {
+                    console.log('Fetched fresh user data with preferences');
+                    matchingUser = freshUser;
+                    // Update global currentUser
+                    currentUser = freshUser;
+                } else {
+                    console.error('Failed to fetch user preferences from Firestore');
+                }
+            } catch (e) {
+                console.error('Error fetching fresh user data:', e);
+            }
+        }
+    }
+
+    console.log('Matching User:', matchingUser.name);
+    if (matchingUser.preferences && matchingUser.preferences.priorities) {
+        console.log('Priorities count:', matchingUser.preferences.priorities.length);
     } else {
-        console.warn('User has no preferences!');
+        console.error('CRITICAL: User still has no preferences!');
     }
 
     const allUsers = await fetchUsers();
     const candidates = allUsers.filter(u =>
-        u.id !== user.id && u.gender !== user.gender
+        u.id !== matchingUser.id && u.gender !== matchingUser.gender
     );
 
     const matches = candidates.map(candidate => {
-        const scoreData = calculateMatchScore(user, candidate);
+        const scoreData = calculateMatchScore(matchingUser, candidate);
         return { user: candidate, score: scoreData.percentage, priorityScore: scoreData.priorityScore };
     });
 
