@@ -732,19 +732,27 @@ function setupRegistrationForm() {
 
             // Update existing user instead of creating new one
             if (currentUser) {
+                console.log('Updating currentUser preferences...');
                 currentUser.preferences = {
                     priorities: priorities,
                     updatedAt: Date.now()
                 };
 
+                console.log('Updated currentUser:', currentUser);
+
                 // Save to Firestore
                 await saveUser(currentUser);
+                console.log('Saved to Firestore successfully');
 
                 localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
 
                 // Show matches page using custom event
                 showPage('matches-page');
-                window.dispatchEvent(new CustomEvent('showMatches'));
+
+                // Force display matches with updated user
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('showMatches'));
+                }, 100);
             }
         });
     }
@@ -1154,6 +1162,11 @@ function setupRegistrationForm() {
 
 
     async function displayMatches() {
+        console.log('--- displayMatches called ---');
+        console.log('Current User for matching:', currentUser);
+        if (!currentUser || !currentUser.preferences) {
+            console.warn('Current user has no preferences in displayMatches!');
+        }
         const matches = await findMatches(currentUser);
         const grid = document.getElementById('matches-grid');
         const noMatches = document.getElementById('no-matches');
