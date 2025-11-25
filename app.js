@@ -65,12 +65,18 @@ async function initializeApp() {
                     if (userDoc.exists) {
                         currentUser = userDoc.data();
                         localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
+
+                        // Always setup registration form first to register event listeners
+                        setupRegistrationForm();
+
                         if (!currentUser.preferences) {
                             showPage('preference-page');
-                            setupPreferenceSelection();
+                            // Trigger setup after registration form is ready
+                            setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('setupPreferences'));
+                            }, 100);
                         } else {
                             showPage('matches-page');
-                            setupRegistrationForm();
                             setTimeout(() => {
                                 window.dispatchEvent(new CustomEvent('showMatches'));
                             }, 100);
@@ -486,6 +492,12 @@ function setupRegistrationForm() {
     window.addEventListener('editPreferences', () => {
         showPreferencePage();
     });
+
+    // Listen for setup preferences event (triggered after login)
+    window.addEventListener('setupPreferences', () => {
+        setupPreferenceSelection();
+    });
+
 
     function setupPreferenceSelection() {
         const selectGrid = document.getElementById('preference-select');
@@ -1850,8 +1862,7 @@ async function fetchUsers() {
 
 async function saveUser(user) {
     try {
-        console.log('Saving user to Firestore:', user);
-        console.log('Password in saveUser:', user.password);
+        console.log('Saving user to Firestore:', user.id);
         await db.collection('users').doc(user.id).set(user);
         console.log('User saved successfully');
     } catch (error) {
