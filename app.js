@@ -1903,12 +1903,22 @@ function matchesPreference(candidate, fieldId, user) {
     switch (fieldId) {
         case 'birthYear':
             // Check if candidate's birth year is within the range
-            return candidate.birthYear >= prefValue.min && candidate.birthYear <= prefValue.max;
+            const birthYearMin = parseInt(prefValue.min);
+            const birthYearMax = parseInt(prefValue.max);
+            const candidateBirthYear = parseInt(candidate.birthYear);
+            const birthYearMatch = candidateBirthYear >= birthYearMin && candidateBirthYear <= birthYearMax;
+            console.log(`Birth Year Match: ${candidateBirthYear} in [${birthYearMin}, ${birthYearMax}] = ${birthYearMatch}`);
+            return birthYearMatch;
         case 'religion':
             return candidate.religion === prefValue;
         case 'height':
             // Check if candidate's height is within the range
-            return candidate.height >= prefValue.min && candidate.height <= prefValue.max;
+            const heightMin = parseInt(prefValue.min);
+            const heightMax = parseInt(prefValue.max);
+            const candidateHeight = parseInt(candidate.height);
+            const heightMatch = candidateHeight >= heightMin && candidateHeight <= heightMax;
+            console.log(`Height Match: ${candidateHeight} in [${heightMin}, ${heightMax}] = ${heightMatch}`);
+            return heightMatch;
         case 'drinking':
             return candidate.drinking === prefValue;
         case 'hobbies':
