@@ -462,6 +462,201 @@
             </div>
         </div>
 
+        <!-- Edit Profile Modal -->
+        <div id="edit-profile-modal" class="modal">
+            <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                <button class="modal-close">&times;</button>
+                <h2>프로필 수정하기</h2>
+                <p class="description">프로필 정보를 수정할 수 있습니다</p>
+                <form id="edit-profile-form">
+                    <!-- Photo Upload -->
+                    <div class="card">
+                        <h3>📷 사진 (3장 필수)</h3>
+                        <div class="photo-upload-grid">
+                            <div class="photo-upload-box" data-index="0">
+                                <input type="file" accept="image/*" class="photo-input-edit" id="photo-edit-0">
+                                <label for="photo-edit-0" class="photo-label">
+                                    <span class="upload-icon">📷</span>
+                                    <span class="upload-text">사진 변경</span>
+                                </label>
+                                <div class="photo-preview-edit"></div>
+                            </div>
+                            <div class="photo-upload-box" data-index="1">
+                                <input type="file" accept="image/*" class="photo-input-edit" id="photo-edit-1">
+                                <label for="photo-edit-1" class="photo-label">
+                                    <span class="upload-icon">📷</span>
+                                    <span class="upload-text">사진 변경</span>
+                                </label>
+                                <div class="photo-preview-edit"></div>
+                            </div>
+                            <div class="photo-upload-box" data-index="2">
+                                <input type="file" accept="image/*" class="photo-input-edit" id="photo-edit-2">
+                                <label for="photo-edit-2" class="photo-label">
+                                    <span class="upload-icon">📷</span>
+                                    <span class="upload-text">사진 변경</span>
+                                </label>
+                                <div class="photo-preview-edit"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personal Info -->
+                    <div class="card">
+                        <h3>👤 기본 정보</h3>
+                        <div class="form-group">
+                            <label>이름 *</label>
+                            <input type="text" id="edit-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>출생년도 *</label>
+                            <input type="number" id="edit-birth-year" min="1920" max="2007" required>
+                        </div>
+                        <div class="form-group">
+                            <label>종교 *</label>
+                            <select id="edit-religion" required>
+                                <option value="">선택해주세요</option>
+                                <option value="무교">무교</option>
+                                <option value="기독교">기독교</option>
+                                <option value="천주교">천주교</option>
+                                <option value="불교">불교</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>키 (cm) *</label>
+                            <input type="number" id="edit-height" min="140" max="220" required>
+                        </div>
+                        <div class="form-group">
+                            <label>음주 *</label>
+                            <select id="edit-drinking" required>
+                                <option value="">선택해주세요</option>
+                                <option value="안 마심">안 마심</option>
+                                <option value="가끔">가끔</option>
+                                <option value="자주">자주</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>직업/직군 *</label>
+                            <select id="edit-job" required>
+                                <option value="">선택해주세요</option>
+                                <option value="학생">학생</option>
+                                <option value="직장인">직장인</option>
+                                <option value="자영업">자영업</option>
+                                <option value="프리랜서">프리랜서</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>상세 직장명 *</label>
+                            <input type="text" id="edit-workplace" required>
+                        </div>
+                        <div class="form-group">
+                            <label>고등학교 *</label>
+                            <input type="text" id="edit-high-school" required>
+                        </div>
+                        <div class="form-group">
+                            <label>거주 지역 *</label>
+                            <select id="edit-location" required>
+                                <option value="">선택해주세요</option>
+                                <option value="서울">서울</option>
+                                <option value="경기">경기</option>
+                                <option value="인천">인천</option>
+                                <option value="부산">부산</option>
+                                <option value="대구">대구</option>
+                                <option value="광주">광주</option>
+                                <option value="대전">대전</option>
+                                <option value="울산">울산</option>
+                                <option value="김해">김해</option>
+                                <option value="창원">창원</option>
+                                <option value="포항">포항</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="edit-custom-location-group" style="display: none;">
+                            <label>거주 지역 입력 *</label>
+                            <input type="text" id="edit-custom-location" placeholder="거주 지역을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label>흡연 여부 *</label>
+                            <div class="gender-select">
+                                <input type="radio" name="edit-smoking" value="비흡연" id="edit-smoking-no" required>
+                                <label for="edit-smoking-no" class="gender-option">비흡연</label>
+                                <input type="radio" name="edit-smoking" value="흡연" id="edit-smoking-yes" required>
+                                <label for="edit-smoking-yes" class="gender-option">흡연</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>MBTI *</label>
+                            <input type="text" id="edit-mbti" maxlength="4" required>
+                        </div>
+                        <div class="form-group">
+                            <label>결혼 계획 *</label>
+                            <select id="edit-marriage-plan" required>
+                                <option value="">선택해주세요</option>
+                                <option value="1년 내">1년 내</option>
+                                <option value="2-3년 내">2-3년 내</option>
+                                <option value="천천히">천천히</option>
+                                <option value="미정">미정</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>취미 (여러 개 선택 가능) *</label>
+                            <div class="hobby-grid" id="edit-hobbies-grid">
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="운동">
+                                    <span>운동</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="영화">
+                                    <span>영화</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="음악">
+                                    <span>음악</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="독서">
+                                    <span>독서</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="여행">
+                                    <span>여행</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="요리">
+                                    <span>요리</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="게임">
+                                    <span>게임</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="기타">
+                                    <span>기타</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Info -->
+                    <div class="card">
+                        <h3>📞 연락처 정보</h3>
+                        <div class="form-group">
+                            <label>카카오톡 ID *</label>
+                            <input type="text" id="edit-kakao-id" required disabled>
+                            <small style="color: #888;">카카오톡 ID는 변경할 수 없습니다 (로그인 ID)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>인스타그램 ID (선택)</label>
+                            <input type="text" id="edit-instagram-id" placeholder="@username">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large">저장하기</button>
+                </form>
+            </div>
+        </div>
+
         <!-- Admin Login Page -->
         <div id="admin-login-page" class="page">
             <div class="container">
@@ -499,8 +694,9 @@
 
                 <!-- Tabs -->
                 <div class="admin-tabs">
-                    <button class="admin-tab active" data-tab="requests">공개 요청 (<span
+                    <button class="admin-tab active" data-tab="requests">대기 중 요청 (<span
                             id="pending-count">0</span>)</button>
+                    <button class="admin-tab" data-tab="completed">완료된 요청 (<span id="completed-count">0</span>)</button>
                     <button class="admin-tab" data-tab="profiles">전체 프로필 (<span id="total-count">0</span>)</button>
                 </div>
 
@@ -511,6 +707,17 @@
                         <div class="empty-state">
                             <span class="empty-icon">📭</span>
                             <h3>대기 중인 요청이 없습니다</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completed Requests Tab -->
+                <div id="completed-tab" class="admin-tab-content">
+                    <div id="admin-completed-grid" class="admin-requests-grid"></div>
+                    <div id="no-completed" class="no-matches" style="display: none;">
+                        <div class="empty-state">
+                            <span class="empty-icon">📋</span>
+                            <h3>완료된 요청이 없습니다</h3>
                         </div>
                     </div>
                 </div>

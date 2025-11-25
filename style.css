@@ -1245,7 +1245,9 @@ textarea:focus {
 
 .range-input-group span {
     color: var(--text-secondary);
-}/* Mismatch Analysis */
+}
+
+/* Mismatch Analysis */
 .mismatch-analysis {
     margin-top: var(--spacing-lg);
     padding: var(--spacing-lg);
@@ -1295,7 +1297,9 @@ textarea:focus {
 
 .empty-state button {
     margin-top: var(--spacing-lg);
-}/* Service Description */
+}
+
+/* Service Description */
 .service-description {
     margin-bottom: var(--spacing-xl);
     text-align: center;
@@ -1384,7 +1388,9 @@ textarea:focus {
     .features {
         grid-template-columns: 1fr;
     }
-}/* Process Info */
+}
+
+/* Process Info */
 .process-info {
     margin-top: var(--spacing-xl);
     padding-top: var(--spacing-xl);
@@ -1455,7 +1461,9 @@ textarea:focus {
     .process-step {
         max-width: 100%;
     }
-}/* Privacy Guarantee Badge */
+}
+
+/* Privacy Guarantee Badge */
 .privacy-guarantee {
     margin: var(--spacing-xl) 0;
 }
@@ -1564,6 +1572,7 @@ textarea:focus {
         font-size: 3rem;
     }
 }
+
 /* Password Input Boxes */
 .password-inputs {
     display: flex;
@@ -1710,6 +1719,94 @@ textarea:focus {
 }
 
 @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Unlocked Badge */
+.unlocked-badge {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    background: rgba(76, 217, 100, 0.9);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+/* Match Card Unlocked State */
+.match-card.unlocked {
+    border-color: rgba(76, 217, 100, 0.3);
+}
+
+.match-card.unlocked:hover {
+    border-color: rgba(76, 217, 100, 0.5);
+    box-shadow: 0 8px 32px rgba(76, 217, 100, 0.2);
+}
+
+/* Status Badges for Completed Requests */
+.status-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.status-approved {
+    background: rgba(76, 217, 100, 0.2);
+    color: #4CD964;
+    border: 1px solid rgba(76, 217, 100, 0.3);
+}
+
+.status-rejected {
+    background: rgba(255, 107, 107, 0.2);
+    color: #FF6B6B;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.request-card.status-approved {
+    border-color: rgba(76, 217, 100, 0.3);
+}
+
+.request-card.status-rejected {
+    border-color: rgba(255, 107, 107, 0.3);
+}
+
+/* Edit Profile Modal Photo Previews */
+.photo-input-edit {
+    display: none;
+}
+
+.photo-preview-edit {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.photo-preview-edit.active {
+    display: block;
+}
+
+.photo-preview-edit img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-preview-edit.active~.photo-label {
+    display: none;
 }

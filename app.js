@@ -1177,9 +1177,10 @@ function setupRegistrationForm() {
         const score = match.score;
 
         return `
-        <div class="match-card" data-user-id="${user.id}">
+        <div class="match-card ${isUnlocked ? 'unlocked' : ''}" data-user-id="${user.id}">
             <div class="match-photos">
                 <span class="match-percentage">${score}% 매칭</span>
+                ${isUnlocked ? '<span class="unlocked-badge">🔓 공개됨</span>' : ''}
                 <img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" class="${isUnlocked ? '' : 'blurred-photo'}" alt="Profile">
             </div>
             <div class="match-info">
@@ -1300,6 +1301,9 @@ function setupRegistrationForm() {
         ${isOwnProfile ? `
             <button class="btn btn-secondary btn-large" onclick="document.getElementById('profile-modal').classList.remove('active'); window.dispatchEvent(new CustomEvent('editPreferences'))">
                 선호 조건 수정하기
+            </button>
+            <button class="btn btn-primary btn-large" onclick="openEditProfileModal()" style="margin-top: 0.5rem;">
+                프로필 수정하기
             </button>
         ` : ''}
     `;
@@ -1532,6 +1536,240 @@ async function requestUnlock(targetId) {
     };
 }
 
+// Global function for opening edit profile modal
+function openEditProfileModal() {
+    // Close the profile modal
+    document.getElementById('profile-modal').classList.remove('active');
+
+    // Open edit profile modal
+    const modal = document.getElementById('edit-profile-modal');
+    modal.classList.add('active');
+
+    // Populate form with current user data
+    populateEditProfileForm();
+
+    // Setup photo upload handlers
+    setupEditPhotoUpload();
+
+    // Setup location dropdown handler
+    const locationSelect = document.getElementById('edit-location');
+    const customLocationGroup = document.getElementById('edit-custom-location-group');
+    const customLocationInput = document.getElementById('edit-custom-location');
+
+    locationSelect.addEventListener('change', () => {
+        if (locationSelect.value === '기타') {
+            customLocationGroup.style.display = 'block';
+            customLocationInput.required = true;
+        } else {
+            customLocationGroup.style.display = 'none';
+            customLocationInput.required = false;
+            customLocationInput.value = '';
+        }
+    });
+
+    // Setup form submission
+    const form = document.getElementById('edit-profile-form');
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        await handleEditProfileSubmit();
+    };
+
+    // Setup close button
+    modal.querySelector('.modal-close').onclick = () => {
+        modal.classList.remove('active');
+    };
+
+    // Click outside to close
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('active');
+        }
+    };
+}
+
+function populateEditProfileForm() {
+    if (!currentUser) return;
+
+    // Populate photos
+    currentUser.photos.forEach((photo, index) => {
+        const preview = document.querySelector(`.photo-upload-box[data-index="${index}"] .photo-preview-edit`);
+        if (preview) {
+            preview.innerHTML = `<img src="${photo}" alt="Photo ${index + 1}">`;
+            preview.classList.add('active');
+        }
+    });
+
+    // Populate basic info
+    document.getElementById('edit-name').value = currentUser.name || '';
+    document.getElementById('edit-birth-year').value = currentUser.birthYear || '';
+    document.getElementById('edit-religion').value = currentUser.religion || '';
+    document.getElementById('edit-height').value = currentUser.height || '';
+    document.getElementById('edit-drinking').value = currentUser.drinking || '';
+    document.getElementById('edit-job').value = currentUser.job || '';
+    document.getElementById('edit-workplace').value = currentUser.workplace || '';
+    document.getElementById('edit-high-school').value = currentUser.highSchool || '';
+
+    // Handle location
+    const locationSelect = document.getElementById('edit-location');
+    const customLocationGroup = document.getElementById('edit-custom-location-group');
+    const customLocationInput = document.getElementById('edit-custom-location');
+
+    const locationOptions = ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '김해', '창원', '포항'];
+    if (locationOptions.includes(currentUser.location)) {
+        locationSelect.value = currentUser.location;
+    } else {
+        locationSelect.value = '기타';
+        customLocationGroup.style.display = 'block';
+        customLocationInput.value = currentUser.location;
+        customLocationInput.required = true;
+    }
+
+    // Populate smoking
+    if (currentUser.smoking === '비흡연') {
+        document.getElementById('edit-smoking-no').checked = true;
+    } else {
+        document.getElementById('edit-smoking-yes').checked = true;
+    }
+
+    document.getElementById('edit-mbti').value = currentUser.mbti || '';
+    document.getElementById('edit-marriage-plan').value = currentUser.marriagePlan || '';
+
+    // Populate hobbies
+    if (currentUser.hobbies && Array.isArray(currentUser.hobbies)) {
+        currentUser.hobbies.forEach(hobby => {
+            const checkbox = document.querySelector(`input[name="edit-hobbies"][value="${hobby}"]`);
+            if (checkbox) checkbox.checked = true;
+        });
+    }
+
+    // Populate contact info
+    document.getElementById('edit-kakao-id').value = currentUser.contactKakao || '';
+    document.getElementById('edit-instagram-id').value = currentUser.contactInstagram || '';
+}
+
+function setupEditPhotoUpload() {
+    document.querySelectorAll('.photo-input-edit').forEach((input, index) => {
+        // Remove existing listeners by cloning
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+
+        newInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('사진 크기는 5MB 이하여야 합니다.');
+                    return;
+                }
+
+                // Compress image before storing
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        // Create canvas for compression
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+
+                        // Calculate new dimensions (max 800px on longest side)
+                        let width = img.width;
+                        let height = img.height;
+                        const maxSize = 800;
+
+                        if (width > height && width > maxSize) {
+                            height = (height * maxSize) / width;
+                            width = maxSize;
+                        } else if (height > maxSize) {
+                            width = (width * maxSize) / height;
+                            height = maxSize;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        // Draw and compress
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
+
+                        // Display preview
+                        const preview = document.querySelector(`.photo-upload-box[data-index="${index}"] .photo-preview-edit`);
+                        preview.innerHTML = `<img src="${compressedDataUrl}" alt="Photo ${index + 1}">`;
+                        preview.classList.add('active');
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+}
+
+async function handleEditProfileSubmit() {
+    // Validate photos (ensure three photos are uploaded)
+    const photos = [];
+    for (let i = 0; i < 3; i++) {
+        const preview = document.querySelector(`.photo-upload-box[data-index="${i}"] .photo-preview-edit`);
+        if (!preview.classList.contains('active')) {
+            alert('사진 3장을 모두 등록해주세요.');
+            return;
+        }
+        photos.push(preview.querySelector('img').src);
+    }
+
+    // Get selected hobbies
+    const hobbies = Array.from(document.querySelectorAll('input[name="edit-hobbies"]:checked')).map(cb => cb.value);
+    if (hobbies.length === 0) {
+        alert('취미를 최소 1개 이상 선택해주세요.');
+        return;
+    }
+
+    // Validate MBTI (must be 4 characters)
+    const mbti = document.getElementById('edit-mbti').value.toUpperCase();
+    if (mbti.length !== 4) {
+        alert('MBTI는 4자리로 입력해주세요 (예: INFP)');
+        return;
+    }
+
+    const birthYear = parseInt(document.getElementById('edit-birth-year').value);
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - birthYear + 1; // Korean age calculation
+
+    // Update currentUser object
+    currentUser.name = document.getElementById('edit-name').value;
+    currentUser.birthYear = birthYear;
+    currentUser.age = age;
+    currentUser.religion = document.getElementById('edit-religion').value;
+    currentUser.height = parseInt(document.getElementById('edit-height').value);
+    currentUser.drinking = document.getElementById('edit-drinking').value;
+    currentUser.hobbies = hobbies;
+    currentUser.job = document.getElementById('edit-job').value;
+    currentUser.workplace = document.getElementById('edit-workplace').value;
+    currentUser.highSchool = document.getElementById('edit-high-school').value;
+    currentUser.location = document.getElementById('edit-location').value === '기타'
+        ? document.getElementById('edit-custom-location').value
+        : document.getElementById('edit-location').value;
+    currentUser.smoking = document.querySelector('input[name="edit-smoking"]:checked').value;
+    currentUser.mbti = mbti;
+    currentUser.marriagePlan = document.getElementById('edit-marriage-plan').value;
+    currentUser.contactInstagram = document.getElementById('edit-instagram-id').value;
+    currentUser.photos = photos;
+
+    try {
+        // Save to Firestore
+        await saveUser(currentUser);
+
+        alert('프로필이 성공적으로 수정되었습니다!');
+
+        // Close modal
+        document.getElementById('edit-profile-modal').classList.remove('active');
+
+        // Refresh matches page to show updated profile
+        window.dispatchEvent(new CustomEvent('showMatches'));
+    } catch (error) {
+        console.error('Profile update error:', error);
+        alert('프로필 수정 중 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+}
+
 
 // Matching Algorithm
 // Matching Algorithm
@@ -1722,6 +1960,8 @@ async function showAdminDashboard() {
 
             if (tab.dataset.tab === 'profiles') {
                 displayAllProfiles();
+            } else if (tab.dataset.tab === 'completed') {
+                displayCompletedRequests();
             } else {
                 displayUnlockRequests();
             }
@@ -1757,6 +1997,12 @@ async function displayUnlockRequests() {
     const noRequests = document.getElementById('no-requests');
 
     const pendingRequests = requests.filter(r => r.status === 'pending');
+
+    // Update pending count
+    const pendingCount = document.getElementById('pending-count');
+    if (pendingCount) {
+        pendingCount.textContent = pendingRequests.length;
+    }
 
     if (pendingRequests.length === 0) {
         grid.style.display = 'none';
@@ -1794,6 +2040,69 @@ async function displayUnlockRequests() {
                 <div class="request-actions">
                     <button class="btn-approve" onclick="approveRequest('${request.id}')">승인</button>
                     <button class="btn-reject" onclick="rejectRequest('${request.id}')">거절</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function displayCompletedRequests() {
+    const requests = await fetchUnlockRequests();
+    const users = await fetchUsers();
+    const grid = document.getElementById('admin-completed-grid');
+    const noCompleted = document.getElementById('no-completed');
+
+    const completedRequests = requests.filter(r => r.status === 'approved' || r.status === 'rejected');
+
+    // Update completed count
+    const completedCount = document.getElementById('completed-count');
+    if (completedCount) {
+        completedCount.textContent = completedRequests.length;
+    }
+
+    if (completedRequests.length === 0) {
+        grid.style.display = 'none';
+        noCompleted.style.display = 'block';
+        return;
+    }
+
+    grid.style.display = 'grid';
+    noCompleted.style.display = 'none';
+
+    // Sort by reviewedAt (most recent first)
+    completedRequests.sort((a, b) => (b.reviewedAt || 0) - (a.reviewedAt || 0));
+
+    grid.innerHTML = completedRequests.map(request => {
+        const requester = users.find(u => u.id === request.requesterId);
+        const target = users.find(u => u.id === request.targetId);
+
+        if (!requester || !target) return '';
+
+        const isApproved = request.status === 'approved';
+        const statusClass = isApproved ? 'status-approved' : 'status-rejected';
+        const statusText = isApproved ? '승인됨' : '거절됨';
+        const statusIcon = isApproved ? '✅' : '❌';
+
+        return `
+            <div class="request-card ${statusClass}">
+                <div class="request-header">
+                    <span class="request-time">요청: ${new Date(request.createdAt).toLocaleString()}</span>
+                    <span class="status-badge ${statusClass}">${statusIcon} ${statusText}</span>
+                </div>
+                <div class="request-header" style="margin-top: 0.5rem;">
+                    <span class="request-time" style="font-size: 0.85rem; opacity: 0.8;">처리: ${new Date(request.reviewedAt).toLocaleString()}</span>
+                </div>
+                <div class="request-users">
+                    <div class="request-user">
+                        <strong>요청자:</strong> ${requester.name}
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="request-user">
+                        <strong>대상:</strong> ${target.name}
+                    </div>
+                </div>
+                <div class="request-message">
+                    "${request.message}"
                 </div>
             </div>
         `;
@@ -1912,6 +2221,13 @@ async function approveRequest(requestId) {
 
             alert('승인되었습니다.');
             displayUnlockRequests();
+            // Update completed count
+            const requests = await fetchUnlockRequests();
+            const completedCount = document.getElementById('completed-count');
+            if (completedCount) {
+                const completed = requests.filter(r => r.status === 'approved' || r.status === 'rejected');
+                completedCount.textContent = completed.length;
+            }
         } catch (error) {
             console.error('Error approving request:', error);
             alert('승인 처리 중 오류가 발생했습니다. 콘솔을 확인하세요.');
@@ -1930,6 +2246,13 @@ async function rejectRequest(requestId) {
 
         alert('거절되었습니다.');
         displayUnlockRequests();
+        // Update completed count
+        const allRequests = await fetchUnlockRequests();
+        const completedCount = document.getElementById('completed-count');
+        if (completedCount) {
+            const completed = allRequests.filter(r => r.status === 'approved' || r.status === 'rejected');
+            completedCount.textContent = completed.length;
+        }
     }
 }
 
@@ -2140,21 +2463,13 @@ async function addUnlockedProfile(userId, targetId) {
     try {
         console.log('Adding unlocked profile:', { userId, targetId });
         const docRef = db.collection('unlockedProfiles').doc(userId);
-        const doc = await docRef.get();
-
-        if (doc.exists) {
-            await docRef.update({
-                unlocked: firebase.firestore.FieldValue.arrayUnion(targetId)
-            });
-            console.log('Updated unlocked profiles for user:', userId);
-        } else {
-            await docRef.set({
-                unlocked: [targetId]
-            });
-            console.log('Created unlocked profiles document for user:', userId);
-        }
+        // Directly add targetId using set with merge (no read needed)
+        await docRef.set({
+            unlocked: firebase.firestore.FieldValue.arrayUnion(targetId)
+        }, { merge: true });
+        console.log('Added/updated unlocked profile for user:', userId);
     } catch (error) {
-        console.error("Error adding unlocked profile:", error);
+        console.error('Error adding unlocked profile:', error);
         if (error.code === 'permission-denied') {
             if (auth.currentUser) {
                 console.error('PERMISSION DENIED: User is authenticated but rule rejected write.');
@@ -2164,7 +2479,7 @@ async function addUnlockedProfile(userId, targetId) {
                 alert('권한 오류: 관리자 인증 정보가 없습니다. 새로고침 후 다시 로그인해주세요.');
             }
         }
-        throw error; // Re-throw to let caller know it failed
+        throw error;
     }
 }
 
