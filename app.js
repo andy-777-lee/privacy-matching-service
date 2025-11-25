@@ -537,6 +537,26 @@ function setupRegistrationForm() {
         setupPreferenceSelection();
     });
 
+    // Setup close button for preference page
+    const closePreferenceBtn = document.getElementById('close-preference-page');
+    if (closePreferenceBtn) {
+        closePreferenceBtn.addEventListener('click', () => {
+            // Go back to matches page if user has preferences, otherwise stay
+            if (currentUser && currentUser.preferences) {
+                showPage('matches-page');
+                window.dispatchEvent(new CustomEvent('showMatches'));
+            }
+        });
+
+        // Add hover effect
+        closePreferenceBtn.addEventListener('mouseenter', () => {
+            closePreferenceBtn.style.color = 'var(--primary)';
+        });
+        closePreferenceBtn.addEventListener('mouseleave', () => {
+            closePreferenceBtn.style.color = 'var(--text-secondary)';
+        });
+    }
+
 
     function setupPreferenceSelection() {
         const selectGrid = document.getElementById('preference-select');
@@ -1599,6 +1619,17 @@ function openEditProfileModal() {
 
 function populateEditProfileForm() {
     if (!currentUser) return;
+
+    // Clear all hobbies first
+    document.querySelectorAll('input[name="edit-hobbies"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+
+    // Clear photo previews first
+    document.querySelectorAll('.photo-preview-edit').forEach(preview => {
+        preview.classList.remove('active');
+        preview.innerHTML = '';
+    });
 
     // Populate photos
     currentUser.photos.forEach((photo, index) => {
