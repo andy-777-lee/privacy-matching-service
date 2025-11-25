@@ -74,9 +74,12 @@ async function initializeApp() {
                     showPage('preference-page');
                     setupPreferenceSelection();
                 } else {
+                    // Show matches page
                     showPage('matches-page');
-                    setupRegistrationForm(); // This will set up all nested functions including displayMatches
-                    setupNotifications();
+                    setupRegistrationForm(); // This defines displayMatches and other nested functions
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('showMatches'));
+                    }, 100);
                 }
                 return;
             }
@@ -183,9 +186,14 @@ function setupLoginPage() {
                 showPage('preference-page');
                 setupPreferenceSelection();
             } else {
+                // Show matches page
                 showPage('matches-page');
-                setupRegistrationForm();
-                setupNotifications();
+                setupRegistrationForm(); // This defines displayMatches and other nested functions
+                // Now we need to manually trigger what showMatchesPage does
+                setTimeout(() => {
+                    // Trigger displayMatches and setup through custom event
+                    window.dispatchEvent(new CustomEvent('showMatches'));
+                }, 100);
             }
         } catch (error) {
             console.error('Login error:', error);
@@ -203,59 +211,72 @@ function setupLoginPage() {
 
 // Notification Setup
 function setupNotifications() {
-    const notificationBtn = document.getElementById('notification-btn');
-    const notificationModal = document.getElementById('notification-modal');
-    const closeBtn = document.getElementById('close-notification-modal');
+    try {
+        const notificationBtn = document.getElementById('notification-btn');
+        const notificationModal = document.getElementById('notification-modal');
+        const closeBtn = document.getElementById('close-notification-modal');
 
-    // Toggle modal
-    notificationBtn.onclick = async () => {
-        if (notificationModal.style.display === 'block') {
-            notificationModal.style.display = 'none';
-        } else {
-            const notifications = await fetchNotifications(currentUser.id);
-            displayNotifications(notifications);
-            notificationModal.style.display = 'block';
+        // Guard: if elements are not present (e.g., login/registration pages), skip setup
+        if (!notificationBtn || !notificationModal || !closeBtn) {
+            console.log('Notification elements not found, skipping setup');
+            return;
         }
-    };
 
-    // Close modal
-    closeBtn.onclick = () => {
-        notificationModal.style.display = 'none';
-    };
+        // Toggle modal
+        notificationBtn.onclick = async () => {
+            if (notificationModal.style.display === 'block') {
+                notificationModal.style.display = 'none';
+            } else {
+                const notifications = await fetchNotifications(currentUser.id);
+                displayNotifications(notifications);
+                notificationModal.style.display = 'block';
+            }
+        };
 
-    window.onclick = (event) => {
-        if (event.target === notificationModal) {
+        // Close modal
+        closeBtn.onclick = () => {
             notificationModal.style.display = 'none';
-        }
-    };
+        };
 
-    // Poll for new notifications
-    setInterval(async () => {
-        if (currentUser) {
-            const notifications = await fetchNotifications(currentUser.id);
-            const unreadCount = notifications.filter(n => !n.read).length;
+        window.onclick = (event) => {
+            if (event.target === notificationModal) {
+                notificationModal.style.display = 'none';
+            }
+        };
 
-            const badge = document.getElementById('notification-badge');
-            if (unreadCount > 0) {
-                badge.textContent = unreadCount;
-                badge.style.display = 'flex';
+        // Poll for new notifications
+        setInterval(async () => {
+            if (currentUser) {
+                const notifications = await fetchNotifications(currentUser.id);
+                const unreadCount = notifications.filter(n => !n.read).length;
 
-                // Show toast for latest unread notification if it's new (simple check)
-                const latest = notifications[0];
-                if (!latest.read && Date.now() - latest.createdAt < 10000) { // Created within last 10 seconds
-                    // Prevent duplicate toasts (basic implementation)
-                    if (!window.lastToastId || window.lastToastId !== latest.id) {
-                        showToast(`🔔 ${latest.message}`, () => {
-                            notificationBtn.click();
-                        });
-                        window.lastToastId = latest.id;
+                const badge = document.getElementById('notification-badge');
+                if (badge) {
+                    if (unreadCount > 0) {
+                        badge.textContent = unreadCount;
+                        badge.style.display = 'flex';
+
+                        // Show toast for latest unread notification if it's new (simple check)
+                        const latest = notifications[0];
+                        if (!latest.read && Date.now() - latest.createdAt < 10000) { // Created within last 10 seconds
+                            // Prevent duplicate toasts (basic implementation)
+                            if (!window.lastToastId || window.lastToastId !== latest.id) {
+                                showToast(`🔔 ${latest.message}`, () => {
+                                    notificationBtn.click();
+                                });
+                                window.lastToastId = latest.id;
+                            }
+                        }
+                    } else {
+                        badge.style.display = 'none';
                     }
                 }
-            } else {
-                badge.style.display = 'none';
             }
-        }
-    }, 5000); // Check every 5 seconds
+        }, 5000); // Check every 5 seconds
+    } catch (error) {
+        console.error('Error setting up notifications:', error);
+        // Don't throw - allow app to continue without notifications
+    }
 }
 
 // Registration Form
@@ -335,12 +356,15 @@ function setupRegistrationForm() {
             return;
         }
 
-        // Validate Password
-        const password = document.getElementById('password').value;
-        if (password.length !== 4) {
+        // Validate password length before hashing
+        const rawPassword = document.getElementById('password').value;
+        console.log('Registration raw password:', rawPassword);
+        if (!rawPassword || rawPassword.length !== 4) {
             alert('비밀번호 4자리를 모두 입력해주세요.');
             return;
         }
+        const hashedPwd = await hashPassword(rawPassword);
+        console.log('Hashed password to store:', hashedPwd);
 
         const formData = new FormData(form);
         const birthYear = parseInt(document.getElementById('birth-year').value);
@@ -372,11 +396,13 @@ function setupRegistrationForm() {
             marriagePlan: document.getElementById('marriage-plan').value,
             contactKakao: document.getElementById('kakao-id').value,
             contactInstagram: document.getElementById('instagram-id').value,
-            password: await hashPassword(document.getElementById('password').value),
+            password: hashedPwd,
             photos: photos,
             registeredAt: Date.now()
         };
 
+        console.log('User object before saving:', user);
+        console.log('Password field in user object:', user.password);
         await saveUser(user);
         // Send Discord notification (non‑blocking)
         sendNewUserDiscordNotification(user).catch(console.error);
@@ -446,10 +472,24 @@ function setupRegistrationForm() {
         setupPreferenceSelection();
     }
 
+    // Listen for edit preferences event
+    window.addEventListener('editPreferences', () => {
+        showPreferencePage();
+    });
+
     function setupPreferenceSelection() {
         const selectGrid = document.getElementById('preference-select');
         const priorityCard = document.getElementById('priority-card');
         const priorityList = document.getElementById('priority-list');
+
+        console.log('setupPreferenceSelection called');
+        console.log('selectGrid:', selectGrid);
+        console.log('PREFERENCE_FIELDS:', PREFERENCE_FIELDS);
+
+        if (!selectGrid) {
+            console.error('preference-select element not found!');
+            return;
+        }
 
         // Populate preference options
         selectGrid.innerHTML = PREFERENCE_FIELDS.map(field => `
@@ -458,6 +498,64 @@ function setupRegistrationForm() {
             <label for="pref-${field.id}">${field.label}</label>
         </div>
     `).join('');
+
+        console.log('Checkboxes created, innerHTML length:', selectGrid.innerHTML.length);
+
+        // Load existing preferences if user has them
+        if (currentUser && currentUser.preferences && currentUser.preferences.priorities) {
+            const existingPrefs = currentUser.preferences.priorities;
+            const selectedFields = existingPrefs.map(p => p.field);
+
+            // Check the checkboxes for existing preferences
+            selectedFields.forEach(fieldId => {
+                const checkbox = document.getElementById(`pref-${fieldId}`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+
+            // Show preference values and priority list
+            if (selectedFields.length > 0) {
+                showPreferenceValues(selectedFields);
+                priorityCard.style.display = 'block';
+                updatePriorityList(selectedFields);
+
+                // Restore the actual values
+                existingPrefs.forEach(pref => {
+                    const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
+                    if (!field) return;
+
+                    const inputContainer = document.getElementById(`input-${pref.field}`);
+                    if (!inputContainer) return;
+
+                    if (field.type === 'range') {
+                        const minInput = inputContainer.querySelector('.min-input');
+                        const maxInput = inputContainer.querySelector('.max-input');
+                        if (minInput && maxInput && pref.value) {
+                            minInput.value = pref.value.min;
+                            maxInput.value = pref.value.max;
+                        }
+                    } else if (field.type === 'multi') {
+                        if (Array.isArray(pref.value)) {
+                            pref.value.forEach(val => {
+                                const checkbox = inputContainer.querySelector(`input[value="${val}"]`);
+                                if (checkbox) checkbox.checked = true;
+                            });
+                        }
+                    } else if (field.type === 'text') {
+                        const input = inputContainer.querySelector('input');
+                        if (input && pref.value) {
+                            input.value = pref.value;
+                        }
+                    } else if (field.type === 'select') {
+                        const select = inputContainer.querySelector('select');
+                        if (select && pref.value) {
+                            select.value = pref.value;
+                        }
+                    }
+                });
+            }
+        }
 
         // Listen for checkbox changes
         selectGrid.addEventListener('change', () => {
@@ -535,7 +633,10 @@ function setupRegistrationForm() {
                 await saveUser(currentUser);
 
                 localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
-                showMatchesPage();
+
+                // Show matches page using custom event
+                showPage('matches-page');
+                window.dispatchEvent(new CustomEvent('showMatches'));
             }
         });
     }
@@ -916,7 +1017,26 @@ function setupRegistrationForm() {
         document.getElementById('my-profile-btn').addEventListener('click', () => {
             showProfileModal(currentUser, false, null, true); // true = isOwnProfile
         });
+
+        // Setup notifications after page is shown
+        setupNotifications();
     }
+
+    // Listen for custom event to trigger displayMatches from outside
+    window.addEventListener('showMatches', () => {
+        displayMatches();
+
+        // Setup my profile button
+        const myProfileBtn = document.getElementById('my-profile-btn');
+        if (myProfileBtn && !myProfileBtn.onclick) {
+            myProfileBtn.addEventListener('click', () => {
+                showProfileModal(currentUser, false, null, true); // true = isOwnProfile
+            });
+        }
+
+        // Setup notifications after page is shown
+        setupNotifications();
+    });
 
     async function displayMatches() {
         const matches = await findMatches(currentUser);
@@ -950,7 +1070,25 @@ function setupRegistrationForm() {
                 </div>
 
                 <p class="hint">선호 조건을 수정하거나 범위를 넓혀보세요</p>
-                <button onclick="showPage('preference-page')" class="btn-secondary" style="margin-top: 1rem;">선호 조건 수정하기</button>
+                <button onclick="window.dispatchEvent(new CustomEvent('editPreferences'))" class="btn-primary" style="
+                    margin-top: 1.5rem;
+                    padding: 1rem 2rem;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border: none;
+                    border-radius: 12px;
+                    color: white;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                    transition: all 0.3s ease;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';">
+                    <span style="font-size: 1.2rem;">⚙️</span>
+                    선호 조건 수정하기
+                </button>
             </div>
         `;
             return;
@@ -1101,7 +1239,7 @@ function setupRegistrationForm() {
             </button>
         ` : ''}
         ${isOwnProfile ? `
-            <button class="btn btn-secondary btn-large" onclick="editPreferences()">
+            <button class="btn btn-secondary btn-large" onclick="document.getElementById('profile-modal').classList.remove('active'); window.dispatchEvent(new CustomEvent('editPreferences'))">
                 선호 조건 수정하기
             </button>
         ` : ''}
@@ -1683,7 +1821,12 @@ async function rejectRequest(requestId) {
 async function fetchUsers() {
     try {
         const snapshot = await db.collection('users').get();
-        return snapshot.docs.map(doc => doc.data());
+        const users = snapshot.docs.map(doc => doc.data());
+        console.log('Fetched users from Firestore:', users);
+        users.forEach(user => {
+            console.log(`User ${user.contactKakao} - password field:`, user.password);
+        });
+        return users;
     } catch (error) {
         console.error("Error fetching users:", error);
         return [];
@@ -1692,7 +1835,10 @@ async function fetchUsers() {
 
 async function saveUser(user) {
     try {
+        console.log('Saving user to Firestore:', user);
+        console.log('Password in saveUser:', user.password);
         await db.collection('users').doc(user.id).set(user);
+        console.log('User saved successfully');
     } catch (error) {
         console.error("Error saving user:", error);
         alert('저장 중 오류가 발생했습니다.');
@@ -1737,7 +1883,10 @@ async function fetchNotifications(userId) {
             .get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
-        console.error("Error fetching notifications:", error);
+        // Silently handle permission errors (notifications feature may not be set up yet)
+        if (error.code !== 'permission-denied') {
+            console.error("Error fetching notifications:", error);
+        }
         return [];
     }
 }

@@ -396,11 +396,17 @@
         <div id="matches-page" class="page">
             <div class="container">
                 <div class="header">
-                    <div class="header-content">
+                    <div class="header-content"
+                        style="display: flex; justify-content: space-between; align-items: center;">
                         <h1>매칭 결과</h1>
-                        <p>당신과 잘 맞는 프로필들입니다</p>
+                        <div class="header-actions">
+                            <button id="notification-btn" class="icon-btn" style="position: relative;">
+                                🔔
+                                <span id="notification-badge" class="badge" style="display: none;">0</span>
+                            </button>
+                            <button id="my-profile-btn" class="btn btn-secondary">내 프로필</button>
+                        </div>
                     </div>
-                    <button id="my-profile-btn" class="btn btn-secondary">내 프로필</button>
                 </div>
 
                 <div id="matches-grid" class="matches-grid"></div>
