@@ -1864,23 +1864,21 @@ async function findMatches(user) {
 }
 
 function calculateMatchScore(user, candidate) {
-    if (user.preferences.priorities.length === 0) {
-        return 50; // Default score if no preferences
+    if (!user.preferences || !user.preferences.priorities || user.preferences.priorities.length === 0) {
+        return 0; // No preferences set
     }
 
-    let totalScore = 0;
-    let maxPossibleScore = 0;
+    let matchedCount = 0;
+    const totalCount = user.preferences.priorities.length;
 
-    user.preferences.priorities.forEach((pref, index) => {
-        const weight = 10 - index; // 1st: 10 points, 2nd: 9 points, etc.
-        maxPossibleScore += weight;
-
+    user.preferences.priorities.forEach((pref) => {
         if (matchesPreference(candidate, pref.field, user)) {
-            totalScore += weight;
+            matchedCount++;
         }
     });
 
-    return Math.round((totalScore / maxPossibleScore) * 100);
+    // Calculate percentage: (matched / total) * 100
+    return Math.round((matchedCount / totalCount) * 100);
 }
 
 function matchesPreference(candidate, fieldId, user) {
