@@ -1476,11 +1476,11 @@ async function analyzeMismatches(user) {
         .map(field => mismatchCounts[field])
         .sort((a, b) => b.count - a.count);
 
+
     return {
         totalCandidates: candidates.length,
         mismatchDetails: mismatchDetails
     };
-}
 }
 
 // Global function for editing preferences (called from HTML onclick)
