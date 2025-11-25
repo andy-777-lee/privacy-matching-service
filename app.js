@@ -2036,8 +2036,14 @@ async function addUnlockedProfile(userId, targetId) {
 async function updateUserCount() {
     const userCountElement = document.getElementById('total-users-count');
     if (userCountElement) {
-        const users = await fetchUsers();
-        userCountElement.textContent = users.length;
+        // Only fetch user count if authenticated
+        if (auth.currentUser) {
+            const users = await fetchUsers();
+            userCountElement.textContent = users.length;
+        } else {
+            // Show placeholder for unauthenticated users
+            userCountElement.textContent = '...';
+        }
     }
 }
 
