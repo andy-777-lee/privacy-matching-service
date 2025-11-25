@@ -89,15 +89,7 @@ async function initializeApp() {
                         }, 100);
                     }
                 } else {
-                    // User authenticated but no Firestore doc (could be admin account logging in as user, or error)
                     console.warn("Firestore document not found for user", user.uid);
-                    // If not admin, sign out
-                    if (!adminLoggedIn) {
-                        // Check if it might be a new registration flow? 
-                        // Actually registration creates auth then doc. 
-                        // If we are here, it might be a partial registration or admin account.
-                        // Don't auto sign out immediately to allow debugging or admin handling
-                    }
                 }
             } catch (error) {
                 console.error("Error fetching user data:", error);
@@ -407,6 +399,7 @@ function setupRegistrationForm() {
             birthYear: parseInt(document.getElementById('birth-year').value),
             religion: document.getElementById('religion').value,
             height: parseInt(document.getElementById('height').value),
+            bodyType: document.getElementById('body-type').value,
             drinking: document.getElementById('drinking').value,
             hobbies: hobbies,
             job: document.getElementById('job').value,
@@ -452,6 +445,13 @@ function setupRegistrationForm() {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             await saveUser(user);
+
+            // Send Discord Notification
+            try {
+                await sendNewUserDiscordNotification(user);
+            } catch (discordError) {
+                console.error('Failed to send Discord notification:', discordError);
+            }
 
             alert('회원가입이 완료되었습니다!');
             // Navigation will be handled by onAuthStateChanged
@@ -851,6 +851,22 @@ function setupRegistrationForm() {
         return false;
     }
 
+    // Preference field definitions
+    const PREFERENCE_FIELDS = [
+        { id: 'birthYear', label: '나이 (출생년도)', type: 'range' },
+        { id: 'religion', label: '종교', type: 'multi' }, // Changed to multi
+        { id: 'height', label: '키', type: 'range' },
+        { id: 'bodyType', label: '체격', type: 'multi' }, // Added bodyType
+        { id: 'drinking', label: '음주', type: 'select' },
+        { id: 'hobbies', label: '취미', type: 'multi' },
+        { id: 'job', label: '직업/직군', type: 'select' },
+        { id: 'location', label: '거주 지역', type: 'select' },
+        { id: 'smoking', label: '흡연 여부', type: 'select' },
+        { id: 'mbti', label: 'MBTI', type: 'text' },
+        { id: 'marriagePlan', label: '결혼 계획', type: 'select' },
+        { id: 'education', label: '학력', type: 'select' } // Added education field
+    ];
+
     // Show preference value inputs
     function showPreferenceValues(selectedFields) {
         const card = document.getElementById('preference-values-card');
@@ -869,169 +885,78 @@ function setupRegistrationForm() {
             if (field.type === 'range') {
                 if (fieldId === 'birthYear') {
                     return `
-                    <div class="form-group">
+                    <div class="form-group" id="input-${fieldId}">
                         <label>${field.label}</label>
                         <div class="range-input-group">
-                            <input type="number" id="pref-value-${fieldId}-min" min="1920" max="2007" placeholder="최소" required>
+                            <input type="number" class="min-input" id="pref-value-${fieldId}-min" min="1920" max="2007" placeholder="최소" required>
                             <span>~</span>
-                            <input type="number" id="pref-value-${fieldId}-max" min="1920" max="2007" placeholder="최대" required>
+                            <input type="number" class="max-input" id="pref-value-${fieldId}-max" min="1920" max="2007" placeholder="최대" required>
                         </div>
                     </div>
                 `;
                 } else if (fieldId === 'height') {
                     return `
-                    <div class="form-group">
+                    <div class="form-group" id="input-${fieldId}">
                         <label>${field.label} (cm)</label>
                         <div class="range-input-group">
-                            <input type="number" id="pref-value-${fieldId}-min" min="140" max="220" placeholder="최소" required>
+                            <input type="number" class="min-input" id="pref-value-${fieldId}-min" min="140" max="220" placeholder="최소" required>
                             <span>~</span>
-                            <input type="number" id="pref-value-${fieldId}-max" min="140" max="220" placeholder="최대" required>
+                            <input type="number" class="max-input" id="pref-value-${fieldId}-max" min="140" max="220" placeholder="최대" required>
                         </div>
                     </div>
                 `;
                 }
             } else if (field.type === 'select') {
-                if (fieldId === 'religion') {
-                    return `
-                    <div class="form-group">
-                        <label>${field.label}</label>
-                        <select id="pref-value-${fieldId}" required>
-                            <option value="">선택해주세요</option>
-                            <option value="무교">무교</option>
-                            <option value="기독교">기독교</option>
-                            <option value="천주교">천주교</option>
-                            <option value="불교">불교</option>
-                            <option value="기타">기타</option>
-                        </select>
-                    </div>
-                `;
-                } else if (fieldId === 'drinking') {
-                    return `
-                    <div class="form-group">
-                        <label>${field.label}</label>
-                        <select id="pref-value-${fieldId}" required>
-                            <option value="">선택해주세요</option>
-                            <option value="안 마심">안 마심</option>
-                            <option value="가끔">가끔</option>
-                            <option value="자주">자주</option>
-                        </select>
-                    </div>
-                `;
+                let options = [];
+                if (fieldId === 'drinking') {
+                    options = ['안 마심', '가끔', '자주'];
                 } else if (fieldId === 'job') {
-                    return `
-                    <div class="form-group">
-                        <label>${field.label}</label>
-                        <select id="pref-value-${fieldId}" required>
-                            <option value="">선택해주세요</option>
-                            <option value="학생">학생</option>
-                            <option value="직장인">직장인</option>
-                            <option value="자영업">자영업</option>
-                            <option value="프리랜서">프리랜서</option>
-                            <option value="기타">기타</option>
-                        </select>
-                    </div>
-                `;
+                    options = ['학생', '직장인', '자영업', '프리랜서', '기타'];
                 } else if (fieldId === 'education') {
-                    return `
-                    <div class="form-group">
-                        <label>${field.label}</label>
-                        <select id="pref-value-${fieldId}" required>
-                            <option value="">선택해주세요</option>
-                            <option value="고졸">고졸</option>
-                            <option value="전문대졸">전문대졸</option>
-                            <option value="대졸">대졸</option>
-                            <option value="대학원">대학원</option>
-                        </select>
-                    </div>
-                `;
+                    options = ['고졸', '전문대졸', '대졸', '대학원'];
                 } else if (fieldId === 'location') {
-                    return `
-                    <div class="form-group">
-                        <label>${field.label}</label>
-                        <select id="pref-value-${fieldId}" required>
-                            <option value="">선택해주세요</option>
-                            <option value="서울">서울</option>
-                            <option value="경기">경기</option>
-                            <option value="인천">인천</option>
-                            <option value="부산">부산</option>
-                            <option value="대구">대구</option>
-                            <option value="광주">광주</option>
-                            <option value="대전">대전</option>
-                            <option value="울산">울산</option>
-                            <option value="김해">김해</option>
-                            <option value="창원">창원</option>
-                            <option value="포항">포항</option>
-                        </select>
-                    </div>
-                `;
+                    options = ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '김해', '창원', '포항'];
                 } else if (fieldId === 'smoking') {
-                    return `
-                    <div class="form-group">
-                        <label>${field.label}</label>
-                        <select id="pref-value-${fieldId}" required>
-                            <option value="">선택해주세요</option>
-                            <option value="비흡연">비흡연</option>
-                            <option value="흡연">흡연</option>
-                        </select>
-                    </div>
-                `;
+                    options = ['비흡연', '흡연'];
                 } else if (fieldId === 'marriagePlan') {
-                    return `
-                    <div class="form-group">
+                    options = ['1년 내', '2-3년 내', '5년 이내', '천천히', '미정']; // Added '5년 이내'
+                }
+
+                return `
+                    <div class="form-group" id="input-${fieldId}">
                         <label>${field.label}</label>
                         <select id="pref-value-${fieldId}" required>
                             <option value="">선택해주세요</option>
-                            <option value="1년 내">1년 내</option>
-                            <option value="2-3년 내">2-3년 내</option>
-                            <option value="천천히">천천히</option>
-                            <option value="미정">미정</option>
+                            ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
                         </select>
                     </div>
                 `;
+            } else if (field.type === 'multi') {
+                let options = [];
+                if (fieldId === 'hobbies') {
+                    options = ['운동', '영화', '음악', '독서', '여행', '요리', '게임', '기타'];
+                } else if (fieldId === 'religion') {
+                    options = ['무교', '기독교', '천주교', '불교', '기타'];
+                } else if (fieldId === 'bodyType') {
+                    options = ['마름', '보통', '통통', '건장', '근육'];
                 }
-            } else if (field.type === 'multi' && fieldId === 'hobbies') {
+
                 return `
-                <div class="form-group">
+                <div class="form-group" id="input-${fieldId}">
                     <label>${field.label}</label>
                     <div class="hobby-grid">
-                        <label class="hobby-option">
-                            <input type="checkbox" name="pref-value-${fieldId}" value="운동">
-                            <span>운동</span>
-                        </label>
-                        <label class="hobby-option">
-                            <input type="checkbox" name="pref-value-${fieldId}" value="영화">
-                            <span>영화</span>
-                        </label>
-                        <label class="hobby-option">
-                            <input type="checkbox" name="pref-value-${fieldId}" value="음악">
-                            <span>음악</span>
-                        </label>
-                        <label class="hobby-option">
-                            <input type="checkbox" name="pref-value-${fieldId}" value="독서">
-                            <span>독서</span>
-                        </label>
-                        <label class="hobby-option">
-                            <input type="checkbox" name="pref-value-${fieldId}" value="여행">
-                            <span>여행</span>
-                        </label>
-                        <label class="hobby-option">
-                            <input type="checkbox" name="pref-value-${fieldId}" value="요리">
-                            <span>요리</span>
-                        </label>
-                        <label class="hobby-option">
-                            <input type="checkbox" name="pref-value-${fieldId}" value="게임">
-                            <span>게임</span>
-                        </label>
-                        <label class="hobby-option">
-                            <input type="checkbox" name="pref-value-${fieldId}" value="기타">
-                            <span>기타</span>
-                        </label>
+                        ${options.map(opt => `
+                            <label class="hobby-option">
+                                <input type="checkbox" name="pref-value-${fieldId}" value="${opt}">
+                                <span>${opt}</span>
+                            </label>
+                        `).join('')}
                     </div>
                 </div>
-            `;
+                `;
             } else if (field.type === 'text' && fieldId === 'mbti') {
                 return `
-                <div class="form-group">
+                <div class="form-group" id="input-${fieldId}">
                     <label>${field.label}</label>
                     <input type="text" id="pref-value-${fieldId}" maxlength="4" placeholder="예: INFP" required>
                 </div>
@@ -1107,6 +1032,12 @@ function setupRegistrationForm() {
                             checkbox.checked = true;
                         }
                     });
+                } else if (typeof value === 'string') {
+                    // Handle legacy single string values (e.g. religion was previously a string)
+                    const checkbox = document.querySelector(`input[name="pref-value-${fieldId}"][value="${value}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
                 }
             } else if (field.type === 'text') {
                 const input = document.getElementById(`pref-value-${fieldId}`);
@@ -1691,7 +1622,8 @@ function populateEditProfileForm() {
     document.getElementById('edit-name').value = currentUser.name || '';
     document.getElementById('edit-birth-year').value = currentUser.birthYear || '';
     document.getElementById('edit-religion').value = currentUser.religion || '';
-    document.getElementById('edit-height').value = currentUser.height || '';
+    document.getElementById('edit-height').value = currentUser.height;
+    document.getElementById('edit-body-type').value = currentUser.bodyType || '';
     document.getElementById('edit-drinking').value = currentUser.drinking || '';
     document.getElementById('edit-job').value = currentUser.job || '';
     document.getElementById('edit-workplace').value = currentUser.workplace || '';
@@ -1827,6 +1759,7 @@ async function handleEditProfileSubmit() {
     currentUser.age = age;
     currentUser.religion = document.getElementById('edit-religion').value;
     currentUser.height = parseInt(document.getElementById('edit-height').value);
+    currentUser.bodyType = document.getElementById('edit-body-type').value;
     currentUser.drinking = document.getElementById('edit-drinking').value;
     currentUser.hobbies = hobbies;
     currentUser.job = document.getElementById('edit-job').value;
@@ -2042,6 +1975,28 @@ function matchesPreference(candidate, fieldId, user) {
             const educationMatch = candidate.education === prefValue;
             console.log(`Education Match: "${candidate.education}" === "${prefValue}" = ${educationMatch}`);
             return educationMatch;
+        case 'religion':
+            // Multi-select check
+            if (Array.isArray(prefValue) && prefValue.length > 0) {
+                const religionMatch = prefValue.includes(candidate.religion);
+                console.log(`Religion Match: Candidate "${candidate.religion}" in [${prefValue.join(', ')}] = ${religionMatch}`);
+                return religionMatch;
+            }
+            // Fallback for legacy single value preference
+            const singleReligionMatch = candidate.religion === prefValue;
+            console.log(`Religion Match: "${candidate.religion}" === "${prefValue}" = ${singleReligionMatch}`);
+            return singleReligionMatch;
+
+        case 'bodyType':
+            // Multi-select check
+            if (Array.isArray(prefValue) && prefValue.length > 0) {
+                const bodyTypeMatch = prefValue.includes(candidate.bodyType);
+                console.log(`BodyType Match: Candidate "${candidate.bodyType}" in [${prefValue.join(', ')}] = ${bodyTypeMatch}`);
+                return bodyTypeMatch;
+            }
+            console.log(`BodyType Match: No preferred body types set = false`);
+            return false;
+
         case 'location':
             const locationMatch = candidate.location === prefValue;
             console.log(`Location Match: "${candidate.location}" === "${prefValue}" = ${locationMatch}`);
