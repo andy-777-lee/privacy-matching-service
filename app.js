@@ -616,11 +616,11 @@ function setupRegistrationForm() {
 
         // Load existing preferences if user has them
         // When preferences are stored as a map, extract the field keys for UI restoration
+        let selectedFields = [];
         if (currentUser && currentUser.preferences) {
-            const selectedFields = Object.keys(currentUser.preferences);
-            // The UI code that expects an array of field IDs can still use this list
-            // Existing restoration logic will work with `selectedFields`
-        } preferences: ', selectedFields);
+            selectedFields = Object.keys(currentUser.preferences);
+            console.log('Loading existing preferences:', selectedFields);
+        }
 
         // Clear all checkboxes first
         selectGrid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
