@@ -1814,25 +1814,30 @@ async function approveRequest(requestId) {
     const request = requests.find(r => r.id === requestId);
 
     if (request) {
-        request.status = 'approved';
-        request.reviewedAt = Date.now();
-        await saveUnlockRequest(request);
+        try {
+            request.status = 'approved';
+            request.reviewedAt = Date.now();
+            await saveUnlockRequest(request);
 
-        // Add to unlocked profiles
-        await addUnlockedProfile(request.requesterId, request.targetId);
+            // Add to unlocked profiles
+            await addUnlockedProfile(request.requesterId, request.targetId);
 
-        // Create Notification for Requester
-        await saveNotification({
-            userId: request.requesterId,
-            type: 'unlock_approved',
-            message: '관리자가 프로필 공개 요청을 승인했습니다.',
-            targetId: request.targetId,
-            read: false,
-            createdAt: Date.now()
-        });
+            // Create Notification for Requester
+            await saveNotification({
+                userId: request.requesterId,
+                type: 'unlock_approved',
+                message: '관리자가 프로필 공개 요청을 승인했습니다.',
+                targetId: request.targetId,
+                read: false,
+                createdAt: Date.now()
+            });
 
-        alert('승인되었습니다.');
-        displayUnlockRequests();
+            alert('승인되었습니다.');
+            displayUnlockRequests();
+        } catch (error) {
+            console.error('Error approving request:', error);
+            alert('승인 처리 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+        }
     }
 }
 
@@ -2055,6 +2060,7 @@ async function fetchUnlockedProfiles(userId) {
 
 async function addUnlockedProfile(userId, targetId) {
     try {
+        console.log('Adding unlocked profile:', { userId, targetId });
         const docRef = db.collection('unlockedProfiles').doc(userId);
         const doc = await docRef.get();
 
@@ -2062,13 +2068,20 @@ async function addUnlockedProfile(userId, targetId) {
             await docRef.update({
                 unlocked: firebase.firestore.FieldValue.arrayUnion(targetId)
             });
+            console.log('Updated unlocked profiles for user:', userId);
         } else {
             await docRef.set({
                 unlocked: [targetId]
             });
+            console.log('Created unlocked profiles document for user:', userId);
         }
     } catch (error) {
         console.error("Error adding unlocked profile:", error);
+        if (error.code === 'permission-denied') {
+            console.error('PERMISSION DENIED: Admin is not authenticated with Firebase Auth!');
+            alert('권한 오류: 관리자가 Firebase Auth로 로그인되어 있지 않습니다. 이 기능은 현재 작동하지 않습니다.');
+        }
+        throw error; // Re-throw to let caller know it failed
     }
 }
 
