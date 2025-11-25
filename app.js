@@ -576,20 +576,32 @@ function setupRegistrationForm() {
             return;
         }
 
-        // Populate preference options
-        selectGrid.innerHTML = PREFERENCE_FIELDS.map(field => `
-        <div class="preference-option">
-            <input type="checkbox" id="pref-${field.id}" value="${field.id}">
-            <label for="pref-${field.id}">${field.label}</label>
-        </div>
-    `).join('');
+        // Check if already initialized (has checkboxes)
+        const alreadyInitialized = selectGrid.querySelectorAll('input[type="checkbox"]').length > 0;
 
-        console.log('Checkboxes created, innerHTML length:', selectGrid.innerHTML.length);
+        if (!alreadyInitialized) {
+            // Populate preference options only if not already done
+            selectGrid.innerHTML = PREFERENCE_FIELDS.map(field => `
+            <div class="preference-option">
+                <input type="checkbox" id="pref-${field.id}" value="${field.id}">
+                <label for="pref-${field.id}">${field.label}</label>
+            </div>
+        `).join('');
+
+            console.log('Checkboxes created, innerHTML length:', selectGrid.innerHTML.length);
+        } else {
+            console.log('Checkboxes already exist, skipping HTML generation');
+        }
 
         // Load existing preferences if user has them
         if (currentUser && currentUser.preferences && currentUser.preferences.priorities) {
             const existingPrefs = currentUser.preferences.priorities;
             const selectedFields = existingPrefs.map(p => p.field);
+
+            // Clear all checkboxes first
+            selectGrid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
 
             // Use setTimeout to ensure DOM is ready
             setTimeout(() => {
@@ -599,6 +611,8 @@ function setupRegistrationForm() {
                     if (checkbox) {
                         checkbox.checked = true;
                         console.log(`Checked preference: ${fieldId}`);
+                    } else {
+                        console.warn(`Checkbox not found for: ${fieldId}`);
                     }
                 });
 
