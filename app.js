@@ -1832,7 +1832,8 @@ async function findMatches(user) {
 
         // Alert the user to set preferences
         if (confirm('선호 조건이 설정되지 않았습니다. 선호 조건 설정 페이지로 이동하시겠습니까?')) {
-            showPreferencePage();
+            showPage('preference-page');
+            window.dispatchEvent(new CustomEvent('setupPreferences'));
         }
 
         return []; // Stop matching process
