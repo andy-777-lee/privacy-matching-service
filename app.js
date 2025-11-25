@@ -1890,14 +1890,17 @@ async function findMatches(user) {
         }
     }
 
-    console.log('Matching User:', matchingUser.name);
-    if (matchingUser.preferences && matchingUser.preferences.priorities) {
-        console.log('--- User Preferences ---');
-        console.table(matchingUser.preferences.priorities); // Table view for better readability
-        console.log('------------------------');
-    } else {
-        console.error('CRITICAL: User still has no preferences!');
+    console.log('Matching User:', matchingUser ? matchingUser.name : 'Unknown');
+
+    if (!matchingUser || !matchingUser.preferences || !matchingUser.preferences.priorities) {
+        console.error('CRITICAL: User data is invalid or missing preferences. Cannot proceed with matching.');
+        console.error('Current matchingUser state:', matchingUser);
+        return []; // Stop matching process
     }
+
+    console.log('--- User Preferences ---');
+    console.table(matchingUser.preferences.priorities);
+    console.log('------------------------');
 
     const allUsers = await fetchUsers();
     const candidates = allUsers.filter(u =>
@@ -1938,10 +1941,12 @@ async function findMatches(user) {
 }
 
 function calculateMatchScore(user, candidate) {
-    console.log(`\n--- Calculating Match Score for Candidate: ${candidate.name} ---`);
-    if (!user.preferences || !user.preferences.priorities || user.preferences.priorities.length === 0) {
-        console.log('No preferences set for user');
-        return { percentage: 0, priorityScore: 0 }; // No preferences set
+    // console.log(`\n--- Calculating Match Score for Candidate: ${candidate.name} ---`);
+
+    if (!user || !user.preferences || !user.preferences.priorities || user.preferences.priorities.length === 0) {
+        console.error('ERROR: No preferences set for user in calculateMatchScore');
+        // console.log('Received User Object:', user); 
+        return { percentage: 0, priorityScore: 0 };
     }
 
     let matchedCount = 0;
@@ -1949,24 +1954,24 @@ function calculateMatchScore(user, candidate) {
     const totalCount = user.preferences.priorities.length;
 
     user.preferences.priorities.forEach((pref, index) => {
-        console.log(`Checking preference: ${pref.field} (Priority ${index + 1})`);
+        // console.log(`Checking preference: ${pref.field} (Priority ${index + 1})`);
         const isMatch = matchesPreference(candidate, pref.field, user);
 
         if (isMatch) {
             matchedCount++;
             // Higher priority = higher weight (1st: 10, 2nd: 9, 3rd: 8, ...)
             priorityScore += (10 - index);
-            console.log(`  -> MATCHED! (+1 count, +${10 - index} priority)`);
+            // console.log(`  -> MATCHED! (+1 count, +${10 - index} priority)`);
         } else {
-            console.log(`  -> Not matched`);
+            // console.log(`  -> Not matched`);
         }
     });
 
     // Calculate percentage: (matched / total) * 100
     const percentage = totalCount > 0 ? Math.round((matchedCount / totalCount) * 100) : 0;
 
-    console.log(`Final Result: ${matchedCount}/${totalCount} matched (${percentage}%), Priority Score: ${priorityScore}`);
-    console.log('--------------------------------------------------\n');
+    // console.log(`Final Result: ${matchedCount}/${totalCount} matched (${percentage}%), Priority Score: ${priorityScore}`);
+    // console.log('--------------------------------------------------\n');
 
     return { percentage, priorityScore };
 }
