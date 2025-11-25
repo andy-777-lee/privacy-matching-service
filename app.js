@@ -530,6 +530,10 @@ function setupRegistrationForm() {
     // Listen for edit preferences event
     window.addEventListener('editPreferences', () => {
         showPreferencePage();
+        // Call setupPreferenceSelection to restore existing preferences
+        setTimeout(() => {
+            setupPreferenceSelection();
+        }, 100);
     });
 
     // Listen for setup preferences event (triggered after login)
