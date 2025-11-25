@@ -116,13 +116,39 @@ function setupLoginPage() {
     const goToRegisterBtn = document.getElementById('go-to-register');
     const loginError = document.getElementById('login-error');
 
+    // Setup password input auto-focus
+    const passwordDigits = document.querySelectorAll('.password-digit');
+    const passwordHidden = document.getElementById('login-password');
+
+    passwordDigits.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+            if (e.target.value.length === 1) {
+                // Move to next input
+                if (index < passwordDigits.length - 1) {
+                    passwordDigits[index + 1].focus();
+                }
+            }
+            // Combine all digits into hidden field
+            passwordHidden.value = Array.from(passwordDigits).map(d => d.value).join('');
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && e.target.value === '') {
+                // Move to previous input on backspace
+                if (index > 0) {
+                    passwordDigits[index - 1].focus();
+                }
+            }
+        });
+    });
+
     // Handle login
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         loginError.style.display = 'none';
 
         const kakaoId = document.getElementById('login-kakao-id').value.trim();
-        const password = document.getElementById('login-password').value;
+        const password = passwordHidden.value;
 
         try {
             const users = await fetchUsers();
@@ -171,6 +197,32 @@ function setupLoginPage() {
 function setupRegistrationForm() {
     setupPhotoUpload();
     updateUserCount(); // Update user count on page load
+
+    // Setup registration password input auto-focus
+    const passwordDigits = document.querySelectorAll('.password-digit-register');
+    const passwordHidden = document.getElementById('password');
+
+    passwordDigits.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+            if (e.target.value.length === 1) {
+                // Move to next input
+                if (index < passwordDigits.length - 1) {
+                    passwordDigits[index + 1].focus();
+                }
+            }
+            // Combine all digits into hidden field
+            passwordHidden.value = Array.from(passwordDigits).map(d => d.value).join('');
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && e.target.value === '') {
+                // Move to previous input on backspace
+                if (index > 0) {
+                    passwordDigits[index - 1].focus();
+                }
+            }
+        });
+    });
 
     // Location dropdown handler
     const locationSelect = document.getElementById('location');

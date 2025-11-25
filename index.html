@@ -31,8 +31,13 @@
                         </div>
                         <div class="form-group">
                             <label>비밀번호 (4자리) *</label>
-                            <input type="password" id="login-password" maxlength="4" pattern="[0-9]{4}"
-                                placeholder="4자리 숫자" required>
+                            <div class="password-inputs">
+                                <input type="password" class="password-digit" maxlength="1" pattern="[0-9]" required>
+                                <input type="password" class="password-digit" maxlength="1" pattern="[0-9]" required>
+                                <input type="password" class="password-digit" maxlength="1" pattern="[0-9]" required>
+                                <input type="password" class="password-digit" maxlength="1" pattern="[0-9]" required>
+                            </div>
+                            <input type="hidden" id="login-password">
                         </div>
                         <div id="login-error" style="color: #ff4444; display: none; margin-bottom: 1rem;"></div>
                         <button type="submit" class="btn btn-primary btn-large">로그인</button>
@@ -326,8 +331,17 @@
                         </div>
                         <div class="form-group">
                             <label>비밀번호 (4자리) *</label>
-                            <input type="password" id="password" maxlength="4" pattern="[0-9]{4}" placeholder="4자리 숫자"
-                                required>
+                            <div class="password-inputs">
+                                <input type="password" class="password-digit-register" maxlength="1" pattern="[0-9]"
+                                    required>
+                                <input type="password" class="password-digit-register" maxlength="1" pattern="[0-9]"
+                                    required>
+                                <input type="password" class="password-digit-register" maxlength="1" pattern="[0-9]"
+                                    required>
+                                <input type="password" class="password-digit-register" maxlength="1" pattern="[0-9]"
+                                    required>
+                            </div>
+                            <input type="hidden" id="password">
                             <small style="color: #888;">로그인 시 사용할 4자리 숫자를 입력하세요</small>
                         </div>
                     </div>

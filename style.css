@@ -1564,3 +1564,37 @@ textarea:focus {
         font-size: 3rem;
     }
 }
+/* Password Input Boxes */
+.password-inputs {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 0.5rem 0;
+}
+
+.password-digit,
+.password-digit-register {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+    text-align: center;
+    border: 2px solid var(--bg-card);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.password-digit:focus,
+.password-digit-register:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.2);
+    transform: scale(1.05);
+}
+
+.password-digit::placeholder,
+.password-digit-register::placeholder {
+    color: var(--text-muted);
+    font-size: 1.5rem;
+}
