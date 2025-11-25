@@ -587,55 +587,61 @@ function setupRegistrationForm() {
             const existingPrefs = currentUser.preferences.priorities;
             const selectedFields = existingPrefs.map(p => p.field);
 
-            // Check the checkboxes for existing preferences
-            selectedFields.forEach(fieldId => {
-                const checkbox = document.getElementById(`pref-${fieldId}`);
-                if (checkbox) {
-                    checkbox.checked = true;
-                }
-            });
-
-            // Show preference values and priority list
-            if (selectedFields.length > 0) {
-                showPreferenceValues(selectedFields);
-                priorityCard.style.display = 'block';
-                updatePriorityList(selectedFields);
-
-                // Restore the actual values
-                existingPrefs.forEach(pref => {
-                    const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
-                    if (!field) return;
-
-                    const inputContainer = document.getElementById(`input-${pref.field}`);
-                    if (!inputContainer) return;
-
-                    if (field.type === 'range') {
-                        const minInput = inputContainer.querySelector('.min-input');
-                        const maxInput = inputContainer.querySelector('.max-input');
-                        if (minInput && maxInput && pref.value) {
-                            minInput.value = pref.value.min;
-                            maxInput.value = pref.value.max;
-                        }
-                    } else if (field.type === 'multi') {
-                        if (Array.isArray(pref.value)) {
-                            pref.value.forEach(val => {
-                                const checkbox = inputContainer.querySelector(`input[value="${val}"]`);
-                                if (checkbox) checkbox.checked = true;
-                            });
-                        }
-                    } else if (field.type === 'text') {
-                        const input = inputContainer.querySelector('input');
-                        if (input && pref.value) {
-                            input.value = pref.value;
-                        }
-                    } else if (field.type === 'select') {
-                        const select = inputContainer.querySelector('select');
-                        if (select && pref.value) {
-                            select.value = pref.value;
-                        }
+            // Use setTimeout to ensure DOM is ready
+            setTimeout(() => {
+                // Check the checkboxes for existing preferences
+                selectedFields.forEach(fieldId => {
+                    const checkbox = document.getElementById(`pref-${fieldId}`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        console.log(`Checked preference: ${fieldId}`);
                     }
                 });
-            }
+
+                // Show preference values and priority list
+                if (selectedFields.length > 0) {
+                    showPreferenceValues(selectedFields);
+                    priorityCard.style.display = 'block';
+                    updatePriorityList(selectedFields);
+
+                    // Restore the actual values with another setTimeout
+                    setTimeout(() => {
+                        existingPrefs.forEach(pref => {
+                            const field = PREFERENCE_FIELDS.find(f => f.id === pref.field);
+                            if (!field) return;
+
+                            const inputContainer = document.getElementById(`input-${pref.field}`);
+                            if (!inputContainer) return;
+
+                            if (field.type === 'range') {
+                                const minInput = inputContainer.querySelector('.min-input');
+                                const maxInput = inputContainer.querySelector('.max-input');
+                                if (minInput && maxInput && pref.value) {
+                                    minInput.value = pref.value.min;
+                                    maxInput.value = pref.value.max;
+                                }
+                            } else if (field.type === 'multi') {
+                                if (Array.isArray(pref.value)) {
+                                    pref.value.forEach(val => {
+                                        const checkbox = inputContainer.querySelector(`input[value="${val}"]`);
+                                        if (checkbox) checkbox.checked = true;
+                                    });
+                                }
+                            } else if (field.type === 'text') {
+                                const input = inputContainer.querySelector('input');
+                                if (input && pref.value) {
+                                    input.value = pref.value;
+                                }
+                            } else if (field.type === 'select') {
+                                const select = inputContainer.querySelector('select');
+                                if (select && pref.value) {
+                                    select.value = pref.value;
+                                }
+                            }
+                        });
+                    }, 100);
+                }
+            }, 50);
         }
 
         // Listen for checkbox changes
