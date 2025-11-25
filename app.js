@@ -162,6 +162,12 @@ function setupLoginPage() {
             }
 
             const hashedPassword = await hashPassword(password);
+
+            // Debugging logs
+            console.log('Input Password:', password);
+            console.log('Hashed Input:', hashedPassword);
+            console.log('Stored Password:', user.password);
+
             if (user.password !== hashedPassword) {
                 loginError.textContent = '비밀번호가 올바르지 않습니다.';
                 loginError.style.display = 'block';
@@ -326,6 +332,13 @@ function setupRegistrationForm() {
         const mbti = document.getElementById('mbti').value.toUpperCase();
         if (mbti.length !== 4) {
             alert('MBTI는 4자리로 입력해주세요 (예: INFP)');
+            return;
+        }
+
+        // Validate Password
+        const password = document.getElementById('password').value;
+        if (password.length !== 4) {
+            alert('비밀번호 4자리를 모두 입력해주세요.');
             return;
         }
 
