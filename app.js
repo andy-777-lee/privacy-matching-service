@@ -691,6 +691,7 @@ function setupRegistrationForm() {
     // Setup form submission
     // Submit Preferences
     document.getElementById('submit-preferences').addEventListener('click', async () => {
+        const selectGrid = document.getElementById('preference-select');
         const selected = Array.from(selectGrid.querySelectorAll('input:checked'))
             .map(cb => cb.value);
 
