@@ -1624,10 +1624,15 @@ function showAdminLogin() {
 
     form.onsubmit = async (e) => {
         e.preventDefault();
-        const email = document.getElementById('admin-email').value.trim();
+        let email = document.getElementById('admin-email').value.trim();
         const password = document.getElementById('admin-password').value;
         const errorMsg = document.getElementById('admin-error');
         errorMsg.style.display = 'none';
+
+        // If simple ID is provided, append domain to make it a valid email for Firebase Auth
+        if (!email.includes('@')) {
+            email = email + '@matching.app';
+        }
 
         try {
             // Try to sign in
