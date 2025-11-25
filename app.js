@@ -2156,8 +2156,13 @@ async function addUnlockedProfile(userId, targetId) {
     } catch (error) {
         console.error("Error adding unlocked profile:", error);
         if (error.code === 'permission-denied') {
-            console.error('PERMISSION DENIED: Admin is not authenticated with Firebase Auth!');
-            alert('권한 오류: 관리자가 Firebase Auth로 로그인되어 있지 않습니다. 이 기능은 현재 작동하지 않습니다.');
+            if (auth.currentUser) {
+                console.error('PERMISSION DENIED: User is authenticated but rule rejected write.');
+                alert('권한 오류: Firestore 보안 규칙이 업데이트되지 않았습니다.\n\n터미널에서 "firebase deploy --only firestore:rules"를 실행하거나 Firebase Console에서 규칙을 수정해주세요.');
+            } else {
+                console.error('PERMISSION DENIED: Admin is not authenticated with Firebase Auth!');
+                alert('권한 오류: 관리자 인증 정보가 없습니다. 새로고침 후 다시 로그인해주세요.');
+            }
         }
         throw error; // Re-throw to let caller know it failed
     }
