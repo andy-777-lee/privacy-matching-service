@@ -219,6 +219,16 @@ function setupLoginPage() {
             }
             loginError.textContent = msg;
             loginError.style.display = 'block';
+
+            // Clear password fields on login failure
+            passwordDigits.forEach(input => {
+                input.value = '';
+            });
+            passwordHidden.value = '';
+            // Focus on first password digit
+            if (passwordDigits.length > 0) {
+                passwordDigits[0].focus();
+            }
         }
     };
 
