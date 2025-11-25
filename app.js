@@ -1863,10 +1863,15 @@ async function fetchUnlockRequests() {
 
 async function saveUnlockRequest(request) {
     try {
-        await db.collection('unlockRequests').doc(request.id).set(request);
+        await db.collection('unlock_requests').doc(request.id).set(request);
     } catch (error) {
-        console.error("Error saving request:", error);
-        alert('요청 저장 중 오류가 발생했습니다.');
+        if (error.code === 'permission-denied') {
+            console.warn("Unlock request permission denied. Please update Firestore Security Rules.");
+            alert('권한 오류: 관리자에게 문의하세요. (Firestore Rules Update Required)');
+        } else {
+            console.error("Error saving request:", error);
+            alert('요청 저장 중 오류가 발생했습니다.');
+        }
     }
 }
 
@@ -1875,7 +1880,11 @@ async function saveNotification(notification) {
     try {
         await db.collection('notifications').add(notification);
     } catch (error) {
-        console.error("Error saving notification:", error);
+        if (error.code === 'permission-denied') {
+            console.warn("Notification permission denied. Please update Firestore Security Rules.");
+        } else {
+            console.error("Error saving notification:", error);
+        }
     }
 }
 
@@ -1986,7 +1995,11 @@ async function fetchUnlockedProfiles(userId) {
         }
         return [];
     } catch (error) {
-        console.error("Error fetching unlocked profiles:", error);
+        if (error.code === 'permission-denied') {
+            console.warn("Unlocked profiles permission denied. Please update Firestore Security Rules.");
+        } else {
+            console.error("Error fetching unlocked profiles:", error);
+        }
         return [];
     }
 }
