@@ -728,6 +728,8 @@ function setupRegistrationForm() {
                 });
             });
 
+            console.log('Saving preferences:', priorities);
+
             // Update existing user instead of creating new one
             if (currentUser) {
                 currentUser.preferences = {
@@ -1847,6 +1849,15 @@ async function handleEditProfileSubmit() {
 // Matching Algorithm
 // Matching Algorithm
 async function findMatches(user) {
+    console.log('--- findMatches called ---');
+    console.log('User:', user.name);
+    console.log('Preferences:', user.preferences);
+    if (user.preferences && user.preferences.priorities) {
+        console.log('Priorities count:', user.preferences.priorities.length);
+    } else {
+        console.warn('User has no preferences!');
+    }
+
     const allUsers = await fetchUsers();
     const candidates = allUsers.filter(u =>
         u.id !== user.id && u.gender !== user.gender
