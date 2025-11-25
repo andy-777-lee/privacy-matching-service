@@ -1060,6 +1060,13 @@ function setupRegistrationForm() {
         setupNotifications();
     });
 
+    // Listen for unlocked profile event from notifications
+    window.addEventListener('showUnlockedProfile', (event) => {
+        const { user } = event.detail;
+        showProfileModal(user, false, null, false); // Show unlocked profile
+    });
+
+
     async function displayMatches() {
         const matches = await findMatches(currentUser);
         const grid = document.getElementById('matches-grid');
@@ -1983,7 +1990,21 @@ async function handleNotificationClick(notificationId, type, targetId) {
 
     if (type === 'unlock_approved') {
         document.getElementById('notification-modal').style.display = 'none';
-        showProfileModal(targetId);
+
+        // Fetch the target user and show their profile
+        try {
+            const userDoc = await db.collection('users').doc(targetId).get();
+            if (userDoc.exists) {
+                const targetUser = userDoc.data();
+                // Trigger event to show profile modal
+                window.dispatchEvent(new CustomEvent('showUnlockedProfile', {
+                    detail: { user: targetUser }
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching unlocked profile:', error);
+            alert('프로필을 불러오는 중 오류가 발생했습니다.');
+        }
     }
 }
 
