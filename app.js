@@ -1895,11 +1895,16 @@ async function findMatches(user) {
     if (!matchingUser || !matchingUser.preferences || !matchingUser.preferences.priorities) {
         console.error('CRITICAL: User data is invalid or missing preferences. Cannot proceed with matching.');
         console.error('Current matchingUser state:', matchingUser);
+
+        // Alert the user about the issue
+        alert('사용자 정보를 불러오는데 실패했습니다. 페이지를 새로고침해주세요.');
+
         return []; // Stop matching process
     }
 
     console.log('--- User Preferences ---');
-    console.table(matchingUser.preferences.priorities);
+    // Use JSON.stringify for guaranteed output in all consoles
+    console.log(JSON.stringify(matchingUser.preferences.priorities, null, 2));
     console.log('------------------------');
 
     const allUsers = await fetchUsers();
