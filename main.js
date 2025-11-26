@@ -228,6 +228,9 @@ function setupLoginPage() {
         showPage('registration-page');
         setupRegistrationForm();
     };
+
+    // Update user count on login page
+    updateLoginUserCount();
 }
 
 // Notification Setup
@@ -2147,6 +2150,20 @@ async function updateUserCount() {
         } else {
             // Show placeholder for unauthenticated users
             userCountElement.textContent = '...';
+        }
+    }
+}
+
+async function updateLoginUserCount() {
+    const loginUserCountElement = document.getElementById('login-users-count');
+    if (loginUserCountElement) {
+        try {
+            // Fetch user count from Firestore (public read access needed)
+            const usersSnapshot = await db.collection('users').get();
+            loginUserCountElement.textContent = usersSnapshot.size;
+        } catch (error) {
+            console.error('Error fetching user count:', error);
+            loginUserCountElement.textContent = '...';
         }
     }
 }
