@@ -73,9 +73,23 @@ async function fetchUnlockedProfiles(userId) {
     }
 }
 
+// Delete user
+async function deleteUser(userId) {
+    try {
+        await db.collection('users').doc(userId).delete();
+        console.log(`User ${userId} deleted successfully`);
+        return true;
+    } catch (error) {
+        console.error("Error deleting user:", error);
+        alert('회원 삭제 중 오류가 발생했습니다.');
+        return false;
+    }
+}
+
 // Export to global scope
 window.fetchUsers = fetchUsers;
 window.saveUser = saveUser;
 window.fetchUnlockRequests = fetchUnlockRequests;
 window.saveUnlockRequest = saveUnlockRequest;
 window.fetchUnlockedProfiles = fetchUnlockedProfiles;
+window.deleteUser = deleteUser;

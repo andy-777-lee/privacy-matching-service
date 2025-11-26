@@ -1826,7 +1826,11 @@ async function showAdminDashboard() {
         });
     });
 
-    await displayUnlockRequests();
+    await Promise.all([
+        displayUnlockRequests(),
+        displayCompletedRequests(),
+        displayAllProfiles()
+    ]);
 }
 
 function setupAdminTabs() {
@@ -1844,6 +1848,15 @@ function setupAdminTabs() {
                 content.classList.remove('active');
             });
             document.getElementById(`${targetTab}-tab`).classList.add('active');
+
+            // Refresh data when tab is clicked
+            if (targetTab === 'profiles') {
+                displayAllProfiles();
+            } else if (targetTab === 'completed') {
+                displayCompletedRequests();
+            } else {
+                displayUnlockRequests();
+            }
         });
     });
 }
@@ -1872,10 +1885,8 @@ async function displayUnlockRequests() {
     noRequests.style.display = 'none';
 
     grid.innerHTML = pendingRequests.map(request => {
-        const requester = users.find(u => u.id === request.requesterId);
-        const target = users.find(u => u.id === request.targetId);
-
-        if (!requester || !target) return '';
+        const requester = users.find(u => u.id === request.requesterId) || { name: '알 수 없음 (삭제됨)', id: request.requesterId };
+        const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
 
         return `
             <div class="request-card">
@@ -1931,10 +1942,8 @@ async function displayCompletedRequests() {
     completedRequests.sort((a, b) => (b.reviewedAt || 0) - (a.reviewedAt || 0));
 
     grid.innerHTML = completedRequests.map(request => {
-        const requester = users.find(u => u.id === request.requesterId);
-        const target = users.find(u => u.id === request.targetId);
-
-        if (!requester || !target) return '';
+        const requester = users.find(u => u.id === request.requesterId) || { name: '알 수 없음 (삭제됨)', id: request.requesterId };
+        const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
 
         const isApproved = request.status === 'approved';
         const statusClass = isApproved ? 'status-approved' : 'status-rejected';
@@ -2050,8 +2059,20 @@ async function displayAllProfiles() {
                     <span>${user.contactInstagram || 'N/A'}</span>
                 </div>
             </div>
+            <button class="btn-reject" onclick="handleDeleteUser('${user.id}', '${user.name}')" style="width: 100%; margin-top: 1rem; padding: 0.8rem; background-color: #ff4b4b;">회원 삭제</button>
         </div>
     `).join('');
+}
+
+async function handleDeleteUser(userId, userName) {
+    if (confirm(`정말로 ${userName} 회원을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+        const success = await deleteUser(userId);
+        if (success) {
+            alert('회원이 삭제되었습니다.');
+            displayAllProfiles(); // Refresh list
+            updateUserCount(); // Update total count
+        }
+    }
 }
 
 async function approveRequest(requestId) {
