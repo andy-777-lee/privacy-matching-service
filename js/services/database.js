@@ -76,8 +76,16 @@ async function fetchUnlockedProfiles(userId) {
 // Delete user
 async function deleteUser(userId) {
     try {
+        // Delete Firestore document
         await db.collection('users').doc(userId).delete();
-        console.log(`User ${userId} deleted successfully`);
+        console.log(`User ${userId} deleted from Firestore successfully`);
+
+        // Note: Firebase Auth account cannot be deleted from client-side
+        // Admin must delete it manually from Firebase Console
+        console.warn(`⚠️ Firebase Auth account for user ${userId} still exists.`);
+        console.warn('Admin must delete it manually from Firebase Console:');
+        console.warn('https://console.firebase.google.com/project/privacy-matching-andylee/authentication/users');
+
         return true;
     } catch (error) {
         console.error("Error deleting user:", error);
