@@ -73,6 +73,29 @@ async function fetchUnlockedProfiles(userId) {
     }
 }
 
+// Add unlocked profile for a user
+async function addUnlockedProfile(userId, targetId) {
+    try {
+        const docRef = db.collection('unlockedProfiles').doc(userId);
+        const doc = await docRef.get();
+
+        let unlocked = [];
+        if (doc.exists) {
+            unlocked = doc.data().unlocked || [];
+        }
+
+        // Add targetId if not already in the list
+        if (!unlocked.includes(targetId)) {
+            unlocked.push(targetId);
+            await docRef.set({ unlocked }, { merge: true });
+            console.log(`Added ${targetId} to unlocked profiles for user ${userId}`);
+        }
+    } catch (error) {
+        console.error("Error adding unlocked profile:", error);
+        throw error;
+    }
+}
+
 // Delete user
 async function deleteUser(userId) {
     try {
@@ -100,4 +123,5 @@ window.saveUser = saveUser;
 window.fetchUnlockRequests = fetchUnlockRequests;
 window.saveUnlockRequest = saveUnlockRequest;
 window.fetchUnlockedProfiles = fetchUnlockedProfiles;
+window.addUnlockedProfile = addUnlockedProfile;
 window.deleteUser = deleteUser;
