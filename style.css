@@ -1033,6 +1033,11 @@ select:focus {
     animation: fadeIn var(--transition-fast);
 }
 
+#unlock-modal {
+    z-index: 1010;
+    /* Higher than normal modal (1000) */
+}
+
 .modal.active {
     display: flex;
 }

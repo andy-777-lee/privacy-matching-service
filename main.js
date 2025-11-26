@@ -119,7 +119,8 @@ function setupModalCloseButtons() {
                 e.stopPropagation();
                 console.log(`Closing modal: ${modalId}`);
                 modal.classList.remove('active');
-                modal.style.display = 'none';
+                // Do NOT set display: none here, let CSS handle it via .active class
+                modal.style.display = '';
             };
         } else {
             console.warn(`Close button not found for modal: ${modalId}`);
@@ -131,7 +132,8 @@ function setupModalCloseButtons() {
                 if (e.target === modal) {
                     console.log(`Closing modal by background click: ${modalId}`);
                     modal.classList.remove('active');
-                    modal.style.display = 'none';
+                    // Do NOT set display: none here
+                    modal.style.display = '';
                 }
             };
         }
@@ -1159,6 +1161,7 @@ function createMatchCard(match, isUnlocked) {
                     <span class="match-tag">${user.birthYear || '?'}년생 (${user.age || '?'}세)</span>
                     <span class="match-tag">${user.religion || '정보 없음'}</span>
                     <span class="match-tag">${user.height || '?'}cm</span>
+                    <span class="match-tag">${user.bodyType || '체격 정보 없음'}</span>
                     <span class="match-tag">${user.job || '정보 없음'}</span>
                 </div>
                 <div class="match-details">
@@ -1211,6 +1214,10 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
             <div class="info-item">
                 <div class="info-label">키</div>
                 <div class="info-value">${user.height}cm</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">체격</div>
+                <div class="info-value">${user.bodyType}</div>
             </div>
             <div class="info-item">
                 <div class="info-label">음주</div>
@@ -1277,18 +1284,9 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
     `;
 
     modal.classList.add('active');
+    modal.style.display = ''; // Ensure display is not none
 
-    // Close button
-    modal.querySelector('.modal-close').onclick = () => {
-        modal.classList.remove('active');
-    };
-
-    // Click outside to close
-    modal.onclick = (e) => {
-        if (e.target === modal) {
-            modal.classList.remove('active');
-        }
-    };
+    // Note: Modal close buttons are handled by setupModalCloseButtons()
 }
 
 // Edit Preferences
@@ -1352,8 +1350,12 @@ function editPreferences() {
 
 // Unlock Request
 async function requestUnlock(targetId) {
-    document.getElementById('profile-modal').classList.remove('active');
-    document.getElementById('unlock-modal').classList.add('active');
+    // Do not close profile modal, so unlock modal opens on top of it
+    // document.getElementById('profile-modal').classList.remove('active');
+
+    const modal = document.getElementById('unlock-modal');
+    modal.classList.add('active');
+    modal.style.display = ''; // Ensure display is not none
     document.getElementById('unlock-target-id').value = targetId;
 
     const form = document.getElementById('unlock-request-form');
@@ -1443,56 +1445,9 @@ function editPreferences() {
     setupRegistrationForm();
 }
 
-// Global function for requesting profile unlock (called from HTML onclick)
-async function requestUnlock(targetId) {
-    document.getElementById('profile-modal').classList.remove('active');
-    document.getElementById('unlock-modal').classList.add('active');
-    document.getElementById('unlock-target-id').value = targetId;
+// Note: requestUnlock is defined above
+// Note: requestUnlock is defined above
 
-    const form = document.getElementById('unlock-request-form');
-    form.onsubmit = async (e) => {
-        e.preventDefault();
-
-        const message = document.getElementById('unlock-message').value.trim();
-        if (!message) {
-            alert('메시지를 입력해주세요.');
-            return;
-        }
-
-        const request = {
-            id: 'request_' + Date.now(),
-            requesterId: currentUser.id,
-            targetId: targetId,
-            message: message,
-            status: 'pending',
-            createdAt: Date.now()
-        };
-
-        await saveUnlockRequest(request);
-
-        // Send Discord Notification
-        try {
-            await sendDiscordNotification(request, currentUser, targetId);
-        } catch (error) {
-            console.error('Failed to send Discord notification:', error);
-        }
-
-        // Create Notification for Requester
-        await saveNotification({
-            userId: currentUser.id,
-            type: 'unlock_request_sent',
-            message: '관리자에게 프로필 공개 요청을 보냈습니다.',
-            targetId: targetId,
-            read: false,
-            createdAt: Date.now()
-        });
-
-        document.getElementById('unlock-modal').classList.remove('active');
-        document.getElementById('unlock-message').value = '';
-
-        alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
-    };
-}
 
 // Global function for opening edit profile modal
 function openEditProfileModal() {
@@ -1502,6 +1457,7 @@ function openEditProfileModal() {
     // Open edit profile modal
     const modal = document.getElementById('edit-profile-modal');
     modal.classList.add('active');
+    modal.style.display = ''; // Ensure display is not none
 
     // Populate form with current user data
     populateEditProfileForm();
