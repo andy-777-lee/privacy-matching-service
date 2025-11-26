@@ -2309,3 +2309,31 @@ async function sendNewUserDiscordNotification(user) {
         console.error("Discord notification failed:", error);
     }
 }
+
+// Snowfall Effect
+function createSnowflake() {
+    const snowflake = document.createElement('div');
+    snowflake.classList.add('snowflake');
+    snowflake.innerHTML = '❄';
+    
+    // Random properties
+    const startLeft = Math.random() * window.innerWidth;
+    const animationDuration = Math.random() * 3 + 2; // 2-5 seconds
+    const size = Math.random() * 10 + 10; // 10-20px
+    const opacity = Math.random() * 0.5 + 0.3;
+    
+    snowflake.style.left = startLeft + 'px';
+    snowflake.style.animationDuration = animationDuration + 's';
+    snowflake.style.fontSize = size + 'px';
+    snowflake.style.opacity = opacity;
+    
+    document.body.appendChild(snowflake);
+    
+    // Remove after animation
+    setTimeout(() => {
+        snowflake.remove();
+    }, animationDuration * 1000);
+}
+
+// Start snowfall
+setInterval(createSnowflake, 100);
