@@ -66,7 +66,7 @@ function displayNotifications(notifications) {
     }
 
     list.innerHTML = notifications.map(n => `
-        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}', '${n.type}', '${n.targetId}')">
+        <div class="notification-item ${n.read ? '' : 'unread'}" ${n.type !== 'approval_request' ? `onclick="handleNotificationClick('${n.id}', '${n.type}', '${n.targetId || ''}')"` : ''}>
             <div class="notification-header">
                 <span>${new Date(n.createdAt).toLocaleDateString()}</span>
                 ${!n.read ? '<span style="color: var(--primary);">●</span>' : ''}
@@ -75,6 +75,21 @@ function displayNotifications(notifications) {
             ${n.type === 'unlock_approved' ? `
                 <div class="notification-action">
                     <button class="notification-btn">프로필 보기</button>
+                </div>
+            ` : ''}
+            ${n.type === 'approval_request' ? `
+                <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button class="notification-btn" onclick="event.stopPropagation(); showRequesterProfile('${n.requesterId}', '${n.requestId}')" style="flex: 1; background: #667eea;">
+                        요청자 프로필 보기
+                    </button>
+                </div>
+                <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', true)" style="flex: 1; background: #4ECDC4;">
+                        승인
+                    </button>
+                    <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', false)" style="flex: 1; background: #FF6B6B;">
+                        거절
+                    </button>
                 </div>
             ` : ''}
         </div>
@@ -111,9 +126,45 @@ async function handleNotificationClick(notificationId, type, targetId) {
     }
 }
 
+// Show requester's profile for approval decision
+async function showRequesterProfile(requesterId, requestId) {
+    try {
+        const userDoc = await db.collection('users').doc(requesterId).get();
+        if (userDoc.exists) {
+            const requesterUser = userDoc.data();
+
+            // Close notification modal
+            document.getElementById('notification-modal').classList.remove('active');
+
+            // Show profile modal with approval buttons
+            window.dispatchEvent(new CustomEvent('showRequesterProfile', {
+                detail: { user: requesterUser, requestId: requestId }
+            }));
+        }
+    } catch (error) {
+        console.error('Error fetching requester profile:', error);
+        alert('프로필을 불러오는 중 오류가 발생했습니다.');
+    }
+}
+
+// Handle target user's approval/rejection
+async function handleTargetApproval(requestId, approve) {
+    if (approve) {
+        if (confirm('이 사용자의 프로필 공개 요청을 승인하시겠습니까?\n승인하면 양쪽 모두 서로의 프로필을 볼 수 있습니다.')) {
+            await targetApproveRequest(requestId);
+        }
+    } else {
+        if (confirm('이 사용자의 프로필 공개 요청을 거절하시겠습니까?')) {
+            await targetRejectRequest(requestId);
+        }
+    }
+}
+
 // Export to global scope
 window.saveNotification = saveNotification;
 window.fetchNotifications = fetchNotifications;
 window.markNotificationAsRead = markNotificationAsRead;
 window.displayNotifications = displayNotifications;
 window.handleNotificationClick = handleNotificationClick;
+window.showRequesterProfile = showRequesterProfile;
+window.handleTargetApproval = handleTargetApproval;

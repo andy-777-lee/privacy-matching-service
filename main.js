@@ -1089,6 +1089,12 @@ window.addEventListener('showUnlockedProfile', (event) => {
     showProfileModal(user, false, null, false, true); // forceUnlocked = true for approved profiles
 });
 
+// Listen for requester profile event (for approval decision)
+window.addEventListener('showRequesterProfile', (event) => {
+    const { user, requestId } = event.detail;
+    showProfileModal(user, false, null, false, true, requestId); // Show full profile with approval buttons
+});
+
 
 async function displayMatches() {
     console.log('--- displayMatches called ---');
@@ -1209,7 +1215,7 @@ function createMatchCard(match, isUnlocked) {
 }
 
 // Profile Modal
-async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false, forceUnlocked = false) {
+async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false, forceUnlocked = false, requestId = null) {
     const modal = document.getElementById('profile-modal');
     const detail = document.getElementById('profile-detail');
 
@@ -1309,6 +1315,19 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
             <button class="btn btn-primary btn-large" onclick="openEditProfileModal()" style="margin-top: 0.5rem;">
                 프로필 수정하기
             </button>
+        ` : ''}
+        ${requestId ? `
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button class="btn btn-primary btn-large" onclick="handleTargetApproval('${requestId}', true)" style="flex: 1; background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);">
+                    ✅ 승인
+                </button>
+                <button class="btn btn-outline btn-large" onclick="handleTargetApproval('${requestId}', false)" style="flex: 1; border-color: #FF6B6B; color: #FF6B6B;">
+                    ❌ 거절
+                </button>
+            </div>
+            <p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+                승인하면 양쪽 모두 서로의 프로필을 볼 수 있습니다.
+            </p>
         ` : ''}
     `;
 
@@ -1424,8 +1443,11 @@ async function requestUnlock(targetId) {
             requesterId: currentUser.id,
             targetId: targetId,
             message: message,
-            status: 'pending',
-            createdAt: Date.now()
+            status: 'pending', // pending -> admin_approved -> approved/rejected
+            targetApprovalStatus: 'pending', // pending -> approved/rejected (by target user)
+            createdAt: Date.now(),
+            adminApprovedAt: null,
+            targetApprovedAt: null
         };
 
         await saveUnlockRequest(request);
@@ -1918,7 +1940,7 @@ async function displayUnlockRequests() {
     const grid = document.getElementById('admin-requests-grid');
     const noRequests = document.getElementById('no-requests');
 
-    const pendingRequests = requests.filter(r => r.status === 'pending');
+    const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'admin_approved');
 
     // Update pending count
     const pendingCount = document.getElementById('pending-count');
@@ -1939,11 +1961,16 @@ async function displayUnlockRequests() {
         const requester = users.find(u => u.id === request.requesterId) || { name: '알 수 없음 (삭제됨)', id: request.requesterId };
         const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
 
+        const isAdminApproved = request.status === 'admin_approved';
+        const statusBadge = isAdminApproved ?
+            '<span class="status-badge" style="background: rgba(102, 126, 234, 0.2); color: #667eea; border: 1px solid rgba(102, 126, 234, 0.3);">대상자 승인 대기중</span>' :
+            '<span class="status-badge status-pending">대기중</span>';
+
         return `
             <div class="request-card">
                 <div class="request-header">
                     <span class="request-time">${new Date(request.createdAt).toLocaleString()}</span>
-                    <span class="status-badge status-pending">대기중</span>
+                    ${statusBadge}
                 </div>
                 <div class="request-users">
                     <div class="request-user">
@@ -1957,10 +1984,16 @@ async function displayUnlockRequests() {
                 <div class="request-message">
                     "${request.message}"
                 </div>
-                <div class="request-actions">
-                    <button class="btn-approve" onclick="approveRequest('${request.id}')">승인</button>
-                    <button class="btn-reject" onclick="rejectRequest('${request.id}')">거절</button>
-                </div>
+                ${!isAdminApproved ? `
+                    <div class="request-actions">
+                        <button class="btn-approve" onclick="approveRequest('${request.id}')">승인</button>
+                        <button class="btn-reject" onclick="rejectRequest('${request.id}')">거절</button>
+                    </div>
+                ` : `
+                    <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                        관리자 승인 완료. ${target.name}님의 승인을 기다리는 중입니다.
+                    </div>
+                `}
             </div>
         `;
     }).join('');
@@ -2132,35 +2165,122 @@ async function approveRequest(requestId) {
 
     if (request) {
         try {
-            request.status = 'approved';
-            request.reviewedAt = Date.now();
+            // Step 1: Admin approval - change status to admin_approved
+            request.status = 'admin_approved';
+            request.adminApprovedAt = Date.now();
             await saveUnlockRequest(request);
 
-            // Add to unlocked profiles
-            await addUnlockedProfile(request.requesterId, request.targetId);
+            // Create Notification for Target User (to approve/reject)
+            await saveNotification({
+                userId: request.targetId,
+                type: 'approval_request',
+                message: '누군가 당신의 프로필 공개를 요청했습니다. 승인하시겠습니까?',
+                requestId: request.id,
+                requesterId: request.requesterId,
+                read: false,
+                createdAt: Date.now()
+            });
 
-            // Create Notification for Requester
+            // Create Notification for Requester (admin approved, waiting for target)
             await saveNotification({
                 userId: request.requesterId,
-                type: 'unlock_approved',
-                message: '관리자가 프로필 공개 요청을 승인했습니다.',
+                type: 'admin_approved',
+                message: '관리자가 1차 승인했습니다. 상대방의 승인을 기다리는 중입니다.',
                 targetId: request.targetId,
                 read: false,
                 createdAt: Date.now()
             });
 
-            alert('승인되었습니다.');
+            alert('1차 승인되었습니다. 대상자에게 알림이 전송되었습니다.');
             displayUnlockRequests();
+
             // Update completed count
-            const requests = await fetchUnlockRequests();
+            const updatedRequests = await fetchUnlockRequests();
             const completedCount = document.getElementById('completed-count');
             if (completedCount) {
-                const completed = requests.filter(r => r.status === 'approved' || r.status === 'rejected');
+                const completed = updatedRequests.filter(r => r.status === 'approved' || r.status === 'rejected');
                 completedCount.textContent = completed.length;
             }
         } catch (error) {
             console.error('Error approving request:', error);
             alert('승인 처리 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+        }
+    }
+}
+
+// Target user approves the unlock request
+async function targetApproveRequest(requestId) {
+    const requests = await fetchUnlockRequests();
+    const request = requests.find(r => r.id === requestId);
+
+    if (request && request.status === 'admin_approved') {
+        try {
+            // Step 2: Target approval - finalize the request
+            request.status = 'approved';
+            request.targetApprovalStatus = 'approved';
+            request.targetApprovedAt = Date.now();
+            request.reviewedAt = Date.now();
+            await saveUnlockRequest(request);
+
+            // Add to unlocked profiles (mutual unlock)
+            await addUnlockedProfile(request.requesterId, request.targetId);
+            await addUnlockedProfile(request.targetId, request.requesterId);
+
+            // Notify Requester
+            await saveNotification({
+                userId: request.requesterId,
+                type: 'unlock_approved',
+                message: '상대방이 프로필 공개를 승인했습니다! 이제 프로필을 확인할 수 있습니다.',
+                targetId: request.targetId,
+                read: false,
+                createdAt: Date.now()
+            });
+
+            alert('승인되었습니다. 양쪽 모두 프로필을 확인할 수 있습니다.');
+
+            // Refresh notifications
+            if (typeof loadNotifications === 'function') {
+                loadNotifications();
+            }
+        } catch (error) {
+            console.error('Error target approving request:', error);
+            alert('승인 처리 중 오류가 발생했습니다.');
+        }
+    }
+}
+
+// Target user rejects the unlock request
+async function targetRejectRequest(requestId) {
+    const requests = await fetchUnlockRequests();
+    const request = requests.find(r => r.id === requestId);
+
+    if (request && request.status === 'admin_approved') {
+        try {
+            request.status = 'rejected';
+            request.targetApprovalStatus = 'rejected';
+            request.targetApprovedAt = Date.now();
+            request.reviewedAt = Date.now();
+            await saveUnlockRequest(request);
+
+            // Notify Requester
+            await saveNotification({
+                userId: request.requesterId,
+                type: 'unlock_rejected',
+                message: '상대방이 프로필 공개 요청을 거절했습니다.',
+                targetId: request.targetId,
+                read: false,
+                createdAt: Date.now()
+            });
+
+            alert('거절되었습니다.');
+
+            // Refresh notifications
+            if (typeof loadNotifications === 'function') {
+                loadNotifications();
+            }
+        } catch (error) {
+            console.error('Error target rejecting request:', error);
+            alert('거절 처리 중 오류가 발생했습니다.');
         }
     }
 }
