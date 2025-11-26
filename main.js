@@ -2156,7 +2156,6 @@ async function updateUserCount() {
 
 async function updateLoginUserCount() {
     const loginUserCountElement = document.getElementById('login-users-count');
-    const loginPageUsersCountElement = document.getElementById('login-page-users-count');
 
     try {
         // Fetch user count from Firestore (public read access needed)
@@ -2166,16 +2165,10 @@ async function updateLoginUserCount() {
         if (loginUserCountElement) {
             loginUserCountElement.textContent = userCount;
         }
-        if (loginPageUsersCountElement) {
-            loginPageUsersCountElement.textContent = userCount;
-        }
     } catch (error) {
         console.error('Error fetching user count:', error);
         if (loginUserCountElement) {
             loginUserCountElement.textContent = '...';
-        }
-        if (loginPageUsersCountElement) {
-            loginPageUsersCountElement.textContent = '...';
         }
     }
 }
