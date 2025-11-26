@@ -12,6 +12,16 @@
 </head>
 
 <body>
+    <!-- Help Button (Fixed Position) -->
+    <button id="help-button"
+        onclick="document.getElementById('service-info-modal').classList.add('active'); document.getElementById('service-info-modal').style.display = 'flex';"
+        style="position: fixed; top: 20px; right: 20px; z-index: 9998; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%); color: white; border: none; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;"
+        onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(255, 107, 157, 0.6)';"
+        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(255, 107, 157, 0.4)';"
+        title="서비스 소개">
+        ?
+    </button>
+
     <div id="app">
         <!-- Login Page -->
         <div id="login-page" class="page active">
@@ -460,6 +470,77 @@
                     style="position: fixed; top: 20px; right: 20px; z-index: 10002; background: rgba(0,0,0,0.7); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 2rem; cursor: pointer;">&times;</button>
                 <img id="image-viewer-img" src="" alt="Full size image"
                     style="max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            </div>
+        </div>
+
+        <!-- Service Info Modal -->
+        <div id="service-info-modal" class="modal">
+            <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                <button type="button" class="modal-close">&times;</button>
+                <div class="service-description">
+                    <h2>🎯 서비스 소개</h2>
+                    <p class="creator">Made by <strong>이채혁</strong></p>
+                    <p class="main-desc">제 지인솔로분들께.. 솔로분들 등록하세요. 등록한다고 이름, 사진은 당신이 오케이하는거 아니면 공개안되니까 일단 조건만 보고 골라보세요 그
+                        다음 제가 연결해드릴게</p>
+
+                    <div class="privacy-guarantee">
+                        <div class="guarantee-badge">
+                            <span class="badge-icon">🛡️</span>
+                            <div class="badge-text">
+                                <strong>프라이버시 100% 보장</strong>
+                                <p>등록해준 정보는 오픈하되, 본인 동의 없이 사진과 이름은 오픈하지 않습니다!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="process-info">
+                        <h3>📋 매칭 프로세스</h3>
+
+                        <div class="process-detail-section">
+                            <div class="process-detail-card">
+                                <div class="process-detail-header">
+                                    <span class="step-badge">1차 선택</span>
+                                    <h4>조건 기반 프로필 확인</h4>
+                                </div>
+                                <div class="process-detail-content">
+                                    <p>조건에 부합하는 순서로 <strong>이름과 사진은 비공개된</strong> 프로필을 나열해드립니다.</p>
+                                    <p>조건만 보고 이름과 사진을 보고 싶은 사람이 있다면 선택해주세요. <strong>상대방에게 허락을 구한 뒤</strong> 풀 프로필과 함께
+                                        추가로 알고 싶은 정보가 있다면 함께 전달드리겠습니다.</p>
+                                </div>
+                            </div>
+
+                            <div class="process-arrow-vertical">↓</div>
+
+                            <div class="process-detail-card">
+                                <div class="process-detail-header">
+                                    <span class="step-badge">2차 선택</span>
+                                    <h4>최종 매칭 결정</h4>
+                                </div>
+                                <div class="process-detail-content">
+                                    <p><strong>풀 프로필을 보시고도 마음에 드시면</strong> 카카오톡 또는 인스타그램으로 <strong>연락해보세요 !</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="features">
+                        <div class="feature-item">
+                            <span class="feature-icon">🔒</span>
+                            <div class="feature-text">
+                                <h4>조건 기반 매칭</h4>
+                                <p>원하는 조건을 설정하고 우선순위를 정하세요</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">💬</span>
+                            <div class="feature-text">
+                                <h4>추가 정보 요청</h4>
+                                <p>궁금한 점이 있다면 관리자를 통해 전달 가능</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

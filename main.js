@@ -98,7 +98,7 @@ const hash = window.location.hash;
 
 // Setup modal close buttons
 function setupModalCloseButtons() {
-    const modals = ['profile-modal', 'unlock-modal', 'edit-profile-modal', 'notification-modal', 'image-viewer-modal'];
+    const modals = ['profile-modal', 'unlock-modal', 'edit-profile-modal', 'notification-modal', 'image-viewer-modal', 'service-info-modal'];
 
     modals.forEach(modalId => {
         const modal = document.getElementById(modalId);
