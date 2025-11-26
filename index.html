@@ -452,6 +452,17 @@
             </div>
         </div>
 
+        <!-- Image Viewer Modal -->
+        <div id="image-viewer-modal" class="modal" style="z-index: 10001;">
+            <div class="modal-content"
+                style="max-width: 90vw; max-height: 90vh; background: transparent; box-shadow: none; padding: 0;">
+                <button type="button" class="modal-close"
+                    style="position: fixed; top: 20px; right: 20px; z-index: 10002; background: rgba(0,0,0,0.7); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 2rem; cursor: pointer;">&times;</button>
+                <img id="image-viewer-img" src="" alt="Full size image"
+                    style="max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            </div>
+        </div>
+
         <!-- Unlock Request Modal -->
         <div id="unlock-modal" class="modal">
             <div class="modal-content">

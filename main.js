@@ -1205,9 +1205,9 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
     detail.innerHTML = `
         ${matchScore ? `<div class="match-percentage" style="position: static; margin-bottom: 1rem;">${matchScore}% 매칭</div>` : ''}
         <div class="profile-photos">
-            ${user.photos.map(photo => `
+            ${user.photos.map((photo, index) => `
                 <div class="profile-photo">
-                    <img src="${photo}" class="${isUnlocked ? '' : 'blurred-photo'}" alt="Profile photo">
+                    <img src="${photo}" class="${isUnlocked ? 'unlocked-photo' : 'blurred-photo'}" alt="Profile photo" data-photo-index="${index}" style="${isUnlocked ? 'cursor: pointer;' : ''}">
                 </div>
             `).join('')}
         </div>
@@ -1300,7 +1300,29 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
     modal.classList.add('active');
     modal.style.display = ''; // Ensure display is not none
 
+    // Add click handlers for unlocked photos to open image viewer
+    if (isUnlocked) {
+        const photoImages = detail.querySelectorAll('.unlocked-photo');
+        photoImages.forEach(img => {
+            img.addEventListener('click', () => {
+                openImageViewer(img.src);
+            });
+        });
+    }
+
     // Note: Modal close buttons are handled by setupModalCloseButtons()
+}
+
+// Open image viewer modal
+function openImageViewer(imageSrc) {
+    const imageViewerModal = document.getElementById('image-viewer-modal');
+    const imageViewerImg = document.getElementById('image-viewer-img');
+
+    imageViewerImg.src = imageSrc;
+    imageViewerModal.classList.add('active');
+    imageViewerModal.style.display = 'flex';
+    imageViewerModal.style.alignItems = 'center';
+    imageViewerModal.style.justifyContent = 'center';
 }
 
 // Edit Preferences
