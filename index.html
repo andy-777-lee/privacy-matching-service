@@ -457,7 +457,7 @@
         <!-- Profile Detail Modal -->
         <div id="profile-modal" class="modal">
             <div class="modal-content">
-                <button class="modal-close">&times;</button>
+                <button type="button" class="modal-close">&times;</button>
                 <div id="profile-detail"></div>
             </div>
         </div>
@@ -465,7 +465,7 @@
         <!-- Unlock Request Modal -->
         <div id="unlock-modal" class="modal">
             <div class="modal-content">
-                <button class="modal-close">&times;</button>
+                <button type="button" class="modal-close">&times;</button>
                 <h2>프로필 공개 요청</h2>
                 <p class="description">관리자에게 전달할 메시지를 작성하세요</p>
                 <form id="unlock-request-form">
@@ -483,7 +483,7 @@
         <!-- Edit Profile Modal -->
         <div id="edit-profile-modal" class="modal">
             <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
-                <button class="modal-close">&times;</button>
+                <button type="button" class="modal-close">&times;</button>
                 <h2>프로필 수정하기</h2>
                 <p class="description">프로필 정보를 수정할 수 있습니다</p>
                 <form id="edit-profile-form">
@@ -761,12 +761,25 @@
     </div>
 
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js?v=2"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js?v=2"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js?v=2"></script>
 
-    <script src="app.js"></script>
+    <!-- Config -->
+    <script src="js/config/firebase.js?v=2"></script>
+    <script src="js/config/constants.js?v=2"></script>
+
+    <!-- Utils -->
+    <script src="js/utils/helpers.js?v=2"></script>
+    <script src="js/utils/dragDrop.js?v=2"></script>
+
+    <!-- Services -->
+    <script src="js/services/database.js?v=3"></script>
+    <script src="js/services/notifications.js?v=3"></script>
+    <script src="js/services/matching.js?v=3"></script>
+
+    <!-- Main App -->
+    <script src="main.js?v=3"></script>
 </body>
 
 </html>
-```

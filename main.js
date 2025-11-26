@@ -1,45 +1,9 @@
-// Firebase Configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyCtCaLngksFACS5bVYFIm7wCuHz79B2oRA",
-    authDomain: "privacy-matching-andylee.firebaseapp.com",
-    projectId: "privacy-matching-andylee",
-    storageBucket: "privacy-matching-andylee.firebasestorage.app",
-    messagingSenderId: "868406980562",
-    appId: "1:868406980562:web:c87fcd946ed7a06df8a20b"
-};
+// Main Application
+// Note: Firebase config, constants, and utilities are now loaded from separate modules
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
-
-
-// Data Storage Keys (Legacy - keeping for admin login)
-const STORAGE_KEYS = {
-    ADMIN_LOGGED_IN: 'matchingService_adminLoggedIn',
-    CURRENT_USER: 'matchingService_currentUser' // Added back for local usage if needed
-};
-
-const ADMIN_PASSWORD_HASH = 'b8b8eb83374c0bf3b1c3224159f6119dbfff1b7ed6dfecdd80d4e8a895790a34';
-
-// Preference field definitions
-const PREFERENCE_FIELDS = [
-    { id: 'birthYear', label: '나이 (출생년도)', type: 'range' },
-    { id: 'religion', label: '종교', type: 'multi' },
-    { id: 'height', label: '키', type: 'range' },
-    { id: 'bodyType', label: '체격', type: 'multi' },
-    { id: 'drinking', label: '음주', type: 'select' },
-    { id: 'hobbies', label: '취미', type: 'multi' },
-    { id: 'job', label: '직업/직군', type: 'select' },
-    { id: 'location', label: '거주 지역', type: 'select' },
-    { id: 'smoking', label: '흡연 여부', type: 'select' },
-    { id: 'mbti', label: 'MBTI', type: 'text' },
-    { id: 'marriagePlan', label: '결혼 계획', type: 'select' },
-    { id: 'education', label: '학력', type: 'select' }
-];
-
-let draggedElement = null;
+// Global state
 let currentUser = null;
+window.currentUser = currentUser;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -122,11 +86,57 @@ async function initializeApp() {
             }
         }
     });
+
+    // Setup modal close buttons (once on init)
+    setupModalCloseButtons();
 }
+
 
 const hash = window.location.hash;
 
 // Duplicate auth listener removed – initialization handled in initializeApp()
+
+// Setup modal close buttons
+function setupModalCloseButtons() {
+    const modals = ['profile-modal', 'unlock-modal', 'edit-profile-modal', 'notification-modal'];
+
+    modals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (!modal) {
+            console.warn(`Modal not found: ${modalId}`);
+            return;
+        }
+
+        // Close button
+        const closeBtn = modal.querySelector('.modal-close, .close-modal');
+        if (closeBtn) {
+            // Remove any existing listeners by cloning
+            const newCloseBtn = closeBtn.cloneNode(true);
+            closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+
+            newCloseBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(`Closing modal: ${modalId}`);
+                modal.classList.remove('active');
+                modal.style.display = 'none';
+            };
+        } else {
+            console.warn(`Close button not found for modal: ${modalId}`);
+        }
+
+        // Click outside to close (except for unlock-modal)
+        if (modalId !== 'unlock-modal') {
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    console.log(`Closing modal by background click: ${modalId}`);
+                    modal.classList.remove('active');
+                    modal.style.display = 'none';
+                }
+            };
+        }
+    });
+}
 
 function setupHashNavigation() {
     window.addEventListener('hashchange', () => {
@@ -134,23 +144,8 @@ function setupHashNavigation() {
     });
 }
 
-// Page Navigation
-function showPage(pageId) {
-    document.querySelectorAll('.page').forEach(page => {
-        page.classList.remove('active');
-    });
-    document.getElementById(pageId).classList.add('active');
-}
+// Note: showPage and hashPassword are now in js/utils/helpers.js
 
-// Password Hashing
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-}
 
 // Login Page Setup
 function setupLoginPage() {
@@ -688,7 +683,6 @@ function setupRegistrationForm() {
         }
     }
 
-    // Setup form submission
     // Submit Preferences
     document.getElementById('submit-preferences').addEventListener('click', async () => {
         const selectGrid = document.getElementById('preference-select');
@@ -700,13 +694,24 @@ function setupRegistrationForm() {
             return;
         }
 
-        // Collect detailed values
+        // Collect detailed values - ONLY for selected (checked) items
         const priorities = [];
         const listItems = document.querySelectorAll('#priority-list .priority-item');
 
         listItems.forEach((li, index) => {
             const fieldId = li.dataset.fieldId;
+
+            // IMPORTANT: Only include if this field is actually selected (checked)
+            if (!selected.includes(fieldId)) {
+                console.log(`Skipping unchecked field: ${fieldId}`);
+                return; // Skip this item
+            }
+
             const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+            if (!field) {
+                console.warn(`Field not found: ${fieldId}`);
+                return;
+            }
 
             // Get value from input
             let value;
@@ -733,47 +738,54 @@ function setupRegistrationForm() {
             });
         });
 
-        console.log('Saving preferences:', priorities);
+        console.log('Saving preferences (filtered):', priorities);
 
         // Update existing user instead of creating new one
         if (currentUser) {
-            console.log('Updating currentUser preferences...');
-            // Convert the array of priority objects into a map for efficient storage
-            const prefMap = {};
-            priorities.forEach(p => {
-                prefMap[p.field] = {
-                    label: p.label,
-                    priority: p.priority,
-                    value: p.value
-                };
-            });
-            // Store preferences as a map (field -> {label, priority, value})
-            currentUser.preferences = prefMap;
-            // Also keep a timestamp for debugging
-            currentUser.preferencesUpdatedAt = Date.now();
+            try {
+                console.log('Updating currentUser preferences...');
+                // Convert the array of priority objects into a map for efficient storage
+                const prefMap = {};
+                priorities.forEach(p => {
+                    prefMap[p.field] = {
+                        label: p.label,
+                        priority: p.priority,
+                        value: p.value
+                    };
+                });
 
-            console.log('Updated currentUser:', currentUser);
+                console.log('New preferences to save:', prefMap);
 
-            // Save to Firestore
-            await saveUser(currentUser);
-            console.log('Saved to Firestore successfully');
+                // Save preferences to Firestore (replace completely, not merge)
+                // IMPORTANT: We use update() to replace only the preferences field
+                await db.collection('users').doc(currentUser.id).update({
+                    preferences: prefMap,
+                    preferencesUpdatedAt: Date.now()
+                });
+                console.log('Saved preferences to Firestore successfully');
 
-            // Reload user data from Firestore to ensure consistency
-            const userDoc = await db.collection('users').doc(currentUser.id).get();
-            if (userDoc.exists) {
-                currentUser = userDoc.data();
-                console.log('Reloaded currentUser from Firestore:', currentUser);
-            }
+                // Reload user data from Firestore to ensure consistency
+                const userDoc = await db.collection('users').doc(currentUser.id).get();
+                if (userDoc.exists) {
+                    currentUser = userDoc.data();
+                    window.currentUser = currentUser; // Update global reference
+                    console.log('Reloaded currentUser from Firestore:', currentUser);
+                    console.log('Final preferences:', currentUser.preferences);
+                }
 
-            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
+                localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
 
-            // Show matches page using custom event
-            showPage('matches-page');
+                // Show matches page and immediately display matches
+                showPage('matches-page');
 
-            // Force display matches with updated user
-            setTimeout(() => {
+                // Immediately trigger match display (no delay)
                 window.dispatchEvent(new CustomEvent('showMatches'));
-            }, 100);
+            } catch (error) {
+                console.error('Error saving preferences:', error);
+                alert('선호 조건 저장 중 오류가 발생했습니다: ' + error.message);
+            }
+        } else {
+            alert('사용자 정보를 찾을 수 없습니다. 다시 로그인해주세요.');
         }
     });
 }
@@ -811,181 +823,8 @@ function updatePriorityList(selectedFields) {
     setupDragAndDrop();
 }
 
-// Touch event variables
-let touchStartY = 0;
-let touchCurrentY = 0;
-let touchElement = null;
+// Note: Drag and drop functionality is now in js/utils/dragDrop.js
 
-function setupDragAndDrop() {
-    const items = document.querySelectorAll('.priority-item');
-
-    items.forEach(item => {
-        // Desktop drag events
-        item.addEventListener('dragstart', handleDragStart);
-        item.addEventListener('dragend', handleDragEnd);
-        item.addEventListener('dragover', handleDragOver);
-        item.addEventListener('drop', handleDrop);
-        item.addEventListener('dragenter', handleDragEnter);
-        item.addEventListener('dragleave', handleDragLeave);
-
-        // Mobile touch events
-        item.addEventListener('touchstart', handleTouchStart, { passive: false });
-        item.addEventListener('touchmove', handleTouchMove, { passive: false });
-        item.addEventListener('touchend', handleTouchEnd, { passive: false });
-    });
-}
-
-function handleDragStart(e) {
-    draggedElement = this;
-    this.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-}
-
-function handleDragEnd(e) {
-    this.classList.remove('dragging');
-    document.querySelectorAll('.priority-item').forEach(item => {
-        item.classList.remove('drag-over');
-    });
-
-    // Update priority numbers
-    updatePriorityNumbers();
-}
-
-function handleDragOver(e) {
-    if (e.preventDefault) {
-        e.preventDefault();
-    }
-    e.dataTransfer.dropEffect = 'move';
-    return false;
-}
-
-function handleDragEnter(e) {
-    if (this !== draggedElement) {
-        this.classList.add('drag-over');
-    }
-}
-
-function handleDragLeave(e) {
-    this.classList.remove('drag-over');
-}
-
-function handleDrop(e) {
-    if (e.stopPropagation) {
-        e.stopPropagation();
-    }
-
-    if (draggedElement !== this) {
-        const priorityList = document.getElementById('priority-list');
-        const allItems = Array.from(priorityList.children);
-        const draggedIndex = allItems.indexOf(draggedElement);
-        const targetIndex = allItems.indexOf(this);
-
-        if (draggedIndex < targetIndex) {
-            this.parentNode.insertBefore(draggedElement, this.nextSibling);
-        } else {
-            this.parentNode.insertBefore(draggedElement, this);
-        }
-    }
-
-    return false;
-}
-
-// Touch event handlers for mobile
-function handleTouchStart(e) {
-    touchElement = this;
-    draggedElement = this;
-
-    const touch = e.touches[0];
-    touchStartY = touch.clientY;
-    touchCurrentY = touch.clientY;
-
-    this.classList.add('dragging');
-
-    // Prevent default to avoid scrolling while dragging
-    e.preventDefault();
-}
-
-function handleTouchMove(e) {
-    if (!touchElement) return;
-
-    e.preventDefault();
-
-    const touch = e.touches[0];
-    touchCurrentY = touch.clientY;
-
-    // Move the element visually
-    const deltaY = touchCurrentY - touchStartY;
-    touchElement.style.transform = `translateY(${deltaY}px)`;
-    touchElement.style.opacity = '0.8';
-    touchElement.style.zIndex = '1000';
-
-    // Find the element we're hovering over
-    const priorityList = document.getElementById('priority-list');
-    const allItems = Array.from(priorityList.children);
-
-    // Remove all drag-over classes
-    allItems.forEach(item => {
-        if (item !== touchElement) {
-            item.classList.remove('drag-over');
-        }
-    });
-
-    // Find which item we're over
-    allItems.forEach(item => {
-        if (item === touchElement) return;
-
-        const rect = item.getBoundingClientRect();
-        const itemMiddle = rect.top + rect.height / 2;
-
-        if (touchCurrentY > rect.top && touchCurrentY < rect.bottom) {
-            item.classList.add('drag-over');
-        }
-    });
-}
-
-function handleTouchEnd(e) {
-    if (!touchElement) return;
-
-    e.preventDefault();
-
-    // Reset visual state
-    touchElement.style.transform = '';
-    touchElement.style.opacity = '';
-    touchElement.style.zIndex = '';
-    touchElement.classList.remove('dragging');
-
-    const priorityList = document.getElementById('priority-list');
-    const allItems = Array.from(priorityList.children);
-
-    // Find the target item
-    let targetItem = null;
-    allItems.forEach(item => {
-        if (item.classList.contains('drag-over')) {
-            targetItem = item;
-        }
-        item.classList.remove('drag-over');
-    });
-
-    // Reorder if we have a target
-    if (targetItem && targetItem !== touchElement) {
-        const draggedIndex = allItems.indexOf(touchElement);
-        const targetIndex = allItems.indexOf(targetItem);
-
-        if (draggedIndex < targetIndex) {
-            targetItem.parentNode.insertBefore(touchElement, targetItem.nextSibling);
-        } else {
-            targetItem.parentNode.insertBefore(touchElement, targetItem);
-        }
-
-        // Update priority numbers
-        updatePriorityNumbers();
-    }
-
-    touchElement = null;
-    draggedElement = null;
-    touchStartY = 0;
-    touchCurrentY = 0;
-}
 
 
 
@@ -1551,17 +1390,7 @@ async function requestUnlock(targetId) {
         alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
     };
 
-    // Close button
-    const modal = document.getElementById('unlock-modal');
-    modal.querySelector('.modal-close').onclick = () => {
-        modal.classList.remove('active');
-    };
-
-    modal.onclick = (e) => {
-        if (e.target === modal) {
-            modal.classList.remove('active');
-        }
-    };
+    // Note: Modal close buttons are now handled by setupModalCloseButtons()
 }
 
 // Analyze why there are no matches
@@ -1906,6 +1735,9 @@ async function handleEditProfileSubmit() {
         // Save to Firestore
         await saveUser(currentUser);
 
+        // Update global reference
+        window.currentUser = currentUser;
+
         alert('프로필이 성공적으로 수정되었습니다!');
 
         // Close modal
@@ -1920,158 +1752,8 @@ async function handleEditProfileSubmit() {
 }
 
 
-// Matching Algorithm
-// Matching Algorithm
-async function findMatches(user) {
-    console.log('--- findMatches called ---');
+// Note: Matching algorithm is now in js/services/matching.js
 
-    // Fallback to global currentUser if user argument is missing preferences
-    let matchingUser = user;
-    if (!matchingUser || !matchingUser.preferences || Object.keys(matchingUser.preferences).length === 0) {
-        console.warn('User argument has no preferences, checking global currentUser...');
-        if (currentUser && currentUser.preferences && Object.keys(currentUser.preferences).length > 0) {
-            console.log('Using global currentUser instead');
-            matchingUser = currentUser;
-        } else {
-            console.error('Global currentUser also has no preferences! Fetching from Firestore...');
-            try {
-                // Try to fetch fresh user data
-                const freshUser = await getUser(user.id || currentUser.id);
-                if (freshUser && freshUser.preferences && Object.keys(freshUser.preferences).length > 0) {
-                    console.log('Fetched fresh user data with preferences');
-                    matchingUser = freshUser;
-                    // Update global currentUser
-                    currentUser = freshUser;
-                } else {
-                    console.error('Failed to fetch user preferences from Firestore');
-                }
-            } catch (e) {
-                console.error('Error fetching fresh user data:', e);
-            }
-        }
-    }
-
-    console.log('Matching User:', matchingUser ? matchingUser.name : 'Unknown');
-
-    // Check if preferences exist AND are not empty
-    if (!matchingUser || !matchingUser.preferences || Object.keys(matchingUser.preferences).length === 0) {
-        console.warn('User has no preferences set (empty priorities list).');
-        console.log('Current matchingUser state:', matchingUser);
-
-        // Alert the user to set preferences
-        if (confirm('선호 조건이 설정되지 않았습니다. 선호 조건 설정 페이지로 이동하시겠습니까?')) {
-            showPage('preference-page');
-            window.dispatchEvent(new CustomEvent('setupPreferences'));
-        }
-
-        return []; // Stop matching process
-    }
-
-    console.log('--- User Preferences ---');
-    // Use JSON.stringify for guaranteed output in all consoles
-    console.log(JSON.stringify(matchingUser.preferences, null, 2));
-    console.log('------------------------');
-
-    const allUsers = await fetchUsers();
-    const candidates = allUsers.filter(u =>
-        u.id !== matchingUser.id && u.gender !== matchingUser.gender
-    );
-
-    const matches = candidates.map(candidate => {
-        const scoreData = calculateMatchScore(matchingUser, candidate);
-        return { user: candidate, score: scoreData.percentage, priorityScore: scoreData.priorityScore };
-    });
-
-    // Sort by percentage first, then by priority score (higher priority matches first)
-    matches.sort((a, b) => {
-        if (b.score === a.score) {
-            return b.priorityScore - a.priorityScore; // Same percentage: higher priority score first
-        }
-        return b.score - a.score; // Different percentage: higher percentage first
-    });
-
-    console.log('\n=== Final Match Results (Top 10) ===');
-    matches.slice(0, 10).forEach((m, i) => {
-        console.log(`#${i + 1} ${m.user.name} | Score: ${m.score}% | Priority Score: ${m.priorityScore}`);
-        console.log('   Candidate Info:', {
-            birthYear: m.user.birthYear,
-            height: m.user.height,
-            mbti: m.user.mbti,
-            religion: m.user.religion,
-            drinking: m.user.drinking,
-            smoking: m.user.smoking,
-            hobbies: m.user.hobbies,
-            job: m.user.job,
-            location: m.user.location
-        });
-    });
-    console.log('====================================\n');
-
-    return matches;
-}
-
-function calculateMatchScore(user, candidate) {
-    // Ensure preferences are stored as a map (field -> {value, ...})
-    if (!user || !user.preferences || Object.keys(user.preferences).length === 0) {
-        console.error('ERROR: No preferences set for user in calculateMatchScore');
-        return { percentage: 0, priorityScore: 0 };
-    }
-
-    let matchedCount = 0;
-    let priorityScore = 0;
-    const prefEntries = Object.entries(user.preferences);
-    const totalCount = prefEntries.length;
-
-    prefEntries.forEach(([fieldId, pref]) => { // Changed index to fieldId for clarity
-        const isMatch = matchesPreference(candidate, fieldId, pref);
-        if (isMatch) {
-            matchedCount++;
-            priorityScore += pref.priority; // Use the stored priority from the preference object
-        }
-    });
-
-    const percentage = totalCount > 0 ? Math.round((matchedCount / totalCount) * 100) : 0;
-    return { percentage, priorityScore };
-}
-
-function matchesPreference(candidate, fieldId, pref) {
-    // pref is already the preference object from the map (contains value, label, priority)
-    if (!pref) {
-        console.warn(`Preference object missing for field: ${fieldId}`);
-        return false;
-    }
-    if (pref.value === undefined || pref.value === null) {
-        console.warn(`Preference value is missing for field: ${fieldId}`, pref);
-        return false;
-    }
-
-    // Type-specific matching logic (range, multi, select, text, etc.)
-    const candVal = candidate[fieldId];
-    const prefVal = pref.value;
-
-    // Range (object with min/max)
-    if (typeof prefVal === 'object' && prefVal.min !== undefined) {
-        return candVal >= prefVal.min && candVal <= prefVal.max;
-    }
-    // Multi-select (array)
-    if (Array.isArray(prefVal)) {
-        // For hobbies, check if candidate has ANY of the preferred hobbies
-        if (fieldId === 'hobbies') {
-            return prefVal.some(h => candVal && candVal.includes(h));
-        }
-        // For other multi-selects (like religion, bodyType), check if candidate's single value is in preferred list
-        return prefVal.includes(candVal);
-    }
-    // Default – direct equality (for select, text, etc.)
-    // Special handling for MBTI to support multiple values (comma-separated) and case-insensitive
-    if (fieldId === 'mbti') {
-        const candMbti = String(candVal).toUpperCase().trim();
-        // prefVal can be a comma-separated list like "INFP,ENTP,ISTP"
-        const prefMbtis = String(prefVal).toUpperCase().split(',').map(m => m.trim());
-        return prefMbtis.includes(candMbti);
-    }
-    return candVal === prefVal;
-}
 
 // Admin Functions
 function showAdminLogin() {
@@ -2476,235 +2158,8 @@ async function rejectRequest(requestId) {
     }
 }
 
-// Data Management
-// Data Access Functions (Firestore)
-
-async function fetchUsers() {
-    try {
-        const snapshot = await db.collection('users').get();
-        const users = snapshot.docs.map(doc => doc.data());
-        console.log('Fetched users from Firestore:', users);
-        users.forEach(user => {
-            console.log(`User ${user.contactKakao} - password field:`, user.password);
-        });
-        return users;
-    } catch (error) {
-        console.error("Error fetching users:", error);
-        return [];
-    }
-}
-
-// Save user with partial update (merge) to avoid overwriting whole document
-async function saveUser(user) {
-    try {
-        console.log('Saving user to Firestore (merge):', user.id);
-        // Use merge:true so only provided fields are updated
-        await db.collection('users').doc(user.id).set(user, { merge: true });
-        console.log('User saved (merged) successfully');
-    } catch (error) {
-        console.error("Error saving user:", error);
-        alert('저장 중 오류가 발생했습니다.');
-    }
-}
-
-async function fetchUnlockRequests() {
-    try {
-        const snapshot = await db.collection('unlock_requests').get();
-        return snapshot.docs.map(doc => doc.data());
-    } catch (error) {
-        console.error("Error fetching requests:", error);
-        return [];
-    }
-}
-
-
-async function saveUnlockRequest(request) {
-    try {
-        await db.collection('unlock_requests').doc(request.id).set(request);
-    } catch (error) {
-        if (error.code === 'permission-denied') {
-            console.warn("Unlock request permission denied. Please update Firestore Security Rules.");
-            alert('권한 오류: 관리자에게 문의하세요. (Firestore Rules Update Required)');
-        } else {
-            console.error("Error saving request:", error);
-            alert('요청 저장 중 오류가 발생했습니다.');
-        }
-    }
-}
-
-// Notification Functions
-async function saveNotification(notification) {
-    try {
-        await db.collection('notifications').add(notification);
-    } catch (error) {
-        if (error.code === 'permission-denied') {
-            console.warn("Notification permission denied. Please update Firestore Security Rules.");
-        } else {
-            console.error("Error saving notification:", error);
-        }
-    }
-}
-
-async function fetchNotifications(userId) {
-    try {
-        const snapshot = await db.collection('notifications')
-            .where('userId', '==', userId)
-            .orderBy('createdAt', 'desc')
-            .limit(20)
-            .get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
-        // Handle missing index error
-        if (error.code === 'failed-precondition' && error.message.includes('index')) {
-            console.warn('Firestore index required for notifications. Create it at:', error.message.match(/https:\/\/[^\s]+/)?.[0]);
-            // Return empty array until index is created
-            return [];
-        }
-        // Silently handle permission errors (notifications feature may not be set up yet)
-        if (error.code !== 'permission-denied') {
-            console.error("Error fetching notifications:", error);
-        }
-        return [];
-    }
-}
-
-async function markNotificationAsRead(notificationId) {
-    try {
-        await db.collection('notifications').doc(notificationId).update({ read: true });
-    } catch (error) {
-        console.error("Error marking notification as read:", error);
-    }
-}
-
-function displayNotifications(notifications) {
-    const list = document.getElementById('notification-list');
-    const badge = document.getElementById('notification-badge');
-
-    if (notifications.length === 0) {
-        list.innerHTML = '<div class="empty-notifications">알림이 없습니다.</div>';
-        badge.style.display = 'none';
-        return;
-    }
-
-    const unreadCount = notifications.filter(n => !n.read).length;
-    if (unreadCount > 0) {
-        badge.textContent = unreadCount;
-        badge.style.display = 'flex';
-    } else {
-        badge.style.display = 'none';
-    }
-
-    list.innerHTML = notifications.map(n => `
-        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}', '${n.type}', '${n.targetId}')">
-            <div class="notification-header">
-                <span>${new Date(n.createdAt).toLocaleDateString()}</span>
-                ${!n.read ? '<span style="color: var(--primary);">●</span>' : ''}
-            </div>
-            <div class="notification-content">${n.message}</div>
-            ${n.type === 'unlock_approved' ? `
-                <div class="notification-action">
-                    <button class="notification-btn">프로필 보기</button>
-                </div>
-            ` : ''}
-        </div>
-    `).join('');
-}
-
-async function handleNotificationClick(notificationId, type, targetId) {
-    await markNotificationAsRead(notificationId);
-
-    // Refresh notifications to update UI
-    const notifications = await fetchNotifications(currentUser.id);
-    displayNotifications(notifications);
-
-    if (type === 'unlock_approved') {
-        document.getElementById('notification-modal').style.display = 'none';
-
-        // Fetch the target user and show their profile
-        try {
-            const userDoc = await db.collection('users').doc(targetId).get();
-            if (userDoc.exists) {
-                const targetUser = userDoc.data();
-                // Trigger event to show profile modal
-                window.dispatchEvent(new CustomEvent('showUnlockedProfile', {
-                    detail: { user: targetUser }
-                }));
-            }
-        } catch (error) {
-            console.error('Error fetching unlocked profile:', error);
-            alert('프로필을 불러오는 중 오류가 발생했습니다.');
-        }
-    }
-}
-
-// Toast Notification
-function showToast(message, onClick) {
-    let container = document.querySelector('.toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.className = 'toast-container';
-        document.body.appendChild(container);
-    }
-
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = message;
-
-    if (onClick) {
-        toast.onclick = onClick;
-    }
-
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.animation = 'slideIn 0.3s ease-in reverse';
-        setTimeout(() => {
-            toast.remove();
-        }, 300);
-    }, 5000);
-}
-
-async function fetchUnlockedProfiles(userId) {
-    try {
-        const doc = await db.collection('unlockedProfiles').doc(userId).get();
-        if (doc.exists) {
-            return doc.data().unlocked || [];
-        }
-        return [];
-    } catch (error) {
-        if (error.code === 'permission-denied') {
-            console.warn("Unlocked profiles permission denied. Please update Firestore Security Rules.");
-        } else {
-            console.error("Error fetching unlocked profiles:", error);
-        }
-        return [];
-    }
-}
-
-async function addUnlockedProfile(userId, targetId) {
-    try {
-        console.log('Adding unlocked profile:', { userId, targetId });
-        const docRef = db.collection('unlockedProfiles').doc(userId);
-        // Directly add targetId using set with merge (no read needed)
-        await docRef.set({
-            unlocked: firebase.firestore.FieldValue.arrayUnion(targetId)
-        }, { merge: true });
-        console.log('Added/updated unlocked profile for user:', userId);
-    } catch (error) {
-        console.error('Error adding unlocked profile:', error);
-        if (error.code === 'permission-denied') {
-            if (auth.currentUser) {
-                console.error('PERMISSION DENIED: User is authenticated but rule rejected write.');
-                alert('권한 오류: Firestore 보안 규칙이 업데이트되지 않았습니다.\n\n터미널에서 "firebase deploy --only firestore:rules"를 실행하거나 Firebase Console에서 규칙을 수정해주세요.');
-            } else {
-                console.error('PERMISSION DENIED: Admin is not authenticated with Firebase Auth!');
-                alert('권한 오류: 관리자 인증 정보가 없습니다. 새로고침 후 다시 로그인해주세요.');
-            }
-        }
-        throw error;
-    }
-}
-
+// Note: Database functions are now in js/services/database.js
+// Note: Notification functions are now in js/services/notifications.js
 async function updateUserCount() {
     const userCountElement = document.getElementById('total-users-count');
     if (userCountElement) {
