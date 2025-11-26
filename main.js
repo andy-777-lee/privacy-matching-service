@@ -191,7 +191,12 @@ function setupLoginPage() {
 
         try {
             // Use Kakao ID to create a synthetic email for Firebase Auth
-            const email = `${kakaoId}@matching.app`;
+            // Convert Kakao ID to safe email format using Base64 encoding (same as registration)
+            const safeKakaoId = btoa(encodeURIComponent(kakaoId))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+            const email = `${safeKakaoId}@matching.app`;
 
             // Pad password to 6 characters to match registration format
             const paddedPassword = password.padEnd(6, '0');
@@ -424,7 +429,13 @@ function setupRegistrationForm() {
 
         try {
             // 1. Create Authentication User
-            const email = `${formData.contactKakao}@matching.app`;
+            // Convert Kakao ID to safe email format using Base64 encoding
+            // This allows special characters in Kakao ID
+            const safeKakaoId = btoa(encodeURIComponent(formData.contactKakao))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+            const email = `${safeKakaoId}@matching.app`;
 
             // Firebase Auth requires minimum 6 characters for password
             // Pad the 4-digit password to meet this requirement
