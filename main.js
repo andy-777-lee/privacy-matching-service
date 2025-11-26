@@ -455,8 +455,19 @@ function setupRegistrationForm() {
                 console.error('Failed to send Discord notification:', discordError);
             }
 
+            // Set current user globally
+            currentUser = user;
+            window.currentUser = user;
+            localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.id);
+
             alert('회원가입이 완료되었습니다!');
-            // Navigation will be handled by onAuthStateChanged
+
+            // Navigate to preference page
+            showPage('preference-page');
+            // Trigger setup after a short delay to ensure page is rendered
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('setupPreferences'));
+            }, 100);
         } catch (error) {
             console.error('Registration error:', error);
             let msg = '회원가입 중 오류가 발생했습니다.';
