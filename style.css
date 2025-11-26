@@ -127,12 +127,16 @@ h3 {
     margin: 0 auto;
     padding: var(--spacing-md);
     padding-bottom: 100px;
+    position: relative;
+    z-index: 1;
 }
 
 .page {
     display: none;
     min-height: 100vh;
     animation: fadeIn var(--transition-normal);
+    position: relative;
+    z-index: 1;
 }
 
 .page.active {
@@ -1835,6 +1839,7 @@ textarea:focus {
 .photo-preview-edit.active~.photo-label {
     display: none;
 }
+
 /* Snowfall Animation */
 .snowflake {
     position: fixed;
@@ -1844,7 +1849,8 @@ textarea:focus {
     font-family: Arial;
     text-shadow: 0 0 1px #000;
     user-select: none;
-    z-index: 9999;
+    z-index: 0;
+    /* Changed from 9999 to 0 to be behind content */
     pointer-events: none;
     animation-name: snowfall;
     animation-timing-function: linear;
@@ -1855,6 +1861,7 @@ textarea:focus {
     0% {
         transform: translateY(0);
     }
+
     100% {
         transform: translateY(100vh);
     }
