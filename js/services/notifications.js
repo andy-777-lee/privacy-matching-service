@@ -47,7 +47,7 @@ async function markNotificationAsRead(notificationId) {
 }
 
 // Display notifications in UI
-function displayNotifications(notifications) {
+async function displayNotifications(notifications) {
     const list = document.getElementById('notification-list');
     const badge = document.getElementById('notification-badge');
 
@@ -65,35 +65,78 @@ function displayNotifications(notifications) {
         badge.style.display = 'none';
     }
 
-    list.innerHTML = notifications.map(n => `
-        <div class="notification-item ${n.read ? '' : 'unread'}" ${n.type !== 'approval_request' ? `onclick="handleNotificationClick('${n.id}', '${n.type}', '${n.targetId || ''}')"` : ''}>
-            <div class="notification-header">
-                <span>${new Date(n.createdAt).toLocaleDateString()}</span>
-                ${!n.read ? '<span style="color: var(--primary);">●</span>' : ''}
-            </div>
-            <div class="notification-content">${n.message}</div>
-            ${n.type === 'unlock_approved' ? `
+    // Fetch all unlock requests to check status
+    let requestsMap = {};
+    if (notifications.some(n => n.type === 'approval_request')) {
+        try {
+            const requests = await fetchUnlockRequests();
+            requests.forEach(r => {
+                requestsMap[r.id] = r;
+            });
+        } catch (error) {
+            console.error('Error fetching unlock requests:', error);
+        }
+    }
+
+    list.innerHTML = notifications.map(n => {
+        let actionButtons = '';
+
+        if (n.type === 'unlock_approved') {
+            actionButtons = `
                 <div class="notification-action">
                     <button class="notification-btn">프로필 보기</button>
                 </div>
-            ` : ''}
-            ${n.type === 'approval_request' ? `
-                <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                    <button class="notification-btn" onclick="event.stopPropagation(); showRequesterProfile('${n.requesterId}', '${n.requestId}')" style="flex: 1; background: #667eea;">
-                        요청자 프로필 보기
-                    </button>
+            `;
+        } else if (n.type === 'approval_request') {
+            const request = requestsMap[n.requestId];
+
+            if (request && request.status === 'approved') {
+                actionButtons = `
+                    <div class="notification-action" style="margin-top: 0.5rem;">
+                        <div style="padding: 0.75rem; background: rgba(78, 205, 196, 0.2); border: 1px solid rgba(78, 205, 196, 0.3); border-radius: 8px; color: #4ECDC4; text-align: center;">
+                            ✅ 승인되었습니다
+                        </div>
+                    </div>
+                `;
+            } else if (request && request.status === 'rejected') {
+                actionButtons = `
+                    <div class="notification-action" style="margin-top: 0.5rem;">
+                        <div style="padding: 0.75rem; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 8px; color: #FF6B6B; text-align: center;">
+                            ❌ 거절되었습니다
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Still pending - show buttons
+                actionButtons = `
+                    <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="notification-btn" onclick="event.stopPropagation(); showRequesterProfile('${n.requesterId}', '${n.requestId}')" style="flex: 1; background: #667eea;">
+                            요청자 프로필 보기
+                        </button>
+                    </div>
+                    <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', true)" style="flex: 1; background: #4ECDC4;">
+                            승인
+                        </button>
+                        <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', false)" style="flex: 1; background: #FF6B6B;">
+                            거절
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        return `
+            <div class="notification-item ${n.read ? '' : 'unread'}" ${n.type !== 'approval_request' ? `onclick="handleNotificationClick('${n.id}', '${n.type}', '${n.targetId || ''}')"` : ''}>
+                <div class="notification-header">
+                    <span>${new Date(n.createdAt).toLocaleDateString()}</span>
+                    ${!n.read ? '<span style="color: var(--primary);">●</span>' : ''}
                 </div>
-                <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                    <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', true)" style="flex: 1; background: #4ECDC4;">
-                        승인
-                    </button>
-                    <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', false)" style="flex: 1; background: #FF6B6B;">
-                        거절
-                    </button>
-                </div>
-            ` : ''}
-        </div>
-    `).join('');
+                <div class="notification-content">${n.message}</div>
+                ${actionButtons}
+            </div>
+        `;
+    }).join('');
 }
 
 // Handle notification click
@@ -152,10 +195,22 @@ async function handleTargetApproval(requestId, approve) {
     if (approve) {
         if (confirm('이 사용자의 프로필 공개 요청을 승인하시겠습니까?\n승인하면 양쪽 모두 서로의 프로필을 볼 수 있습니다.')) {
             await targetApproveRequest(requestId);
+
+            // Refresh notifications to update UI
+            if (window.currentUser) {
+                const notifications = await fetchNotifications(window.currentUser.id);
+                await displayNotifications(notifications);
+            }
         }
     } else {
         if (confirm('이 사용자의 프로필 공개 요청을 거절하시겠습니까?')) {
             await targetRejectRequest(requestId);
+
+            // Refresh notifications to update UI
+            if (window.currentUser) {
+                const notifications = await fetchNotifications(window.currentUser.id);
+                await displayNotifications(notifications);
+            }
         }
     }
 }

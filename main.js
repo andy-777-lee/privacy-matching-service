@@ -257,7 +257,7 @@ function setupNotifications() {
                 notificationModal.style.display = 'none';
             } else {
                 const notifications = await fetchNotifications(currentUser.id);
-                displayNotifications(notifications);
+                await displayNotifications(notifications);
                 notificationModal.style.display = 'block';
             }
         };
@@ -303,7 +303,7 @@ function setupNotifications() {
 
                 // Update modal list if it's open
                 if (notificationModal && notificationModal.style.display === 'block') {
-                    displayNotifications(notifications);
+                    await displayNotifications(notifications);
                 }
             }
         }, 5000); // Check every 5 seconds
