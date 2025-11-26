@@ -2156,14 +2156,26 @@ async function updateUserCount() {
 
 async function updateLoginUserCount() {
     const loginUserCountElement = document.getElementById('login-users-count');
-    if (loginUserCountElement) {
-        try {
-            // Fetch user count from Firestore (public read access needed)
-            const usersSnapshot = await db.collection('users').get();
-            loginUserCountElement.textContent = usersSnapshot.size;
-        } catch (error) {
-            console.error('Error fetching user count:', error);
+    const loginPageUsersCountElement = document.getElementById('login-page-users-count');
+
+    try {
+        // Fetch user count from Firestore (public read access needed)
+        const usersSnapshot = await db.collection('users').get();
+        const userCount = usersSnapshot.size;
+
+        if (loginUserCountElement) {
+            loginUserCountElement.textContent = userCount;
+        }
+        if (loginPageUsersCountElement) {
+            loginPageUsersCountElement.textContent = userCount;
+        }
+    } catch (error) {
+        console.error('Error fetching user count:', error);
+        if (loginUserCountElement) {
             loginUserCountElement.textContent = '...';
+        }
+        if (loginPageUsersCountElement) {
+            loginPageUsersCountElement.textContent = '...';
         }
     }
 }
