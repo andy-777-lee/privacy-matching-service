@@ -1495,8 +1495,22 @@ function editPreferences() {
 
 // Unlock Request
 async function requestUnlock(targetId) {
-    // Do not close profile modal, so unlock modal opens on top of it
-    // document.getElementById('profile-modal').classList.remove('active');
+    // Check for existing pending requests
+    try {
+        const allRequests = await fetchUnlockRequests();
+        const existingRequest = allRequests.find(r =>
+            r.requesterId === currentUser.id &&
+            r.targetId === targetId &&
+            (r.status === 'pending' || r.status === 'admin_approved')
+        );
+
+        if (existingRequest) {
+            alert('이미 해당 프로필에 대한 공개 요청이 진행 중입니다.');
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking existing requests:', error);
+    }
 
     const modal = document.getElementById('unlock-modal');
     modal.classList.add('active');
@@ -1504,12 +1518,31 @@ async function requestUnlock(targetId) {
     document.getElementById('unlock-target-id').value = targetId;
 
     const form = document.getElementById('unlock-request-form');
-    form.onsubmit = async (e) => {
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    // Remove old event handlers by cloning the form
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+
+    // Get reference to new submit button
+    const newSubmitButton = newForm.querySelector('button[type="submit"]');
+
+    newForm.onsubmit = async (e) => {
         e.preventDefault();
+
+        // Disable submit button to prevent double submission
+        if (newSubmitButton) {
+            newSubmitButton.disabled = true;
+            newSubmitButton.textContent = '전송 중...';
+        }
 
         const message = document.getElementById('unlock-message').value.trim();
         if (!message) {
             alert('메시지를 입력해주세요.');
+            if (newSubmitButton) {
+                newSubmitButton.disabled = false;
+                newSubmitButton.textContent = '요청 보내기';
+            }
             return;
         }
 
@@ -1525,19 +1558,30 @@ async function requestUnlock(targetId) {
             targetApprovedAt: null
         };
 
-        await saveUnlockRequest(request);
-
-        // Send Discord Notification
         try {
-            await sendDiscordNotification(request, currentUser, targetId);
+            await saveUnlockRequest(request);
+
+            // Send Discord Notification
+            try {
+                await sendDiscordNotification(request, currentUser, targetId);
+            } catch (error) {
+                console.error('Failed to send Discord notification:', error);
+            }
+
+            document.getElementById('unlock-modal').classList.remove('active');
+            document.getElementById('unlock-message').value = '';
+
+            alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
         } catch (error) {
-            console.error('Failed to send Discord notification:', error);
+            console.error('Error submitting unlock request:', error);
+            alert('요청 전송 중 오류가 발생했습니다. 다시 시도해주세요.');
+        } finally {
+            // Re-enable submit button
+            if (newSubmitButton) {
+                newSubmitButton.disabled = false;
+                newSubmitButton.textContent = '요청 보내기';
+            }
         }
-
-        document.getElementById('unlock-modal').classList.remove('active');
-        document.getElementById('unlock-message').value = '';
-
-        alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
     };
 
     // Note: Modal close buttons are now handled by setupModalCloseButtons()
