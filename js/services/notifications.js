@@ -134,23 +134,26 @@ async function displayNotifications(notifications) {
                     </div>
                 `;
             } else {
-                // Still pending - show buttons
+                // Still pending - show only profile view button
                 actionButtons = `
                     <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                         <button class="notification-btn" onclick="event.stopPropagation(); showRequesterProfile('${n.requesterId}', '${n.requestId}')" style="flex: 1; background: #667eea;">
-                            요청자 프로필 보기
-                        </button>
-                    </div>
-                    <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', true, '${n.id}')" style="flex: 1; background: #4ECDC4;">
-                            승인
-                        </button>
-                        <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', false, '${n.id}')" style="flex: 1; background: #FF6B6B;">
-                            거절
+                            프로필 보기
                         </button>
                     </div>
                 `;
             }
+        }
+
+        // Display request message if available
+        let messageContent = n.message;
+        if (n.type === 'approval_request' && n.requestMessage) {
+            messageContent = `
+                <div>${n.message}</div>
+                <div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(102, 126, 234, 0.1); border-left: 3px solid #667eea; border-radius: 4px; font-style: italic; color: var(--text-secondary);">
+                    "${n.requestMessage}"
+                </div>
+            `;
         }
 
         return `
@@ -159,7 +162,7 @@ async function displayNotifications(notifications) {
                     <span>${formatNotificationTime(n.createdAt)}</span>
                     ${!n.read ? '<span style="color: var(--primary);">●</span>' : ''}
                 </div>
-                <div class="notification-content">${n.message}</div>
+                <div class="notification-content">${messageContent}</div>
                 ${actionButtons}
             </div>
         `;

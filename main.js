@@ -2298,6 +2298,7 @@ async function approveRequest(requestId) {
                 userId: request.targetId,
                 type: 'approval_request',
                 message: '누군가 당신의 프로필 공개를 요청했습니다. 승인하시겠습니까?',
+                requestMessage: request.message,
                 requestId: request.id,
                 requesterId: request.requesterId,
                 read: false,
