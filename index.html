@@ -12,10 +12,19 @@
 </head>
 
 <body>
+    <!-- Contact Button (Phone Shape) -->
+    <a href="https://open.kakao.com/o/sMTqkM3h" target="_blank" rel="noopener noreferrer" id="contact-button"
+        style="position: fixed; bottom: 80px; right: 20px; z-index: 9998; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #FEE500 0%, #FFD700 100%); color: #3C1E1E; border: none; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; text-decoration: none;"
+        onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(255, 215, 0, 0.6)';"
+        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(255, 215, 0, 0.4)';"
+        title="문의하기">
+        📞
+    </a>
+
     <!-- Help Button (Fixed Position) -->
     <button id="help-button"
         onclick="document.getElementById('service-info-modal').classList.add('active'); document.getElementById('service-info-modal').style.display = 'flex';"
-        style="position: fixed; top: 20px; left: 20px; z-index: 9998; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%); color: white; border: none; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;"
+        style="position: fixed; bottom: 20px; right: 20px; z-index: 9998; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%); color: white; border: none; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;"
         onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(255, 107, 157, 0.6)';"
         onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(255, 107, 157, 0.4)';"
         title="서비스 소개">
@@ -478,18 +487,6 @@
             <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
                 <button type="button" class="modal-close">&times;</button>
                 <div class="service-description">
-                    <!-- 오픈채팅방 링크 -->
-                    <div
-                        style="background: linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(196, 69, 105, 0.15)); border: 2px solid #FF6B9D; border-radius: 12px; padding: 1rem; margin-bottom: 1.5rem; text-align: center;">
-                        <h3 style="margin: 0 0 0.5rem 0; color: #FF6B9D; font-size: 1.1rem;">💬 각종 버그 및 개선 문의사항 환영, 익명으로
-                            알려주세요 !</h3>
-                        <a href="https://open.kakao.com/o/sMTqkM3h" target="_blank" rel="noopener noreferrer"
-                            style="display: inline-block; padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4);"
-                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(255, 107, 157, 0.6)';"
-                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(255, 107, 157, 0.4)';">
-                            📱 오픈채팅방 바로가기
-                        </a>
-                    </div>
 
                     <h2>🎯 서비스 소개</h2>
                     <p class="creator">Made by <strong>이채혁</strong></p>
