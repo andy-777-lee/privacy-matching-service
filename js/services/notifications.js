@@ -114,6 +114,12 @@ async function displayNotifications(notifications) {
                     <button class="notification-btn">프로필 보기</button>
                 </div>
             `;
+        } else if (n.type === 'patch_notes') {
+            actionButtons = `
+                <div class="notification-action">
+                    <button class="notification-btn" onclick="event.stopPropagation(); document.getElementById('patch-notes-modal').classList.add('active'); document.getElementById('patch-notes-modal').style.display = 'flex';">내역 보기</button>
+                </div>
+            `;
         } else if (n.type === 'approval_request') {
             const request = requestsMap[n.requestId];
 
@@ -179,7 +185,10 @@ async function handleNotificationClick(notificationId, type, targetId) {
         displayNotifications(notifications);
     }
 
-    if (type === 'unlock_approved') {
+    if (type === 'patch_notes') {
+        document.getElementById('patch-notes-modal').classList.add('active');
+        document.getElementById('patch-notes-modal').style.display = 'flex';
+    } else if (type === 'unlock_approved') {
         document.getElementById('notification-modal').classList.remove('active');
 
         // Fetch the target user and show their profile
