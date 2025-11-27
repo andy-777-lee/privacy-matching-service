@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>알림창 미리보기</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .preview-container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .modal-content {
+            position: relative;
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="preview-container">
+        <div class="modal-content card glass">
+            <h2>알림</h2>
+            <div id="notification-list" class="notification-list">
+                <!-- 프로필 공개 요청 받은 알림 -->
+                <div class="notification-item unread">
+                    <div class="notification-header">
+                        <span>5분 전</span>
+                        <span style="color: var(--primary);">●</span>
+                    </div>
+                    <div class="notification-content">
+                        <div>누군가 당신의 프로필 공개를 요청했습니다. 승인하시겠습니까?</div>
+                        <div
+                            style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(102, 126, 234, 0.1); border-left: 3px solid #667eea; border-radius: 4px; font-style: italic; color: var(--text-secondary);">
+                            "안녕하세요. 전체 프로필이 궁금합니다 !"
+                        </div>
+                    </div>
+                    <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="notification-btn" style="flex: 1; background: #667eea;">
+                            프로필 보기
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 일반 알림 -->
+                <div class="notification-item">
+                    <div class="notification-header">
+                        <span>2시간 전</span>
+                    </div>
+                    <div class="notification-content">관리자가 1차 승인했습니다. 상대방의 승인을 기다리는 중입니다.</div>
+                </div>
+
+                <!-- 승인된 요청 -->
+                <div class="notification-item">
+                    <div class="notification-header">
+                        <span>1일 전</span>
+                    </div>
+                    <div class="notification-content">
+                        <div>누군가 당신의 프로필 공개를 요청했습니다. 승인하시겠습니까?</div>
+                        <div
+                            style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(102, 126, 234, 0.1); border-left: 3px solid #667eea; border-radius: 4px; font-style: italic; color: var(--text-secondary);">
+                            "프로필 확인하고 싶습니다."
+                        </div>
+                    </div>
+                    <div class="notification-action" style="margin-top: 0.5rem;">
+                        <div
+                            style="padding: 0.75rem; background: rgba(78, 205, 196, 0.2); border: 1px solid rgba(78, 205, 196, 0.3); border-radius: 8px; color: #4ECDC4; text-align: center;">
+                            ✅ 승인되었습니다
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="js/config/firebase.js"></script>
+</body>
+
+</html>

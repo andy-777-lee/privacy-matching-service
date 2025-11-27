@@ -21,6 +21,60 @@
         📞
     </a>
 
+    <!-- Patch Notes Button -->
+    <button id="patch-notes-button"
+        onclick="document.getElementById('patch-notes-modal').classList.add('active'); document.getElementById('patch-notes-modal').style.display = 'flex';"
+        style="position: fixed; bottom: 140px; right: 20px; z-index: 9998; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;"
+        onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';"
+        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';"
+        title="업데이트 내역">
+        📢
+    </button>
+
+    <!-- Patch Notes Modal -->
+    <div id="patch-notes-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <button type="button" class="modal-close"
+                onclick="document.getElementById('patch-notes-modal').classList.remove('active'); document.getElementById('patch-notes-modal').style.display = 'none';">&times;</button>
+            <h2>📢 업데이트 내역 (2025.11.28)</h2>
+
+            <div class="patch-note-item"
+                style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">1. 알림창 개선</h3>
+                <p style="color: var(--text-secondary); line-height: 1.6;">
+                    • 프로필 공개 요청 알림에서 승인/거절 버튼을 제거했습니다.<br>
+                    • 이제 알림에서 상대방이 보낸 메시지를 바로 확인할 수 있습니다.<br>
+                    • "프로필 보기"를 통해 상대방의 프로필을 먼저 확인한 후 승인 여부를 결정하세요.
+                </p>
+            </div>
+
+            <div class="patch-note-item"
+                style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">2. 프로필 공개 요청 메시지</h3>
+                <p style="color: var(--text-secondary); line-height: 1.6;">
+                    • 프로필 공개 요청 시 작성한 메시지가 상대방에게 전달됩니다.<br>
+                    • 정중한 메시지로 매칭 확률을 높여보세요!
+                </p>
+            </div>
+
+            <div class="patch-note-item">
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">3. 매칭 결과 요청 상태 표시</h3>
+                <p style="color: var(--text-secondary); line-height: 1.6;">
+                    • 매칭 결과 화면에서 요청 상태를 한눈에 확인할 수 있습니다.<br>
+                    • <span class="request-badge"
+                        style="position: static; display: inline-block; margin: 0 4px; background: rgba(255, 193, 7, 0.9);">📤
+                        요청 보냄</span> : 내가 보낸 요청<br>
+                    • <span class="request-badge"
+                        style="position: static; display: inline-block; margin: 0 4px; background: rgba(255, 152, 0, 0.9);">📥
+                        요청 받음</span> : 내가 받은 요청<br>
+                    • <span class="request-badge"
+                        style="position: static; display: inline-block; margin: 0 4px; background: rgba(255, 107, 107, 0.9);">❌
+                        거절됨</span> : 거절된 요청
+                </p>
+            </div>
+        </div>
+    </div>
+
     <!-- Help Button (Fixed Position) -->
     <button id="help-button"
         onclick="document.getElementById('service-info-modal').classList.add('active'); document.getElementById('service-info-modal').style.display = 'flex';"
