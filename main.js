@@ -89,6 +89,41 @@ async function initializeApp() {
 
     // Setup modal close buttons (once on init)
     setupModalCloseButtons();
+
+    // Setup blurred image protection (once on init)
+    setupBlurredImageProtection();
+}
+
+// Setup blurred image protection
+function setupBlurredImageProtection() {
+    // 블러 이미지 컨텍스트 메뉴 방지
+    document.addEventListener('contextmenu', (e) => {
+        if (e.target.classList.contains('blurred-photo') ||
+            e.target.classList.contains('transparent-overlay') ||
+            e.target.closest('.watermark-overlay') ||
+            e.target.closest('.blur-protection')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 블러 이미지 드래그 방지
+    document.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('blurred-photo') ||
+            e.target.classList.contains('transparent-overlay')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 블러 이미지 선택 방지
+    document.addEventListener('selectstart', (e) => {
+        if (e.target.classList.contains('blurred-photo') ||
+            e.target.classList.contains('transparent-overlay')) {
+            e.preventDefault();
+            return false;
+        }
+    });
 }
 
 
@@ -1192,7 +1227,13 @@ function createMatchCard(match, isUnlocked) {
             : `
                         <img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" class="blurred-photo" alt="Profile">
                         <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="transparent-overlay" alt="Protected">
-                        <div class="lock-icon-overlay">🔒</div>
+                        <div class="watermark-overlay">
+                            <div class="watermark-text">🔒 프로필 공개 필요</div>
+                            <div class="watermark-pattern">
+                                ${'<span>🔒</span>'.repeat(20)}
+                            </div>
+                        </div>
+                        <div class="blur-protection"></div>
                     `
         }
             </div>
@@ -1241,7 +1282,13 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
             : `
                             <img src="${photo}" class="blurred-photo" alt="Profile photo">
                             <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="transparent-overlay" alt="Protected">
-                            <div class="lock-icon-overlay">🔒</div>
+                            <div class="watermark-overlay">
+                                <div class="watermark-text">🔒 프로필 공개 필요</div>
+                                <div class="watermark-pattern">
+                                    ${'<span>🔒</span>'.repeat(20)}
+                                </div>
+                            </div>
+                            <div class="blur-protection"></div>
                         `
         }
                 </div>

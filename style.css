@@ -998,10 +998,30 @@ select:focus {
 
 
 
+
 /* Blurred Profile */
 .blurred-photo {
     filter: blur(20px);
     -webkit-filter: blur(20px);
+
+    /* 이미지 선택 및 컨텍스트 메뉴 방지 */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+
+    /* iOS 컨텍스트 메뉴 방지 */
+    -webkit-touch-callout: none;
+
+    /* 터치 이벤트 차단 */
+    pointer-events: none;
+
+    /* 드래그 방지 */
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
 }
 
 /* 투명 오버레이 이미지 (롱프레스 가로채기용) */
@@ -1012,35 +1032,84 @@ select:focus {
     width: 100%;
     height: 100%;
     z-index: 20;
-    /* 잠금 아이콘(15)보다 높아야 함 */
     opacity: 0;
-    /* 투명하게 설정 */
     cursor: default;
+
+    /* 보안 속성 추가 */
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-/* 심플 잠금 아이콘 워터마크 */
-.lock-icon-overlay {
+/* 워터마크 오버레이 (반복 패턴) */
+.watermark-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 15;
+    pointer-events: none;
+    background-image: repeating-linear-gradient(45deg,
+            transparent,
+            transparent 80px,
+            rgba(255, 255, 255, 0.03) 80px,
+            rgba(255, 255, 255, 0.03) 160px);
+}
+
+.watermark-text {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
-    width: 48px;
-    height: 48px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    text-shadow:
+        0 0 10px rgba(0, 0, 0, 0.8),
+        0 0 20px rgba(0, 0, 0, 0.6);
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+}
+
+.watermark-pattern {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    z-index: 15;
-    /* 투명 오버레이 아래에 위치 */
-    pointer-events: none;
-    /* 터치 통과 */
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    gap: 60px;
+    transform: rotate(-30deg);
+    opacity: 0.3;
 }
+
+.watermark-pattern span {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+}
+
+/* 투명 보호 레이어 (추가 보안) */
+.blur-protection {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    background: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 
 /* 블러 이미지 컨테이너 - relative positioning 필요 */
 .match-photos,
