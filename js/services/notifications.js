@@ -150,7 +150,7 @@ async function handleNotificationClick(notificationId, type, targetId) {
     }
 
     if (type === 'unlock_approved') {
-        document.getElementById('notification-modal').style.display = 'none';
+        document.getElementById('notification-modal').classList.remove('active');
 
         // Fetch the target user and show their profile
         try {

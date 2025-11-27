@@ -289,28 +289,33 @@ function setupNotifications() {
 
         // Toggle modal
         notificationBtn.onclick = async () => {
-            if (notificationModal.style.display === 'block') {
-                notificationModal.style.display = 'none';
+            if (notificationModal.classList.contains('active')) {
+                notificationModal.classList.remove('active');
+                // Allow animation to finish before hiding (optional, but CSS handles display via active class)
+                // notificationModal.style.display = ''; // Reset inline style if any
             } else {
                 const notifications = await fetchNotifications(currentUser.id);
                 await displayNotifications(notifications);
-                notificationModal.style.display = 'block';
+                notificationModal.classList.add('active');
             }
         };
 
         // Close modal
         closeBtn.onclick = () => {
-            notificationModal.style.display = 'none';
+            notificationModal.classList.remove('active');
         };
 
         window.onclick = (event) => {
             if (event.target === notificationModal) {
-                notificationModal.style.display = 'none';
+                notificationModal.classList.remove('active');
             }
         };
 
+        // Initial check for unread notifications (Auto-open)
+        let initialCheckDone = false;
+
         // Poll for new notifications
-        setInterval(async () => {
+        const checkNotifications = async () => {
             if (currentUser) {
                 const notifications = await fetchNotifications(currentUser.id);
                 const unreadCount = notifications.filter(n => !n.read).length;
@@ -320,6 +325,14 @@ function setupNotifications() {
                     if (unreadCount > 0) {
                         badge.textContent = unreadCount;
                         badge.style.display = 'flex';
+
+                        // Auto-open modal if there are unread notifications (only once per session/load)
+                        if (!initialCheckDone) {
+                            console.log(`Found ${unreadCount} unread notifications. Auto-opening modal.`);
+                            await displayNotifications(notifications);
+                            notificationModal.classList.add('active');
+                            initialCheckDone = true;
+                        }
 
                         // Show toast for latest unread notification if it's new (simple check)
                         const latest = notifications[0];
@@ -334,15 +347,23 @@ function setupNotifications() {
                         }
                     } else {
                         badge.style.display = 'none';
+                        initialCheckDone = true; // Mark as done even if no notifications, so we don't pop up later unexpectedly
                     }
                 }
 
                 // Update modal list if it's open
-                if (notificationModal && notificationModal.style.display === 'block') {
+                if (notificationModal && notificationModal.classList.contains('active')) {
                     await displayNotifications(notifications);
                 }
             }
-        }, 5000); // Check every 5 seconds
+        };
+
+        // Run immediately
+        checkNotifications();
+
+        // Then poll
+        setInterval(checkNotifications, 5000); // Check every 5 seconds
+
     } catch (error) {
         console.error('Error setting up notifications:', error);
         // Don't throw - allow app to continue without notifications

@@ -3,3 +3,5 @@ check-firestore.js
 __pycache__/
 .DS_Store
 *.log
+serviceAccountKey.json
+*service-account*.json
