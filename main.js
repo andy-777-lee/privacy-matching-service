@@ -2109,8 +2109,12 @@ async function displayUnlockRequests() {
                         <button class="btn-reject" onclick="rejectRequest('${request.id}')">거절</button>
                     </div>
                 ` : `
-                    <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                    <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
                         관리자 승인 완료. ${target.name}님의 승인을 기다리는 중입니다.
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn-approve" onclick="adminOverrideApprove('${request.id}')">관리자 최종 승인</button>
+                        <button class="btn-reject" onclick="adminOverrideReject('${request.id}')">관리자 최종 거절</button>
                     </div>
                 `}
             </div>
@@ -2415,15 +2419,109 @@ async function rejectRequest(requestId) {
 
         alert('거절되었습니다.');
         displayUnlockRequests();
-        // Update completed count
-        const allRequests = await fetchUnlockRequests();
-        const completedCount = document.getElementById('completed-count');
-        if (completedCount) {
-            const completed = allRequests.filter(r => r.status === 'approved' || r.status === 'rejected');
-            completedCount.textContent = completed.length;
+        displayCompletedRequests();
+    }
+}
+
+// Admin override: directly approve admin_approved request
+async function adminOverrideApprove(requestId) {
+    if (!confirm('관리자 권한으로 이 요청을 최종 승인하시겠습니까?\n대상자의 승인 없이 양쪽 프로필이 공개됩니다.')) {
+        return;
+    }
+
+    const requests = await fetchUnlockRequests();
+    const request = requests.find(r => r.id === requestId);
+
+    if (request && request.status === 'admin_approved') {
+        try {
+            // Finalize as approved
+            request.status = 'approved';
+            request.targetApprovalStatus = 'approved';
+            request.targetApprovedAt = Date.now();
+            request.reviewedAt = Date.now();
+            await saveUnlockRequest(request);
+
+            // Add to unlocked profiles (mutual unlock)
+            await addUnlockedProfile(request.requesterId, request.targetId);
+            await addUnlockedProfile(request.targetId, request.requesterId);
+
+            // Notify Requester
+            await saveNotification({
+                userId: request.requesterId,
+                type: 'unlock_approved',
+                message: '관리자가 최종 승인했습니다! 이제 프로필을 확인할 수 있습니다.',
+                targetId: request.targetId,
+                read: false,
+                createdAt: Date.now()
+            });
+
+            // Notify Target
+            await saveNotification({
+                userId: request.targetId,
+                type: 'unlock_approved',
+                message: '관리자가 프로필 공개 요청을 최종 승인했습니다.',
+                targetId: request.requesterId,
+                read: false,
+                createdAt: Date.now()
+            });
+
+            alert('최종 승인되었습니다. 양쪽 모두 프로필을 확인할 수 있습니다.');
+            displayUnlockRequests();
+            displayCompletedRequests();
+        } catch (error) {
+            console.error('Error admin override approve:', error);
+            alert('승인 처리 중 오류가 발생했습니다.');
         }
     }
 }
+
+// Admin override: directly reject admin_approved request
+async function adminOverrideReject(requestId) {
+    if (!confirm('관리자 권한으로 이 요청을 최종 거절하시겠습니까?')) {
+        return;
+    }
+
+    const requests = await fetchUnlockRequests();
+    const request = requests.find(r => r.id === requestId);
+
+    if (request && request.status === 'admin_approved') {
+        try {
+            request.status = 'rejected';
+            request.targetApprovalStatus = 'rejected';
+            request.targetApprovedAt = Date.now();
+            request.reviewedAt = Date.now();
+            await saveUnlockRequest(request);
+
+            // Notify Requester
+            await saveNotification({
+                userId: request.requesterId,
+                type: 'unlock_rejected',
+                message: '관리자가 프로필 공개 요청을 최종 거절했습니다.',
+                targetId: request.targetId,
+                read: false,
+                createdAt: Date.now()
+            });
+
+            // Notify Target
+            await saveNotification({
+                userId: request.targetId,
+                type: 'unlock_rejected',
+                message: '관리자가 프로필 공개 요청을 거절했습니다.',
+                targetId: request.requesterId,
+                read: false,
+                createdAt: Date.now()
+            });
+
+            alert('최종 거절되었습니다.');
+            displayUnlockRequests();
+            displayCompletedRequests();
+        } catch (error) {
+            console.error('Error admin override reject:', error);
+            alert('거절 처리 중 오류가 발생했습니다.');
+        }
+    }
+}
+
 
 // Note: Database functions are now in js/services/database.js
 // Note: Notification functions are now in js/services/notifications.js
