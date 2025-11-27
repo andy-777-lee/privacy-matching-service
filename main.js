@@ -1219,10 +1219,20 @@ async function displayMatches() {
     noMatches.style.display = 'none';
 
     const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
+    const unlockRequests = await fetchUnlockRequests();
 
     grid.innerHTML = matches.map(match => {
         const isUnlocked = unlockedProfiles.includes(match.user.id);
-        return createMatchCard(match, isUnlocked);
+
+        // Check if there's a request between current user and this match
+        const sentRequest = unlockRequests.find(r =>
+            r.requesterId === currentUser.id && r.targetId === match.user.id
+        );
+        const receivedRequest = unlockRequests.find(r =>
+            r.requesterId === match.user.id && r.targetId === currentUser.id
+        );
+
+        return createMatchCard(match, isUnlocked, sentRequest, receivedRequest);
     }).join('');
 
     // Add click handlers
@@ -1236,15 +1246,37 @@ async function displayMatches() {
     });
 }
 
-function createMatchCard(match, isUnlocked) {
+function createMatchCard(match, isUnlocked, sentRequest = null, receivedRequest = null) {
     const user = match.user;
     const score = match.score;
+
+    // Determine request status badge
+    let requestBadge = '';
+    if (isUnlocked) {
+        requestBadge = '<span class="unlocked-badge">🔓 공개됨</span>';
+    } else if (sentRequest) {
+        if (sentRequest.status === 'pending') {
+            requestBadge = '<span class="request-badge request-sent-pending">📤 요청 보냄 (대기중)</span>';
+        } else if (sentRequest.status === 'admin_approved') {
+            requestBadge = '<span class="request-badge request-sent-admin-approved">📤 요청 보냄 (상대방 승인 대기)</span>';
+        } else if (sentRequest.status === 'rejected') {
+            requestBadge = '<span class="request-badge request-rejected">❌ 거절됨</span>';
+        }
+    } else if (receivedRequest) {
+        if (receivedRequest.status === 'pending') {
+            requestBadge = '<span class="request-badge request-received-pending">📥 요청 받음 (관리자 승인 대기)</span>';
+        } else if (receivedRequest.status === 'admin_approved') {
+            requestBadge = '<span class="request-badge request-received-admin-approved">📥 요청 받음 (내 승인 필요)</span>';
+        } else if (receivedRequest.status === 'rejected') {
+            requestBadge = '<span class="request-badge request-rejected">❌ 거절됨</span>';
+        }
+    }
 
     return `
         <div class="match-card ${isUnlocked ? 'unlocked' : ''}" data-user-id="${user.id}">
             <div class="match-photos">
                 <span class="match-percentage">${score}% 매칭</span>
-                ${isUnlocked ? '<span class="unlocked-badge">🔓 공개됨</span>' : ''}
+                ${requestBadge}
                 ${isUnlocked
             ? `<img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" alt="Profile">`
             : `

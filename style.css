@@ -1896,6 +1896,45 @@ textarea:focus {
     z-index: 10;
 }
 
+/* Request Status Badges */
+.request-badge {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.request-sent-pending {
+    background: rgba(255, 193, 7, 0.9);
+    color: white;
+}
+
+.request-sent-admin-approved {
+    background: rgba(102, 126, 234, 0.9);
+    color: white;
+}
+
+.request-received-pending {
+    background: rgba(255, 152, 0, 0.9);
+    color: white;
+}
+
+.request-received-admin-approved {
+    background: rgba(76, 217, 100, 0.9);
+    color: white;
+}
+
+.request-rejected {
+    background: rgba(255, 107, 107, 0.9);
+    color: white;
+}
+
 /* Match Card Unlocked State */
 .match-card.unlocked {
     border-color: rgba(76, 217, 100, 0.3);
