@@ -115,10 +115,10 @@ async function displayNotifications(notifications) {
                         </button>
                     </div>
                     <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', true)" style="flex: 1; background: #4ECDC4;">
+                        <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', true, '${n.id}')" style="flex: 1; background: #4ECDC4;">
                             승인
                         </button>
-                        <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', false)" style="flex: 1; background: #FF6B6B;">
+                        <button class="notification-btn" onclick="event.stopPropagation(); handleTargetApproval('${n.requestId}', false, '${n.id}')" style="flex: 1; background: #FF6B6B;">
                             거절
                         </button>
                     </div>
@@ -127,7 +127,7 @@ async function displayNotifications(notifications) {
         }
 
         return `
-            <div class="notification-item ${n.read ? '' : 'unread'}" ${n.type !== 'approval_request' ? `onclick="handleNotificationClick('${n.id}', '${n.type}', '${n.targetId || ''}')"` : ''}>
+            <div class="notification-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}', '${n.type}', '${n.targetId || ''}')">
                 <div class="notification-header">
                     <span>${new Date(n.createdAt).toLocaleDateString()}</span>
                     ${!n.read ? '<span style="color: var(--primary);">●</span>' : ''}
@@ -191,10 +191,15 @@ async function showRequesterProfile(requesterId, requestId) {
 }
 
 // Handle target user's approval/rejection
-async function handleTargetApproval(requestId, approve) {
+async function handleTargetApproval(requestId, approve, notificationId) {
     if (approve) {
         if (confirm('이 사용자의 프로필 공개 요청을 승인하시겠습니까?\n승인하면 양쪽 모두 서로의 프로필을 볼 수 있습니다.')) {
             await targetApproveRequest(requestId);
+
+            // Mark notification as read if ID is provided
+            if (notificationId) {
+                await markNotificationAsRead(notificationId);
+            }
 
             // Refresh notifications to update UI
             if (window.currentUser) {
@@ -205,6 +210,11 @@ async function handleTargetApproval(requestId, approve) {
     } else {
         if (confirm('이 사용자의 프로필 공개 요청을 거절하시겠습니까?')) {
             await targetRejectRequest(requestId);
+
+            // Mark notification as read if ID is provided
+            if (notificationId) {
+                await markNotificationAsRead(notificationId);
+            }
 
             // Refresh notifications to update UI
             if (window.currentUser) {
