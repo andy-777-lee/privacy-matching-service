@@ -46,6 +46,33 @@ async function markNotificationAsRead(notificationId) {
     }
 }
 
+// Format timestamp for notifications
+function formatNotificationTime(timestamp) {
+    const now = new Date();
+    const notificationTime = new Date(timestamp);
+    const diffMs = now - notificationTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) {
+        return '방금 전';
+    } else if (diffMins < 60) {
+        return `${diffMins}분 전`;
+    } else if (diffHours < 24) {
+        return `${diffHours}시간 전`;
+    } else if (diffDays < 7) {
+        return `${diffDays}일 전`;
+    } else {
+        // For older notifications, show date and time
+        const month = notificationTime.getMonth() + 1;
+        const day = notificationTime.getDate();
+        const hours = notificationTime.getHours();
+        const minutes = notificationTime.getMinutes().toString().padStart(2, '0');
+        return `${month}월 ${day}일 ${hours}:${minutes}`;
+    }
+}
+
 // Display notifications in UI
 async function displayNotifications(notifications) {
     const list = document.getElementById('notification-list');
@@ -129,7 +156,7 @@ async function displayNotifications(notifications) {
         return `
             <div class="notification-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}', '${n.type}', '${n.targetId || ''}')">
                 <div class="notification-header">
-                    <span>${new Date(n.createdAt).toLocaleDateString()}</span>
+                    <span>${formatNotificationTime(n.createdAt)}</span>
                     ${!n.read ? '<span style="color: var(--primary);">●</span>' : ''}
                 </div>
                 <div class="notification-content">${n.message}</div>
