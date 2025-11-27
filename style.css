@@ -1004,6 +1004,30 @@ select:focus {
     -webkit-filter: blur(20px);
 }
 
+/* 투명 보호 레이어 - 터치 차단 */
+.blur-protection {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    background: transparent;
+    /* iOS 컨텍스트 메뉴 방지 */
+    -webkit-touch-callout: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    cursor: default;
+}
+
+/* 블러 이미지 컨테이너 - relative positioning 필요 */
+.match-photos,
+.profile-photo {
+    position: relative;
+}
+
 .hidden-name {
     color: var(--text-muted);
     font-style: italic;
