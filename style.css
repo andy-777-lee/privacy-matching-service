@@ -1014,6 +1014,28 @@ select:focus {
     -webkit-filter: blur(20px);
 }
 
+/* 심플 잠금 아이콘 워터마크 */
+.lock-icon-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    z-index: 15;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
 /* 투명 보호 레이어 - 터치 차단 */
 .blur-protection {
     position: absolute;

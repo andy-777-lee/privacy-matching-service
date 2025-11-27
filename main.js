@@ -1191,7 +1191,10 @@ function createMatchCard(match, isUnlocked) {
             ? `<img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" alt="Profile">`
             : `<div class="blurred-photo-container" style="background-image: url('${user.photos && user.photos[0] ? user.photos[0] : ''}')"></div>`
         }
-                ${!isUnlocked ? '<div class="blur-protection"></div>' : ''}
+                ${!isUnlocked ? `
+                    <div class="blur-protection"></div>
+                    <div class="lock-icon-overlay">🔒</div>
+                ` : ''}
             </div>
             <div class="match-info">
                 <div class="match-name ${isUnlocked ? '' : 'hidden-name'}">
@@ -1237,7 +1240,10 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
             ? `<img src="${photo}" class="unlocked-photo" alt="Profile photo" data-photo-index="${index}" style="cursor: pointer;">`
             : `<div class="blurred-photo-container" style="background-image: url('${photo}')"></div>`
         }
-                    ${!isUnlocked ? '<div class="blur-protection"></div>' : ''}
+                    ${!isUnlocked ? `
+                        <div class="blur-protection"></div>
+                        <div class="lock-icon-overlay">🔒</div>
+                    ` : ''}
                 </div>
             `).join('')}
         </div>
