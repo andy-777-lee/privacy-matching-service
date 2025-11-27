@@ -5,3 +5,4 @@ __pycache__/
 *.log
 serviceAccountKey.json
 *service-account*.json
+node_modules/
