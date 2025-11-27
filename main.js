@@ -1189,12 +1189,12 @@ function createMatchCard(match, isUnlocked) {
                 ${isUnlocked ? '<span class="unlocked-badge">🔓 공개됨</span>' : ''}
                 ${isUnlocked
             ? `<img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" alt="Profile">`
-            : `<div class="blurred-photo-container" style="background-image: url('${user.photos && user.photos[0] ? user.photos[0] : ''}')"></div>`
+            : `
+                        <img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" class="blurred-photo" alt="Profile">
+                        <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="transparent-overlay" alt="Protected">
+                        <div class="lock-icon-overlay">🔒</div>
+                    `
         }
-                ${!isUnlocked ? `
-                    <div class="blur-protection"></div>
-                    <div class="lock-icon-overlay">🔒</div>
-                ` : ''}
             </div>
             <div class="match-info">
                 <div class="match-name ${isUnlocked ? '' : 'hidden-name'}">
@@ -1238,12 +1238,12 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
                 <div class="profile-photo">
                     ${isUnlocked
             ? `<img src="${photo}" class="unlocked-photo" alt="Profile photo" data-photo-index="${index}" style="cursor: pointer;">`
-            : `<div class="blurred-photo-container" style="background-image: url('${photo}')"></div>`
+            : `
+                            <img src="${photo}" class="blurred-photo" alt="Profile photo">
+                            <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="transparent-overlay" alt="Protected">
+                            <div class="lock-icon-overlay">🔒</div>
+                        `
         }
-                    ${!isUnlocked ? `
-                        <div class="blur-protection"></div>
-                        <div class="lock-icon-overlay">🔒</div>
-                    ` : ''}
                 </div>
             `).join('')}
         </div>

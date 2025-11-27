@@ -1004,14 +1004,18 @@ select:focus {
     -webkit-filter: blur(20px);
 }
 
-.blurred-photo-container {
+/* 투명 오버레이 이미지 (롱프레스 가로채기용) */
+.transparent-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    filter: blur(20px);
-    -webkit-filter: blur(20px);
+    z-index: 20;
+    /* 잠금 아이콘(15)보다 높아야 함 */
+    opacity: 0;
+    /* 투명하게 설정 */
+    cursor: default;
 }
 
 /* 심플 잠금 아이콘 워터마크 */
@@ -1029,29 +1033,13 @@ select:focus {
     justify-content: center;
     font-size: 24px;
     z-index: 15;
+    /* 투명 오버레이 아래에 위치 */
     pointer-events: none;
+    /* 터치 통과 */
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* 투명 보호 레이어 - 터치 차단 */
-.blur-protection {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10;
-    background: transparent;
-    /* iOS 컨텍스트 메뉴 방지 */
-    -webkit-touch-callout: none;
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    cursor: default;
 }
 
 /* 블러 이미지 컨테이너 - relative positioning 필요 */
