@@ -4,6 +4,7 @@
 // Global state
 let currentUser = null;
 window.currentUser = currentUser;
+let notificationInitialCheckDone = false;
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -312,7 +313,8 @@ function setupNotifications() {
         };
 
         // Initial check for unread notifications (Auto-open)
-        let initialCheckDone = false;
+        // Note: notificationInitialCheckDone is defined globally
+
 
         // Poll for new notifications
         const checkNotifications = async () => {
@@ -327,11 +329,11 @@ function setupNotifications() {
                         badge.style.display = 'flex';
 
                         // Auto-open modal if there are unread notifications (only once per session/load)
-                        if (!initialCheckDone) {
+                        if (!notificationInitialCheckDone) {
                             console.log(`Found ${unreadCount} unread notifications. Auto-opening modal.`);
                             await displayNotifications(notifications);
                             notificationModal.classList.add('active');
-                            initialCheckDone = true;
+                            notificationInitialCheckDone = true;
                         }
 
                         // Show toast for latest unread notification if it's new (simple check)
@@ -347,7 +349,7 @@ function setupNotifications() {
                         }
                     } else {
                         badge.style.display = 'none';
-                        initialCheckDone = true; // Mark as done even if no notifications, so we don't pop up later unexpectedly
+                        notificationInitialCheckDone = true; // Mark as done even if no notifications, so we don't pop up later unexpectedly
                     }
                 }
 
