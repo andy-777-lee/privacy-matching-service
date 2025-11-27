@@ -1187,7 +1187,10 @@ function createMatchCard(match, isUnlocked) {
             <div class="match-photos">
                 <span class="match-percentage">${score}% 매칭</span>
                 ${isUnlocked ? '<span class="unlocked-badge">🔓 공개됨</span>' : ''}
-                <img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" class="${isUnlocked ? '' : 'blurred-photo'}" alt="Profile">
+                ${isUnlocked
+            ? `<img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" alt="Profile">`
+            : `<div class="blurred-photo-container" style="background-image: url('${user.photos && user.photos[0] ? user.photos[0] : ''}')"></div>`
+        }
                 ${!isUnlocked ? '<div class="blur-protection"></div>' : ''}
             </div>
             <div class="match-info">
@@ -1230,7 +1233,10 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
         <div class="profile-photos">
             ${user.photos.map((photo, index) => `
                 <div class="profile-photo">
-                    <img src="${photo}" class="${isUnlocked ? 'unlocked-photo' : 'blurred-photo'}" alt="Profile photo" data-photo-index="${index}" style="${isUnlocked ? 'cursor: pointer;' : ''}">
+                    ${isUnlocked
+            ? `<img src="${photo}" class="unlocked-photo" alt="Profile photo" data-photo-index="${index}" style="cursor: pointer;">`
+            : `<div class="blurred-photo-container" style="background-image: url('${photo}')"></div>`
+        }
                     ${!isUnlocked ? '<div class="blur-protection"></div>' : ''}
                 </div>
             `).join('')}
