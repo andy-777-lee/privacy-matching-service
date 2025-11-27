@@ -1192,16 +1192,27 @@ select:focus {
     position: absolute;
     top: var(--spacing-md);
     right: var(--spacing-md);
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.5);
+    /* 배경 더 진하게 */
     border: none;
     color: var(--text-primary);
     font-size: 2rem;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-full);
+    width: 50px;
+    /* 40px -> 50px 확대 */
+    height: 50px;
+    /* 40px -> 50px 확대 */
+    border-radius: 50%;
     cursor: pointer;
     transition: all var(--transition-fast);
     line-height: 1;
+    z-index: 1000;
+    /* 최상위 보장 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .modal-close:hover {
