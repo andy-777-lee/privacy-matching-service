@@ -1263,6 +1263,9 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
     const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
     const isUnlocked = forceUnlocked || unlockedProfiles.includes(user.id) || isOwnProfile; // Own profile is always unlocked
 
+    // Debug logging for iPhone
+    alert(`디버그 정보:\nisOwnProfile: ${isOwnProfile}\nforceUnlocked: ${forceUnlocked}\nisUnlocked: ${isUnlocked}\nuserId: ${user.id}\ncurrentUserId: ${currentUser?.id}\nuser.name: ${user.name}`);
+
 
     detail.innerHTML = `
         ${matchScore ? `<div class="match-percentage" style="position: static; margin-bottom: 1rem;">${matchScore}% 매칭</div>` : ''}
