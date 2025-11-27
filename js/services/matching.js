@@ -68,7 +68,16 @@ async function findMatches(user) {
     const allUsers = await window.fetchUsers();
     const candidates = allUsers.filter(u =>
         u.id !== matchingUser.id && u.gender !== matchingUser.gender
-    );
+    ).filter(u => {
+        // Filter out test accounts for regular users
+        const testAccounts = ['testA', 'testB'];
+        const isTestUser = testAccounts.includes(matchingUser.name);
+
+        if (!isTestUser) {
+            return !testAccounts.includes(u.name);
+        }
+        return true; // Test users can see everyone (including other test users)
+    });
 
     const matches = candidates.map(candidate => {
         const scoreData = calculateMatchScore(matchingUser, candidate);
