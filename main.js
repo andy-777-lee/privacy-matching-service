@@ -89,39 +89,8 @@ async function initializeApp() {
 
     // Setup modal close buttons (once on init)
     setupModalCloseButtons();
-
-    // Setup blurred image protection (once on init)
-    setupBlurredImageProtection();
 }
 
-// Setup blurred image protection
-function setupBlurredImageProtection() {
-    // 블러 이미지 컨텍스트 메뉴 방지
-    document.addEventListener('contextmenu', (e) => {
-        if (e.target.classList.contains('blurred-photo') ||
-            e.target.closest('.watermark-overlay') ||
-            e.target.closest('.blur-overlay')) {
-            e.preventDefault();
-            return false;
-        }
-    });
-
-    // 블러 이미지 드래그 방지
-    document.addEventListener('dragstart', (e) => {
-        if (e.target.classList.contains('blurred-photo')) {
-            e.preventDefault();
-            return false;
-        }
-    });
-
-    // 블러 이미지 선택 방지 (추가 보안)
-    document.addEventListener('selectstart', (e) => {
-        if (e.target.classList.contains('blurred-photo')) {
-            e.preventDefault();
-            return false;
-        }
-    });
-}
 
 
 const hash = window.location.hash;
@@ -1219,15 +1188,6 @@ function createMatchCard(match, isUnlocked) {
                 <span class="match-percentage">${score}% 매칭</span>
                 ${isUnlocked ? '<span class="unlocked-badge">🔓 공개됨</span>' : ''}
                 <img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" class="${isUnlocked ? '' : 'blurred-photo'}" alt="Profile">
-                ${!isUnlocked ? `
-                    <div class="blur-overlay"></div>
-                    <div class="watermark-overlay">
-                        <div class="watermark-text">🔒 프로필 공개 필요</div>
-                        <div class="watermark-pattern">
-                            ${'<span>🔒</span>'.repeat(20)}
-                        </div>
-                    </div>
-                ` : ''}
             </div>
             <div class="match-info">
                 <div class="match-name ${isUnlocked ? '' : 'hidden-name'}">
@@ -1263,9 +1223,6 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
     const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
     const isUnlocked = forceUnlocked || unlockedProfiles.includes(user.id) || isOwnProfile; // Own profile is always unlocked
 
-    // Debug logging for iPhone
-    alert(`디버그 정보:\nisOwnProfile: ${isOwnProfile}\nforceUnlocked: ${forceUnlocked}\nisUnlocked: ${isUnlocked}\nuserId: ${user.id}\ncurrentUserId: ${currentUser?.id}\nuser.name: ${user.name}`);
-
 
     detail.innerHTML = `
         ${matchScore ? `<div class="match-percentage" style="position: static; margin-bottom: 1rem;">${matchScore}% 매칭</div>` : ''}
@@ -1273,15 +1230,6 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
             ${user.photos.map((photo, index) => `
                 <div class="profile-photo">
                     <img src="${photo}" class="${isUnlocked ? 'unlocked-photo' : 'blurred-photo'}" alt="Profile photo" data-photo-index="${index}" style="${isUnlocked ? 'cursor: pointer;' : ''}">
-                    ${!isUnlocked ? `
-                        <div class="blur-overlay"></div>
-                        <div class="watermark-overlay">
-                            <div class="watermark-text">🔒 프로필 공개 필요</div>
-                            <div class="watermark-pattern">
-                                ${'<span>🔒</span>'.repeat(20)}
-                            </div>
-                        </div>
-                    ` : ''}
                 </div>
             `).join('')}
         </div>

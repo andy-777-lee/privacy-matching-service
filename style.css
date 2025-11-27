@@ -997,104 +997,18 @@ select:focus {
 
 
 
+
 /* Blurred Profile */
 .blurred-photo {
     filter: blur(20px);
     -webkit-filter: blur(20px);
-    
-    /* 이미지 선택 및 컨텍스트 메뉴 방지 */
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    
-    /* iOS 컨텍스트 메뉴 방지 */
-    -webkit-touch-callout: none;
-    
-    /* 터치 이벤트 차단 */
-    pointer-events: none;
-    
-    /* 드래그 방지 */
-    -webkit-user-drag: none;
-    -khtml-user-drag: none;
-    -moz-user-drag: none;
-    -o-user-drag: none;
-    user-drag: none;
-}
-
-/* 워터마크 오버레이 */
-.watermark-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 15;
-    pointer-events: none;
-    background-image: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 80px,
-        rgba(255, 255, 255, 0.03) 80px,
-        rgba(255, 255, 255, 0.03) 160px
-    );
-}
-
-.watermark-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-30deg);
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.4);
-    text-shadow: 
-        0 0 10px rgba(0, 0, 0, 0.8),
-        0 0 20px rgba(0, 0, 0, 0.6);
-    white-space: nowrap;
-    user-select: none;
-    pointer-events: none;
-}
-
-.watermark-pattern {
-    position: absolute;
-    width: 200%;
-    height: 200%;
-    top: -50%;
-    left: -50%;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 60px;
-    transform: rotate(-30deg);
-    opacity: 0.3;
-}
-
-.watermark-pattern span {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
-    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-    white-space: nowrap;
-}
-
-/* 블러 오버레이 */
-.blur-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    z-index: 10;
-    cursor: pointer;
 }
 
 .hidden-name {
     color: var(--text-muted);
     font-style: italic;
 }
+
 
 
 /* Match Percentage Badge */
