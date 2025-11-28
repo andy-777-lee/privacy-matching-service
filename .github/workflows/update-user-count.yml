@@ -1,0 +1,34 @@
+name: Update User Count
+
+on:
+  schedule:
+    # Run every 15 minutes between 06:00 and 24:00 KST (21:00 - 15:00 UTC)
+    - cron: '*/15 21-23 * * *' # 06:00 - 08:45 KST
+    - cron: '*/15 0-14 * * *'  # 09:00 - 23:45 KST
+    - cron: '0 15 * * *'       # 24:00 (00:00) KST
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-count:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install firebase-admin
+      
+      - name: Create service account key file
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > serviceAccountKey.json
+      
+      - name: Update user count
+        run: node init-user-count.js
+      
+      - name: Cleanup
+        run: rm serviceAccountKey.json
