@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로필 공개 요청 프로세스</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FF6B9D;
+            --secondary: #667eea;
+            --success: #4CD964;
+            --bg: #1a1a2e;
+            --card-bg: #2d2d44;
+            --text: #ffffff;
+            --text-muted: #a0a0b0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .flow-container {
+            max-width: 800px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: var(--primary);
+            font-size: 1.8rem;
+        }
+
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            position: relative;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideIn 0.5s forwards;
+        }
+
+        .step-1 {
+            animation-delay: 0.2s;
+        }
+
+        .step-2 {
+            animation-delay: 1.2s;
+        }
+
+        .step-3 {
+            animation-delay: 2.2s;
+        }
+
+        .step-4 {
+            animation-delay: 3.2s;
+        }
+
+        .step-5 {
+            animation-delay: 4.2s;
+        }
+
+        .step-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .step-content {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 4px solid var(--text-muted);
+            transition: all 0.3s ease;
+        }
+
+        .step.active .step-content {
+            background: rgba(255, 255, 255, 0.1);
+            border-left-color: var(--success);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .step-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+        }
+
+        .step-desc {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .arrow-down {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 24px;
+            margin: -15px 0;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+
+        .step-1+.arrow-down {
+            animation-delay: 0.7s;
+        }
+
+        .step-2+.arrow-down {
+            animation-delay: 1.7s;
+        }
+
+        .step-3+.arrow-down {
+            animation-delay: 2.7s;
+        }
+
+        .step-4+.arrow-down {
+            animation-delay: 3.7s;
+        }
+
+        /* Status Colors */
+        .step-1 .step-icon {
+            background: linear-gradient(135deg, #FF6B9D, #FF8E53);
+        }
+
+        .step-2 .step-icon {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .step-3 .step-icon {
+            background: linear-gradient(135deg, #f6d365, #fda085);
+        }
+
+        .step-4 .step-icon {
+            background: linear-gradient(135deg, #84fab0, #8fd3f4);
+            color: #333;
+        }
+
+        .step-5 .step-icon {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+        }
+
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .highlight {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .flow-container {
+                padding: 20px;
+            }
+
+            .step {
+                gap: 15px;
+            }
+
+            .step-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+
+            .step-content {
+                padding: 15px;
+            }
+
+            .step-title {
+                font-size: 1rem;
+            }
+
+            .step-desc {
+                font-size: 0.85rem;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+                margin-bottom: 30px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="flow-container">
+        <h2>🔐 프로필 공개 요청 프로세스</h2>
+
+        <div class="flow-steps">
+            <!-- Step 1 -->
+            <div class="step step-1 active">
+                <div class="step-icon">🙋‍♂️</div>
+                <div class="step-content">
+                    <div class="step-title">1. 요청 보내기 (A)</div>
+                    <div class="step-desc">
+                        A가 B에게 프로필 공개를 요청합니다.<br>
+                        이때 A는 자신의 프로필을 공개하고 메시지를 작성합니다.
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow-down">↓</div>
+
+            <!-- Step 2 -->
+            <div class="step step-2 active">
+                <div class="step-icon">👮‍♂️</div>
+                <div class="step-content">
+                    <div class="step-title">2. 관리자 승인 (1차)</div>
+                    <div class="step-desc">
+                        관리자가 요청 내용을 검토하고 승인합니다.<br>
+                        (부적절한 메시지나 장난성 요청 필터링)
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow-down">↓</div>
+
+            <!-- Step 3 -->
+            <div class="step step-3 active">
+                <div class="step-icon">🫣</div>
+                <div class="step-content">
+                    <div class="step-title">3. 요청 확인 (B)</div>
+                    <div class="step-desc">
+                        B는 <span class="highlight">A의 공개된 프로필</span>과 메시지를 확인합니다.<br>
+                        아직 A는 B의 프로필을 볼 수 없습니다.
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow-down">↓</div>
+
+            <!-- Step 4 -->
+            <div class="step step-4 active">
+                <div class="step-icon">🤝</div>
+                <div class="step-content">
+                    <div class="step-title">4. 최종 승인 (B)</div>
+                    <div class="step-desc">
+                        B가 A의 프로필이 마음에 들면 승인합니다.<br>
+                        (거절 시 A에게 거절 알림이 전송됩니다)
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow-down">↓</div>
+
+            <!-- Step 5 -->
+            <div class="step step-5 active">
+                <div class="step-icon">🎉</div>
+                <div class="step-content">
+                    <div class="step-title">5. 매칭 완료!</div>
+                    <div class="step-desc">
+                        이제 <span class="highlight">A도 B의 프로필을 볼 수 있습니다!</span><br>
+                        서로의 카카오톡ID 또는 인스타그램계정이 공개됩니다 ! 대화 시작해보세요 !
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
