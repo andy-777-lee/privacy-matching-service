@@ -5,10 +5,6 @@ async function fetchUsers() {
     try {
         const snapshot = await db.collection('users').get();
         const users = snapshot.docs.map(doc => doc.data());
-        console.log('Fetched users from Firestore:', users);
-        users.forEach(user => {
-            console.log(`User ${user.contactKakao} - password field:`, user.password);
-        });
         return users;
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -19,7 +15,6 @@ async function fetchUsers() {
 // Save user with partial update (merge) to avoid overwriting whole document
 async function saveUser(user) {
     try {
-        console.log('Saving user to Firestore (merge):', user.id);
         // Use merge:true so only provided fields are updated
         await db.collection('users').doc(user.id).set(user, { merge: true });
         console.log('User saved (merged) successfully');
