@@ -1219,7 +1219,8 @@ async function displayMatches() {
     noMatches.style.display = 'none';
 
     const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
-    const unlockRequests = await fetchUnlockRequests();
+    // Pass currentUser.id to filter requests (optimization)
+    const unlockRequests = await fetchUnlockRequests(currentUser.id);
 
     grid.innerHTML = matches.map(match => {
         const isUnlocked = unlockedProfiles.includes(match.user.id);
@@ -1529,7 +1530,8 @@ function editPreferences() {
 async function requestUnlock(targetId) {
     // Check for existing pending requests
     try {
-        const allRequests = await fetchUnlockRequests();
+        // Pass currentUser.id to filter requests (optimization)
+        const allRequests = await fetchUnlockRequests(currentUser.id);
         const existingRequest = allRequests.find(r =>
             r.requesterId === currentUser.id &&
             r.targetId === targetId &&
@@ -2086,6 +2088,7 @@ function setupAdminTabs() {
 }
 
 async function displayUnlockRequests() {
+    // Admin mode: pass null or no argument to fetch all requests
     const requests = await fetchUnlockRequests();
     const users = await fetchUsers();
     const grid = document.getElementById('admin-requests-grid');
@@ -2155,6 +2158,7 @@ async function displayUnlockRequests() {
 }
 
 async function displayCompletedRequests() {
+    // Admin mode: pass null or no argument to fetch all requests
     const requests = await fetchUnlockRequests();
     const users = await fetchUsers();
     const grid = document.getElementById('admin-completed-grid');
@@ -2315,6 +2319,7 @@ async function handleDeleteUser(userId, userName) {
 }
 
 async function approveRequest(requestId) {
+    // Admin mode: fetch all requests to find the target one
     const requests = await fetchUnlockRequests();
     const request = requests.find(r => r.id === requestId);
 
@@ -2366,7 +2371,11 @@ async function approveRequest(requestId) {
 
 // Target user approves the unlock request
 async function targetApproveRequest(requestId) {
-    const requests = await fetchUnlockRequests();
+    // User mode: fetch my requests
+    // Note: We could pass currentUser.id here, but for safety in finding the specific request 
+    // regardless of context, we might want to fetch relevant ones. 
+    // However, since this is called by the target user, fetching their requests is sufficient.
+    const requests = await fetchUnlockRequests(currentUser ? currentUser.id : null);
     const request = requests.find(r => r.id === requestId);
 
     if (request && request.status === 'admin_approved') {
@@ -2407,7 +2416,8 @@ async function targetApproveRequest(requestId) {
 
 // Target user rejects the unlock request
 async function targetRejectRequest(requestId) {
-    const requests = await fetchUnlockRequests();
+    // User mode: fetch my requests
+    const requests = await fetchUnlockRequests(currentUser ? currentUser.id : null);
     const request = requests.find(r => r.id === requestId);
 
     if (request && request.status === 'admin_approved') {

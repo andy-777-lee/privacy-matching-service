@@ -1,10 +1,33 @@
 // Database service - Firestore CRUD operations
 
-// Fetch all users
-async function fetchUsers() {
+// In-memory cache for users (avoids sessionStorage quota issues)
+let usersCache = {
+    data: null,
+    timestamp: null,
+    duration: 5 * 60 * 1000 // 5 minutes
+};
+
+// Fetch all users (with in-memory caching)
+async function fetchUsers(forceRefresh = false) {
     try {
+        // Check cache first
+        if (!forceRefresh && usersCache.data && usersCache.timestamp) {
+            const now = Date.now();
+            if (now - usersCache.timestamp < usersCache.duration) {
+                console.log('Returning cached users data (in-memory)');
+                return usersCache.data;
+            }
+        }
+
+        console.log('Fetching users from Firestore...');
         const snapshot = await db.collection('users').get();
         const users = snapshot.docs.map(doc => doc.data());
+
+        // Update in-memory cache
+        usersCache.data = users;
+        usersCache.timestamp = Date.now();
+        console.log(`Cached ${users.length} users in memory`);
+
         return users;
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -25,10 +48,35 @@ async function saveUser(user) {
 }
 
 // Fetch unlock requests
-async function fetchUnlockRequests() {
+// Fetch unlock requests (filtered by userId if provided)
+async function fetchUnlockRequests(userId = null) {
     try {
-        const snapshot = await db.collection('unlock_requests').get();
-        return snapshot.docs.map(doc => doc.data());
+        if (!userId) {
+            // Admin mode: Fetch all requests
+            console.log('Fetching ALL unlock requests (Admin mode)...');
+            const snapshot = await db.collection('unlock_requests').get();
+            return snapshot.docs.map(doc => doc.data());
+        } else {
+            // User mode: Fetch only relevant requests (sent by me OR received by me)
+            console.log(`Fetching unlock requests for user ${userId}...`);
+
+            // Firestore doesn't support logical OR in a single query easily for different fields
+            // So we run two parallel queries
+            const [sentSnapshot, receivedSnapshot] = await Promise.all([
+                db.collection('unlock_requests').where('requesterId', '==', userId).get(),
+                db.collection('unlock_requests').where('targetId', '==', userId).get()
+            ]);
+
+            const sentRequests = sentSnapshot.docs.map(doc => doc.data());
+            const receivedRequests = receivedSnapshot.docs.map(doc => doc.data());
+
+            // Merge and deduplicate (though overlap shouldn't exist in this specific case)
+            const requestMap = new Map();
+            sentRequests.forEach(r => requestMap.set(r.id, r));
+            receivedRequests.forEach(r => requestMap.set(r.id, r));
+
+            return Array.from(requestMap.values());
+        }
     } catch (error) {
         console.error("Error fetching requests:", error);
         return [];

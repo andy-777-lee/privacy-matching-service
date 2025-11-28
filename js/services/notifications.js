@@ -96,7 +96,8 @@ async function displayNotifications(notifications) {
     let requestsMap = {};
     if (notifications.some(n => n.type === 'approval_request')) {
         try {
-            const requests = await fetchUnlockRequests();
+            // Pass currentUser.id to filter requests (optimization)
+            const requests = await fetchUnlockRequests(window.currentUser ? window.currentUser.id : null);
             requests.forEach(r => {
                 requestsMap[r.id] = r;
             });
