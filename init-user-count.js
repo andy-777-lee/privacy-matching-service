@@ -14,8 +14,9 @@ const db = admin.firestore();
 async function initializeUserCount() {
     try {
         // Count current users
-        const usersSnapshot = await db.collection('users').get();
-        const userCount = usersSnapshot.size;
+        // Count current users using aggregation (cost-efficient)
+        const countSnapshot = await db.collection('users').count().get();
+        const userCount = countSnapshot.data().count;
 
         // Create/update stats document
         await db.collection('stats').doc('userCount').set({

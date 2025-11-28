@@ -2574,7 +2574,10 @@ async function updateUserCount() {
 
 async function updateLoginUserCount() {
     const loginUserCountElement = document.getElementById('login-users-count');
-    if (!loginUserCountElement) return;
+    if (!loginUserCountElement) {
+        console.warn('login-users-count element not found');
+        return;
+    }
 
     // 1. Show cached count immediately (if available)
     const cachedCount = localStorage.getItem('userCount');
@@ -2583,30 +2586,54 @@ async function updateLoginUserCount() {
     }
 
     try {
-        // 2. Fetch count from stats document (much faster - only 1 document read)
+        console.log('Fetching user count from stats document...');
+
+        // 2. Fetch count from stats document (updated by GitHub Actions)
         const statsDoc = await db.collection('stats').doc('userCount').get();
 
         if (statsDoc.exists) {
             const userCount = statsDoc.data().count;
+            console.log('User count fetched successfully:', userCount);
 
-            // 3. Update UI and Cache
-            loginUserCountElement.textContent = userCount;
+            // Animate count if different
+            if (loginUserCountElement.textContent !== String(userCount)) {
+                animateValue(loginUserCountElement, parseInt(loginUserCountElement.textContent) || 0, userCount, 1000);
+            } else {
+                loginUserCountElement.textContent = userCount;
+            }
+
+            // Update cache
             localStorage.setItem('userCount', userCount);
         } else {
-            // Fallback: count all users if stats document doesn't exist
-            console.warn('Stats document not found, counting all users...');
-            const usersSnapshot = await db.collection('users').get();
-            const userCount = usersSnapshot.size;
-            loginUserCountElement.textContent = userCount;
-            localStorage.setItem('userCount', userCount);
+            console.warn('Stats document not found');
+            if (!cachedCount) {
+                loginUserCountElement.textContent = '...';
+            }
         }
 
     } catch (error) {
         console.error('Error fetching user count:', error);
+        // Keep cached value if available, otherwise show placeholder
         if (!cachedCount) {
             loginUserCountElement.textContent = '...';
         }
     }
+}
+
+// Helper for smooth number animation
+function animateValue(obj, start, end, duration) {
+    let startTimestamp = null;
+    const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        obj.innerHTML = Math.floor(progress * (end - start) + start);
+        if (progress < 1) {
+            window.requestAnimationFrame(step);
+        } else {
+            obj.innerHTML = end;
+        }
+    };
+    window.requestAnimationFrame(step);
 }
 
 // Discord Notification
