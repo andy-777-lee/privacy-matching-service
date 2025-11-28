@@ -2583,10 +2583,9 @@ async function updateLoginUserCount() {
     }
 
     try {
-        // 2. Fetch fresh count from Firestore (Server-side counting)
-        // Using count() aggregation is much faster and cheaper than downloading all documents
-        const snapshot = await db.collection('users').count().get();
-        const userCount = snapshot.data().count;
+        // 2. Fetch fresh count from Firestore in background
+        const usersSnapshot = await db.collection('users').get();
+        const userCount = usersSnapshot.size;
 
         // 3. Update UI and Cache
         loginUserCountElement.textContent = userCount;
@@ -2594,17 +2593,8 @@ async function updateLoginUserCount() {
 
     } catch (error) {
         console.error('Error fetching user count:', error);
-        // Fallback to regular get() if count() is not supported in this SDK version
-        try {
-            const usersSnapshot = await db.collection('users').get();
-            const userCount = usersSnapshot.size;
-            loginUserCountElement.textContent = userCount;
-            localStorage.setItem('userCount', userCount);
-        } catch (fallbackError) {
-            console.error('Fallback fetch failed:', fallbackError);
-            if (!cachedCount) {
-                loginUserCountElement.textContent = '...';
-            }
+        if (!cachedCount) {
+            loginUserCountElement.textContent = '...';
         }
     }
 }
