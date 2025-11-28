@@ -2583,13 +2583,23 @@ async function updateLoginUserCount() {
     }
 
     try {
-        // 2. Fetch fresh count from Firestore in background
-        const usersSnapshot = await db.collection('users').get();
-        const userCount = usersSnapshot.size;
+        // 2. Fetch count from stats document (much faster - only 1 document read)
+        const statsDoc = await db.collection('stats').doc('userCount').get();
 
-        // 3. Update UI and Cache
-        loginUserCountElement.textContent = userCount;
-        localStorage.setItem('userCount', userCount);
+        if (statsDoc.exists) {
+            const userCount = statsDoc.data().count;
+
+            // 3. Update UI and Cache
+            loginUserCountElement.textContent = userCount;
+            localStorage.setItem('userCount', userCount);
+        } else {
+            // Fallback: count all users if stats document doesn't exist
+            console.warn('Stats document not found, counting all users...');
+            const usersSnapshot = await db.collection('users').get();
+            const userCount = usersSnapshot.size;
+            loginUserCountElement.textContent = userCount;
+            localStorage.setItem('userCount', userCount);
+        }
 
     } catch (error) {
         console.error('Error fetching user count:', error);
