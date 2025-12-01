@@ -66,11 +66,17 @@ async function findMatches(user) {
     console.log('------------------------');
 
     const allUsers = await window.fetchUsers();
-    const candidates = allUsers.filter(u =>
+
+    // Remove duplicates by user ID first
+    const uniqueUsers = Array.from(
+        new Map(allUsers.map(user => [user.id, user])).values()
+    );
+
+    const candidates = uniqueUsers.filter(u =>
         u.id !== matchingUser.id && u.gender !== matchingUser.gender
     ).filter(u => {
         // Filter out test accounts for regular users
-        const testAccounts = ['testA', 'testB'];
+        const testAccounts = ['testA', 'testB', '테스트 A', '테스트 B'];
         const isTestUser = testAccounts.includes(matchingUser.name);
 
         if (!isTestUser) {

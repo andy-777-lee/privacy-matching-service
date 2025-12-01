@@ -21,14 +21,26 @@ async function fetchUsers(forceRefresh = false) {
 
         console.log('Fetching users from Firestore...');
         const snapshot = await db.collection('users').get();
-        const users = snapshot.docs.map(doc => doc.data());
+        const users = snapshot.docs.map(doc => {
+            const data = doc.data();
+            // Ensure document ID is included
+            if (!data.id) {
+                data.id = doc.id;
+            }
+            return data;
+        });
+
+        // Remove duplicates by user ID (in case of data inconsistencies)
+        const uniqueUsers = Array.from(
+            new Map(users.map(user => [user.id, user])).values()
+        );
 
         // Update in-memory cache
-        usersCache.data = users;
+        usersCache.data = uniqueUsers;
         usersCache.timestamp = Date.now();
-        console.log(`Cached ${users.length} users in memory`);
+        console.log(`Fetched ${users.length} users, cached ${uniqueUsers.length} unique users in memory`);
 
-        return users;
+        return uniqueUsers;
     } catch (error) {
         console.error("Error fetching users:", error);
         return [];
@@ -160,6 +172,13 @@ async function deleteUser(userId) {
     }
 }
 
+// Clear users cache (for debugging)
+function clearUsersCache() {
+    usersCache.data = null;
+    usersCache.timestamp = null;
+    console.log('Users cache cleared');
+}
+
 // Export to global scope
 window.fetchUsers = fetchUsers;
 window.saveUser = saveUser;
@@ -168,3 +187,4 @@ window.saveUnlockRequest = saveUnlockRequest;
 window.fetchUnlockedProfiles = fetchUnlockedProfiles;
 window.addUnlockedProfile = addUnlockedProfile;
 window.deleteUser = deleteUser;
+window.clearUsersCache = clearUsersCache;

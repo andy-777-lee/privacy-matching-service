@@ -99,10 +99,11 @@ async function initializeApp() {
 function setupBlurredImageProtection() {
     // 블러 이미지 컨텍스트 메뉴 방지
     document.addEventListener('contextmenu', (e) => {
-        if (e.target.classList.contains('blurred-photo') ||
+        if (e.target && e.target.classList && (
+            e.target.classList.contains('blurred-photo') ||
             e.target.classList.contains('transparent-overlay') ||
             e.target.closest('.watermark-overlay') ||
-            e.target.closest('.blur-protection')) {
+            e.target.closest('.blur-protection'))) {
             e.preventDefault();
             return false;
         }
@@ -110,8 +111,9 @@ function setupBlurredImageProtection() {
 
     // 블러 이미지 드래그 방지
     document.addEventListener('dragstart', (e) => {
-        if (e.target.classList.contains('blurred-photo') ||
-            e.target.classList.contains('transparent-overlay')) {
+        if (e.target && e.target.classList && (
+            e.target.classList.contains('blurred-photo') ||
+            e.target.classList.contains('transparent-overlay'))) {
             e.preventDefault();
             return false;
         }
@@ -119,8 +121,9 @@ function setupBlurredImageProtection() {
 
     // 블러 이미지 선택 방지
     document.addEventListener('selectstart', (e) => {
-        if (e.target.classList.contains('blurred-photo') ||
-            e.target.classList.contains('transparent-overlay')) {
+        if (e.target && e.target.classList && (
+            e.target.classList.contains('blurred-photo') ||
+            e.target.classList.contains('transparent-overlay'))) {
             e.preventDefault();
             return false;
         }
@@ -1222,7 +1225,14 @@ async function displayMatches() {
     // Pass currentUser.id to filter requests (optimization)
     const unlockRequests = await fetchUnlockRequests(currentUser.id);
 
-    grid.innerHTML = matches.map(match => {
+    // Remove duplicates by user ID (in case matches array has duplicates)
+    const uniqueMatches = Array.from(
+        new Map(matches.map(match => [match.user.id, match])).values()
+    );
+
+    console.log(`Total matches: ${matches.length}, Unique matches: ${uniqueMatches.length}`);
+
+    grid.innerHTML = uniqueMatches.map(match => {
         const isUnlocked = unlockedProfiles.includes(match.user.id);
 
         // Check if there's a request between current user and this match
@@ -1240,7 +1250,7 @@ async function displayMatches() {
     grid.querySelectorAll('.match-card').forEach(card => {
         card.addEventListener('click', () => {
             const userId = card.dataset.userId;
-            const match = matches.find(m => m.user.id === userId);
+            const match = uniqueMatches.find(m => m.user.id === userId);
             const isUnlocked = unlockedProfiles.includes(userId);
             showProfileModal(match.user, !isUnlocked, match.score);
         });
