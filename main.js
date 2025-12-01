@@ -1252,7 +1252,8 @@ async function displayMatches() {
             const userId = card.dataset.userId;
             const match = uniqueMatches.find(m => m.user.id === userId);
             const isUnlocked = unlockedProfiles.includes(userId);
-            showProfileModal(match.user, !isUnlocked, match.score);
+            // Pass the full match object as the 3rd argument instead of just score
+            showProfileModal(match.user, !isUnlocked, match);
         });
     });
 }
@@ -1283,10 +1284,28 @@ function createMatchCard(match, isUnlocked, sentRequest = null, receivedRequest 
         }
     }
 
+    // Create match percentage display with bidirectional info
+    let matchPercentageHTML = '';
+    if (match.hasMutualPreferences) {
+        // Both have preferences - show combined score with breakdown
+        matchPercentageHTML = `
+            <span class="match-percentage" title="내가 선호: ${match.myScore}% | 상대방이 선호: ${match.theirScore}%">
+                ${score}% 매칭 ⭐
+            </span>
+        `;
+    } else {
+        // Only I have preferences
+        matchPercentageHTML = `
+            <span class="match-percentage" title="상대방은 아직 선호 조건을 설정하지 않았습니다">
+                ${score}% 매칭
+            </span>
+        `;
+    }
+
     return `
         <div class="match-card ${isUnlocked ? 'unlocked' : ''}" data-user-id="${user.id}">
             <div class="match-photos">
-                <span class="match-percentage">${score}% 매칭</span>
+                ${matchPercentageHTML}
                 ${requestBadge}
                 ${isUnlocked
             ? `<img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" alt="Profile">`
@@ -1360,16 +1379,56 @@ function getPreferenceBorderColor(index, total) {
     return '#4ECDC4'; // Teal for lower priority
 }
 
-async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false, forceUnlocked = false, requestId = null) {
+async function showProfileModal(user, showUnlockButton = false, matchData = null, isOwnProfile = false, forceUnlocked = false, requestId = null) {
     const modal = document.getElementById('profile-modal');
     const detail = document.getElementById('profile-detail');
 
     const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
     const isUnlocked = forceUnlocked || unlockedProfiles.includes(user.id) || isOwnProfile; // Own profile is always unlocked
 
+    // Handle match score display
+    let matchScoreHTML = '';
+    if (matchData) {
+        if (typeof matchData === 'object' && matchData.score !== undefined) {
+            // Full match object with bidirectional data
+            if (matchData.hasMutualPreferences) {
+                matchScoreHTML = `
+                    <div class="match-score-container" style="background: rgba(255, 255, 255, 0.1); padding: 1rem; border-radius: 12px; margin-bottom: 1rem; text-align: center;">
+                        <div class="total-score" style="font-size: 1.5rem; font-weight: bold; color: #FF6B6B; margin-bottom: 0.5rem;">
+                            ${matchData.score}% 매칭 ⭐
+                        </div>
+                        <div class="score-breakdown" style="display: flex; justify-content: space-around; font-size: 0.9rem; color: var(--text-secondary);">
+                            <div class="score-item">
+                                <div>내가 선호</div>
+                                <div style="color: var(--text-primary); font-weight: 600;">${matchData.myScore}%</div>
+                            </div>
+                            <div class="score-divider" style="border-left: 1px solid rgba(255,255,255,0.2);"></div>
+                            <div class="score-item">
+                                <div>상대방이 선호</div>
+                                <div style="color: var(--text-primary); font-weight: 600;">${matchData.theirScore}%</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Only I have preferences
+                matchScoreHTML = `
+                    <div class="match-percentage" style="position: static; margin-bottom: 1rem;">
+                        ${matchData.score}% 매칭
+                        <div style="font-size: 0.8rem; font-weight: normal; margin-top: 0.2rem; opacity: 0.8;">
+                            (상대방 선호 조건 미설정)
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
+            // Legacy/Simple score (just a number)
+            matchScoreHTML = `<div class="match-percentage" style="position: static; margin-bottom: 1rem;">${matchData}% 매칭</div>`;
+        }
+    }
 
     detail.innerHTML = `
-        ${matchScore ? `<div class="match-percentage" style="position: static; margin-bottom: 1rem;">${matchScore}% 매칭</div>` : ''}
+        ${matchScoreHTML}
         <div class="profile-photos">
             ${user.photos.map((photo, index) => `
                 <div class="profile-photo">

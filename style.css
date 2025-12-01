@@ -1001,8 +1001,8 @@ select:focus {
 
 /* Blurred Profile */
 .blurred-photo {
-    filter: blur(10px);
-    -webkit-filter: blur(10px);
+    filter: blur(7px);
+    -webkit-filter: blur(7px);
 
     /* 이미지 선택 및 컨텍스트 메뉴 방지 */
     user-select: none;

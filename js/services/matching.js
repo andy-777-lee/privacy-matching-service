@@ -86,11 +86,30 @@ async function findMatches(user) {
     });
 
     const matches = candidates.map(candidate => {
-        const scoreData = calculateMatchScore(matchingUser, candidate);
-        return { user: candidate, score: scoreData.percentage, priorityScore: scoreData.priorityScore };
+        // Calculate how well the candidate matches MY preferences
+        const myScore = calculateMatchScore(matchingUser, candidate);
+
+        // Calculate how well I match the CANDIDATE's preferences (if they have any)
+        const theirScore = candidate.preferences && Object.keys(candidate.preferences).length > 0
+            ? calculateMatchScore(candidate, matchingUser)
+            : { percentage: 0, priorityScore: 0 };
+
+        // Combined score: average of both directions
+        const combinedPercentage = candidate.preferences && Object.keys(candidate.preferences).length > 0
+            ? Math.round((myScore.percentage + theirScore.percentage) / 2)
+            : myScore.percentage; // If candidate has no preferences, use only my score
+
+        return {
+            user: candidate,
+            score: combinedPercentage,
+            myScore: myScore.percentage,
+            theirScore: theirScore.percentage,
+            priorityScore: myScore.priorityScore + theirScore.priorityScore,
+            hasMutualPreferences: candidate.preferences && Object.keys(candidate.preferences).length > 0
+        };
     });
 
-    // Sort by percentage first, then by priority score (higher priority matches first)
+    // Sort by combined percentage first, then by priority score
     matches.sort((a, b) => {
         if (b.score === a.score) {
             return b.priorityScore - a.priorityScore; // Same percentage: higher priority score first
