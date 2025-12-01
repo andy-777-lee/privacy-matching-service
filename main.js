@@ -480,6 +480,7 @@ function setupRegistrationForm() {
             smoking: document.querySelector('input[name="smoking"]:checked').value,
             mbti: mbti,
             marriagePlan: document.getElementById('marriage-plan').value,
+            education: document.getElementById('education').value,
             contactKakao: document.getElementById('kakao-id').value,
             contactInstagram: document.getElementById('instagram-id').value,
             password: rawPassword, // Use raw password for Firebase Auth
@@ -973,7 +974,7 @@ function showPreferenceValues(selectedFields) {
             } else if (fieldId === 'job') {
                 options = ['학생', '직장인', '자영업', '프리랜서', '기타'];
             } else if (fieldId === 'education') {
-                options = ['고졸', '전문대졸', '대졸', '대학원'];
+                options = ['고졸', '초대졸', '대졸', '대학원'];
             } else if (fieldId === 'location') {
                 options = ['서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '김해', '창원', '포항'];
             } else if (fieldId === 'smoking') {
@@ -1494,6 +1495,10 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
                 <div class="info-label">결혼 계획</div>
                 <div class="info-value">${user.marriagePlan}</div>
             </div>
+            <div class="info-item">
+                <div class="info-label">최종학력</div>
+                <div class="info-value">${user.education || '정보 없음'}</div>
+            </div>
         </div>
         <div class="match-hobbies">
             ${user.hobbies.map(hobby => `<span class="hobby-tag">${hobby}</span>`).join('')}
@@ -1926,6 +1931,7 @@ function populateEditProfileForm() {
 
     document.getElementById('edit-mbti').value = currentUser.mbti || '';
     document.getElementById('edit-marriage-plan').value = currentUser.marriagePlan || '';
+    document.getElementById('edit-education').value = currentUser.education || '';
 
     // Populate hobbies
     if (currentUser.hobbies && Array.isArray(currentUser.hobbies)) {
@@ -2044,6 +2050,7 @@ async function handleEditProfileSubmit() {
     currentUser.smoking = document.querySelector('input[name="edit-smoking"]:checked').value;
     currentUser.mbti = mbti;
     currentUser.marriagePlan = document.getElementById('edit-marriage-plan').value;
+    currentUser.education = document.getElementById('edit-education').value;
     currentUser.contactInstagram = document.getElementById('edit-instagram-id').value;
     currentUser.photos = photos;
 

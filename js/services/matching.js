@@ -199,6 +199,27 @@ function matchesPreference(candidate, fieldId, pref) {
         const prefMbtis = String(prefVal).toUpperCase().split(',').map(m => m.trim());
         return prefMbtis.includes(candMbti);
     }
+
+    // Special handling for education (hierarchical matching)
+    if (fieldId === 'education') {
+        // Education hierarchy: 고졸 < 초대졸 < 대졸 < 대학원
+        const educationLevels = {
+            '고졸': 1,
+            '초대졸': 2,
+            '대졸': 3,
+            '대학원': 4
+        };
+
+        const candLevel = educationLevels[candVal] || 0;
+        const prefLevel = educationLevels[prefVal] || 0;
+
+        // Candidate's education must be >= preferred education
+        // 대졸 선호 → 대졸, 대학원 매칭
+        // 초대졸 선호 → 초대졸, 대졸, 대학원 매칭
+        // 고졸 선호 → 고졸만 매칭
+        return candLevel >= prefLevel;
+    }
+
     return candVal === prefVal;
 }
 
