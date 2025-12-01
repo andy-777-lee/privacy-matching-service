@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Distribution Map</title>
+    <style>
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .map-container {
+            position: relative;
+            width: 900px;
+            height: 1200px;
+            background: white;
+            /* border-radius: 20px; */
+            /* box-shadow: 0 10px 30px rgba(0,0,0,0.1); */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .map-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.1));
+        }
+
+        .region {
+            fill: #d8b6c0;
+            /* Pinkish base color from image */
+            stroke: #fff;
+            stroke-width: 1.5;
+            transition: all 0.3s ease;
+        }
+
+        .region:hover {
+            fill: #cba0ac;
+        }
+
+        .count-bubble {
+            fill: rgba(180, 50, 60, 0.3);
+            /* Semi-transparent reddish pink */
+            stroke: rgba(180, 50, 60, 0.6);
+            stroke-width: 1;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+
+        .count-bubble:hover {
+            transform: scale(1.05);
+            fill: rgba(180, 50, 60, 0.4);
+        }
+
+        .bubble-group text {
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        .region-name {
+            fill: #333;
+            font-size: 16px;
+            font-weight: bold;
+            dominant-baseline: auto;
+        }
+
+        .count-value {
+            fill: #000;
+            font-size: 20px;
+            font-weight: 800;
+            dominant-baseline: hanging;
+        }
+
+        .stats-panel {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            min-width: 220px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 15px;
+            color: #444;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #eee;
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+            padding-top: 15px;
+            border-top: 2px solid #333;
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 18px;
+            color: #000;
+        }
+    </style>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="js/config/firebase.js"></script>
+</head>
+
+<body>
+    <div class="map-container">
+        <h1>지역별 가입자 현황</h1>
+        <svg class="map-svg" viewBox="0 0 800 1200">
+            <!-- South Korea Map Paths -->
+            <g transform="translate(0, 0)">
+                <!-- Seoul -->
+                <path id="seoul" class="region" d="M285,195 L295,190 L305,195 L300,210 L285,205 Z" title="서울" />
+                <!-- Incheon -->
+                <path id="incheon" class="region" d="M250,190 L270,185 L275,205 L260,215 L245,200 Z" title="인천" />
+                <!-- Gyeonggi -->
+                <path id="gyeonggi" class="region" d="M270,150 L320,160 L330,200 L310,230 L260,220 L240,180 Z"
+                    title="경기" />
+                <!-- Gangwon -->
+                <path id="gangwon" class="region" d="M320,160 L450,130 L480,250 L380,260 L330,200 Z" title="강원" />
+                <!-- Chungbuk -->
+                <path id="chungbuk" class="region" d="M330,250 L400,250 L390,330 L330,310 Z" title="충북" />
+                <!-- Chungnam -->
+                <path id="chungnam" class="region" d="M250,230 L330,250 L320,320 L240,300 Z" title="충남" />
+                <!-- Daejeon -->
+                <path id="daejeon" class="region" d="M320,300 L340,300 L335,320 L315,315 Z" title="대전" />
+                <!-- Sejong -->
+                <path id="sejong" class="region" d="M310,280 L325,280 L320,295 L305,290 Z" title="세종" />
+                <!-- Gyeongbuk -->
+                <path id="gyeongbuk" class="region" d="M390,260 L480,250 L490,400 L380,380 L370,300 Z" title="경북" />
+                <!-- Daegu -->
+                <path id="daegu" class="region" d="M400,360 L430,360 L425,390 L395,385 Z" title="대구" />
+                <!-- Jeonbuk -->
+                <path id="jeonbuk" class="region" d="M260,320 L360,330 L350,400 L250,390 Z" title="전북" />
+                <!-- Jeonnam -->
+                <path id="jeonnam" class="region" d="M240,400 L350,410 L360,500 L230,490 Z" title="전남" />
+                <!-- Gwangju -->
+                <path id="gwangju" class="region" d="M280,430 L300,430 L295,450 L275,445 Z" title="광주" />
+                <!-- Gyeongnam -->
+                <path id="gyeongnam" class="region" d="M350,400 L450,390 L440,480 L350,470 Z" title="경남" />
+                <!-- Busan -->
+                <path id="busan" class="region" d="M440,430 L470,430 L465,460 L435,455 Z" title="부산" />
+                <!-- Ulsan -->
+                <path id="ulsan" class="region" d="M460,390 L490,390 L485,420 L455,415 Z" title="울산" />
+                <!-- Jeju -->
+                <path id="jeju" class="region" d="M240,550 L320,550 L310,600 L230,590 Z" title="제주" />
+            </g>
+        </svg>
+        <div class="stats-panel" id="stats-panel">
+            <h3>지역별 통계</h3>
+            <!-- Stats will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        // Coordinates for labels and bubbles (approximate centers based on new paths)
+        const coordinates = {
+            '서울': { x: 295, y: 200 },
+            '경기': { x: 330, y: 180 }, // Moved slightly right
+            '인천': { x: 240, y: 200 }, // Moved left
+            '강원': { x: 400, y: 190 },
+            '충북': { x: 360, y: 280 },
+            '충남': { x: 260, y: 270 },
+            '대전': { x: 328, y: 310 },
+            '세종': { x: 305, y: 288 },
+            '전북': { x: 300, y: 360 },
+            '전남': { x: 290, y: 450 },
+            '광주': { x: 270, y: 440 },
+            '경북': { x: 430, y: 320 },
+            '대구': { x: 415, y: 375 },
+            '경남': { x: 380, y: 440 },
+            '부산': { x: 455, y: 445 },
+            '울산': { x: 475, y: 405 },
+            '제주': { x: 280, y: 575 },
+            '김해': { x: 420, y: 440 }, // Near Busan
+            '창원': { x: 410, y: 445 }, // Near Busan
+            '포항': { x: 470, y: 340 }, // East coast
+            '구미': { x: 400, y: 340 },
+            '경주': { x: 460, y: 370 },
+            '아산': { x: 280, y: 250 },
+            '청주': { x: 340, y: 270 },
+            '순천': { x: 320, y: 460 },
+            '광양': { x: 330, y: 460 },
+            '전주': { x: 310, y: 350 }
+        };
+
+        // Map simplified paths (very rough approximation for visual placement)
+        // In a real scenario, we'd use a proper GeoJSON or detailed SVG.
+        // For now, we'll just place bubbles at coordinates.
+
+        async function initMap() {
+            const db = firebase.firestore();
+            const usersRef = db.collection('users');
+
+            try {
+                const snapshot = await usersRef.get();
+                const locationStats = {}; // { location: { total: 0, male: 0, female: 0 } }
+                let totalUsers = 0;
+                let totalMale = 0;
+                let totalFemale = 0;
+
+                snapshot.forEach(doc => {
+                    const user = doc.data();
+                    const location = user.location || '기타';
+                    const gender = user.gender || 'unknown';
+
+                    if (!locationStats[location]) {
+                        locationStats[location] = { total: 0, male: 0, female: 0 };
+                    }
+
+                    locationStats[location].total++;
+                    if (gender === 'male') {
+                        locationStats[location].male++;
+                        totalMale++;
+                    } else if (gender === 'female') {
+                        locationStats[location].female++;
+                        totalFemale++;
+                    }
+                    totalUsers++;
+                });
+
+                renderMap(locationStats, { total: totalUsers, male: totalMale, female: totalFemale });
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                alert("데이터를 불러오는데 실패했습니다.");
+            }
+        }
+
+        function renderMap(stats, totalStats) {
+            const svg = document.querySelector('.map-svg');
+            const statsPanel = document.getElementById('stats-panel');
+
+            // Clear existing stats
+            statsPanel.innerHTML = '<h3>지역별 성비 통계</h3>';
+
+            // Sort locations by total count
+            const sortedLocations = Object.entries(stats)
+                .sort(([, a], [, b]) => b.total - a.total);
+
+            sortedLocations.forEach(([location, data]) => {
+                // Add to stats panel
+                const statItem = document.createElement('div');
+                statItem.className = 'stat-item';
+
+                // Calculate percentages
+                const malePercent = data.total > 0 ? Math.round((data.male / data.total) * 100) : 0;
+                const femalePercent = data.total > 0 ? Math.round((data.female / data.total) * 100) : 0;
+
+                statItem.innerHTML = `
+                    <div style="width: 100%;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <span style="font-weight: 600;">${location}</span>
+                            <span style="font-weight: bold;">${data.total}명</span>
+                        </div>
+                        <div style="display: flex; font-size: 12px; color: #666; margin-bottom: 4px;">
+                            <span style="color: #4a90e2;">남 ${data.male}</span>
+                            <span style="margin: 0 4px;">|</span>
+                            <span style="color: #e25555;">여 ${data.female}</span>
+                        </div>
+                        <div style="display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: #eee;">
+                            <div style="width: ${malePercent}%; background: #4a90e2;"></div>
+                            <div style="width: ${femalePercent}%; background: #e25555;"></div>
+                        </div>
+                    </div>
+                `;
+                statsPanel.appendChild(statItem);
+
+                // Add bubble to map if coordinate exists
+                if (coordinates[location]) {
+                    const { x, y } = coordinates[location];
+                    const count = data.total;
+
+                    // Bubble size based on count
+                    const size = Math.max(40, Math.min(120, 30 + Math.pow(count, 0.7) * 15));
+
+                    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    group.setAttribute("class", "bubble-group");
+
+                    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("cx", x);
+                    circle.setAttribute("cy", y);
+                    circle.setAttribute("r", size / 2);
+                    circle.setAttribute("class", "count-bubble");
+
+                    const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    nameText.setAttribute("x", x);
+                    nameText.setAttribute("y", y - 2);
+                    nameText.setAttribute("class", "region-name");
+                    nameText.textContent = location;
+
+                    const valueText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    valueText.setAttribute("x", x);
+                    valueText.setAttribute("y", y + 14);
+                    valueText.setAttribute("class", "count-value");
+                    valueText.textContent = count;
+
+                    group.appendChild(circle);
+                    group.appendChild(nameText);
+                    group.appendChild(valueText);
+                    svg.appendChild(group);
+                }
+            });
+
+            // Add total
+            const totalItem = document.createElement('div');
+            totalItem.className = 'stat-item';
+            totalItem.style.marginTop = '15px';
+            totalItem.style.borderTop = '2px solid #333';
+            totalItem.style.paddingTop = '15px';
+
+            const totalMalePercent = totalStats.total > 0 ? Math.round((totalStats.male / totalStats.total) * 100) : 0;
+            const totalFemalePercent = totalStats.total > 0 ? Math.round((totalStats.female / totalStats.total) * 100) : 0;
+
+            totalItem.innerHTML = `
+                <div style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="font-size: 16px; font-weight: bold;">총 합계</span>
+                        <span style="font-size: 16px; font-weight: bold;">${totalStats.total}명</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px;">
+                        <span style="color: #4a90e2;">남 ${totalStats.male}명 (${totalMalePercent}%)</span>
+                        <span style="color: #e25555;">여 ${totalStats.female}명 (${totalFemalePercent}%)</span>
+                    </div>
+                    <div style="display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: #eee;">
+                        <div style="width: ${totalMalePercent}%; background: #4a90e2;"></div>
+                        <div style="width: ${totalFemalePercent}%; background: #e25555;"></div>
+                    </div>
+                </div>
+            `;
+            statsPanel.appendChild(totalItem);
+        }
+
+        // Initialize
+        initMap();
+    </script>
+</body>
+
+</html>

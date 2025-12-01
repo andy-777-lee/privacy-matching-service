@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>선호 조건 표시 데모</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .profile-section {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .profile-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-item {
+            background: white;
+            padding: 0.8rem;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .match-hobbies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .hobby-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* 선호 조건 섹션 스타일 */
+        .preferences-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .preferences-section h3 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+        .preferences-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .preference-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .preference-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .preference-content {
+            flex: 1;
+        }
+
+        .preference-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .preference-label {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .priority-badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .priority-high {
+            background: #FF6B6B;
+        }
+
+        .priority-medium {
+            background: #FFA500;
+        }
+
+        .priority-low {
+            background: #4ECDC4;
+        }
+
+        .preference-value {
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: #856404;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="demo-container">
+        <h1>🎯 선호 조건 표시 데모</h1>
+        <p class="subtitle">프로필 모달에 추가될 선호 조건 섹션 미리보기</p>
+
+        <!-- 기본 프로필 정보 -->
+        <div class="profile-section">
+            <h3 style="margin-bottom: 1rem; color: #2c3e50;">👤 기본 프로필</h3>
+            <div class="profile-info">
+                <div class="info-item">
+                    <div class="info-label">이름</div>
+                    <div class="info-value">김민수</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">나이</div>
+                    <div class="info-value">28세 (1997년생)</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">거주지</div>
+                    <div class="info-value">서울</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">직업</div>
+                    <div class="info-value">직장인</div>
+                </div>
+            </div>
+            <div class="match-hobbies">
+                <span class="hobby-tag">운동</span>
+                <span class="hobby-tag">영화</span>
+                <span class="hobby-tag">여행</span>
+            </div>
+        </div>
+
+        <!-- 선호 조건 섹션 (새로 추가될 부분) -->
+        <div class="preferences-section">
+            <h3>
+                <span>💝</span>
+                <span>김민수님의 선호 조건 순서</span>
+            </h3>
+            <div class="preferences-list">
+                <!-- 1순위 - 나이 (빨강) -->
+                <div class="preference-item" style="border-left: 4px solid #FF6B6B;">
+                    <div class="preference-content">
+                        <div class="preference-header">
+                            <span class="preference-label">나이 (출생년도)</span>
+                        </div>
+                        <div class="preference-value">
+                            25세 ~ 30세 (1995년생 ~ 2000년생)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2순위 - 키 (빨강) -->
+                <div class="preference-item" style="border-left: 4px solid #FF6B6B;">
+                    <div class="preference-content">
+                        <div class="preference-header">
+                            <span class="preference-label">키</span>
+                        </div>
+                        <div class="preference-value">
+                            160 ~ 175
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3순위 - 종교 (빨강) -->
+                <div class="preference-item" style="border-left: 4px solid #FF6B6B;">
+                    <div class="preference-content">
+                        <div class="preference-header">
+                            <span class="preference-label">종교</span>
+                        </div>
+                        <div class="preference-value">
+                            무교, 기독교
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4순위 - 거주 지역 (주황) -->
+                <div class="preference-item" style="border-left: 4px solid #FFA500;">
+                    <div class="preference-content">
+                        <div class="preference-header">
+                            <span class="preference-label">거주 지역</span>
+                        </div>
+                        <div class="preference-value">
+                            서울
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5순위 - 음주 (주황) -->
+                <div class="preference-item" style="border-left: 4px solid #FFA500;">
+                    <div class="preference-content">
+                        <div class="preference-header">
+                            <span class="preference-label">음주</span>
+                        </div>
+                        <div class="preference-value">
+                            가끔
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6순위 - 취미 (청록) -->
+                <div class="preference-item" style="border-left: 4px solid #4ECDC4;">
+                    <div class="preference-content">
+                        <div class="preference-header">
+                            <span class="preference-label">취미</span>
+                        </div>
+                        <div class="preference-value">
+                            운동, 영화, 여행
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7순위 - MBTI (청록) -->
+                <div class="preference-item" style="border-left: 4px solid #4ECDC4;">
+                    <div class="preference-content">
+                        <div class="preference-header">
+                            <span class="preference-label">MBTI</span>
+                        </div>
+                        <div class="preference-value">
+                            ENFP, INFP, ENTP
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>💡 참고:</strong> 이 디자인이 실제 프로필 모달에 추가됩니다.
+            우선순위가 높을수록 위에 표시되며, 색상으로 중요도를 구분합니다.
+            <br><br>
+            <strong>색상 의미:</strong>
+            <br>🔴 빨강 (8-10): 매우 중요
+            <br>🟠 주황 (5-7): 중요
+            <br>🔵 청록 (1-4): 보통
+        </div>
+    </div>
+</body>
+
+</html>

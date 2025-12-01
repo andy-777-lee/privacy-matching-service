@@ -1315,6 +1315,41 @@ function createMatchCard(match, isUnlocked, sentRequest = null, receivedRequest 
 }
 
 // Profile Modal
+// Format preference value for display
+function formatPreferenceValue(fieldId, pref) {
+    const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+    if (!field || !pref || !pref.value) return '정보 없음';
+
+    // Range type (나이, 키 등)
+    if (typeof pref.value === 'object' && pref.value.min !== undefined) {
+        if (fieldId === 'birthYear') {
+            const currentYear = new Date().getFullYear();
+            const maxAge = currentYear - pref.value.min + 1;
+            const minAge = currentYear - pref.value.max + 1;
+            return `${minAge}세 ~ ${maxAge}세 (${pref.value.min}년생 ~ ${pref.value.max}년생)`;
+        }
+        return `${pref.value.min} ~ ${pref.value.max}`;
+    }
+
+    // Multi-select (배열)
+    if (Array.isArray(pref.value)) {
+        return pref.value.join(', ');
+    }
+
+    // Single value
+    return pref.value;
+}
+
+// Get border color based on position in list
+function getPreferenceBorderColor(index, total) {
+    const topThird = Math.ceil(total / 3);
+    const middleThird = Math.ceil(total * 2 / 3);
+
+    if (index < topThird) return '#FF6B6B'; // Red for top priority
+    if (index < middleThird) return '#FFA500'; // Orange for medium
+    return '#4ECDC4'; // Teal for lower priority
+}
+
 async function showProfileModal(user, showUnlockButton = false, matchScore = null, isOwnProfile = false, forceUnlocked = false, requestId = null) {
     const modal = document.getElementById('profile-modal');
     const detail = document.getElementById('profile-detail');
@@ -1345,10 +1380,6 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
             <div class="info-item">
                 <div class="info-label">출생년도</div>
                 <div class="info-value">${user.birthYear}년생 (${user.age}세)</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">성별</div>
-                <div class="info-value">${user.gender === 'male' ? '남성' : '여성'}</div>
             </div>
             <div class="info-item">
                 <div class="info-label">종교</div>
@@ -1398,6 +1429,40 @@ async function showProfileModal(user, showUnlockButton = false, matchScore = nul
         <div class="match-hobbies">
             ${user.hobbies.map(hobby => `<span class="hobby-tag">${hobby}</span>`).join('')}
         </div>
+        ${user.preferences && Object.keys(user.preferences).length > 0 ? `
+            <div style="margin-top: 1.5rem;">
+                <h4 style="color: var(--text-primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>💝</span>
+                    <span>선호 조건 순서</span>
+                </h4>
+                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                    ${Object.entries(user.preferences)
+                .sort(([, a], [, b]) => (b.priority || 0) - (a.priority || 0))
+                .map(([fieldId, pref], index, array) => {
+                    const field = PREFERENCE_FIELDS.find(f => f.id === fieldId);
+                    if (!field) return '';
+
+                    const borderColor = getPreferenceBorderColor(index, array.length);
+
+                    return `
+                                <div style="
+                                    background: rgba(255, 255, 255, 0.05);
+                                    padding: 1rem;
+                                    border-radius: 8px;
+                                    border-left: 4px solid ${borderColor};
+                                ">
+                                    <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.3rem;">
+                                        ${field.label}
+                                    </div>
+                                    <div style="color: var(--text-primary); font-weight: 500;">
+                                        ${formatPreferenceValue(fieldId, pref)}
+                                    </div>
+                                </div>
+                            `;
+                }).join('')}
+                </div>
+            </div>
+        ` : ''}
         ${isUnlocked ? `
             <div class="contact-info">
                 <h4>📞 연락처</h4>

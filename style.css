@@ -1001,8 +1001,8 @@ select:focus {
 
 /* Blurred Profile */
 .blurred-photo {
-    filter: blur(20px);
-    -webkit-filter: blur(20px);
+    filter: blur(10px);
+    -webkit-filter: blur(10px);
 
     /* 이미지 선택 및 컨텍스트 메뉴 방지 */
     user-select: none;
@@ -2033,6 +2033,7 @@ textarea:focus {
         transform: translateY(100vh);
     }
 }
+
 /* Unlock Flow Styles */
 .flow-container {
     width: 100%;
@@ -2059,11 +2060,25 @@ textarea:focus {
     animation: slideIn 0.5s forwards;
 }
 
-.step-1 { animation-delay: 0.2s; }
-.step-2 { animation-delay: 1.2s; }
-.step-3 { animation-delay: 2.2s; }
-.step-4 { animation-delay: 3.2s; }
-.step-5 { animation-delay: 4.2s; }
+.step-1 {
+    animation-delay: 0.2s;
+}
+
+.step-2 {
+    animation-delay: 1.2s;
+}
+
+.step-3 {
+    animation-delay: 2.2s;
+}
+
+.step-4 {
+    animation-delay: 3.2s;
+}
+
+.step-5 {
+    animation-delay: 4.2s;
+}
 
 .step-icon {
     width: 60px;
@@ -2115,24 +2130,55 @@ textarea:focus {
     animation: fadeIn 0.5s forwards;
 }
 
-.step-1+.arrow-down { animation-delay: 0.7s; }
-.step-2+.arrow-down { animation-delay: 1.7s; }
-.step-3+.arrow-down { animation-delay: 2.7s; }
-.step-4+.arrow-down { animation-delay: 3.7s; }
+.step-1+.arrow-down {
+    animation-delay: 0.7s;
+}
+
+.step-2+.arrow-down {
+    animation-delay: 1.7s;
+}
+
+.step-3+.arrow-down {
+    animation-delay: 2.7s;
+}
+
+.step-4+.arrow-down {
+    animation-delay: 3.7s;
+}
 
 /* Status Colors */
-.step-1 .step-icon { background: linear-gradient(135deg, #FF6B9D, #FF8E53); }
-.step-2 .step-icon { background: linear-gradient(135deg, #667eea, #764ba2); }
-.step-3 .step-icon { background: linear-gradient(135deg, #f6d365, #fda085); }
-.step-4 .step-icon { background: linear-gradient(135deg, #84fab0, #8fd3f4); color: #333; }
-.step-5 .step-icon { background: linear-gradient(135deg, #fa709a, #fee140); }
+.step-1 .step-icon {
+    background: linear-gradient(135deg, #FF6B9D, #FF8E53);
+}
+
+.step-2 .step-icon {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.step-3 .step-icon {
+    background: linear-gradient(135deg, #f6d365, #fda085);
+}
+
+.step-4 .step-icon {
+    background: linear-gradient(135deg, #84fab0, #8fd3f4);
+    color: #333;
+}
+
+.step-5 .step-icon {
+    background: linear-gradient(135deg, #fa709a, #fee140);
+}
 
 @keyframes slideIn {
-    to { opacity: 1; transform: translateY(0); }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes fadeIn {
-    to { opacity: 1; }
+    to {
+        opacity: 1;
+    }
 }
 
 .highlight {
@@ -2142,10 +2188,29 @@ textarea:focus {
 
 /* Mobile Responsiveness */
 @media (max-width: 600px) {
-    .flow-container { padding: 20px 10px; }
-    .step { gap: 15px; }
-    .step-icon { width: 50px; height: 50px; font-size: 20px; }
-    .step-content { padding: 15px; }
-    .step-title { font-size: 1rem; }
-    .step-desc { font-size: 0.85rem; }
+    .flow-container {
+        padding: 20px 10px;
+    }
+
+    .step {
+        gap: 15px;
+    }
+
+    .step-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+
+    .step-content {
+        padding: 15px;
+    }
+
+    .step-title {
+        font-size: 1rem;
+    }
+
+    .step-desc {
+        font-size: 0.85rem;
+    }
 }
