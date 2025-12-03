@@ -15,6 +15,13 @@ let completedPagination = {
     itemsPerPage: 10
 };
 
+// Search and filter state
+let requestsSearch = '';
+let completedSearch = '';
+let completedStatusFilter = 'all'; // 'all', 'approved', 'rejected'
+let profilesSearch = '';
+let profilesGenderFilter = 'all'; // 'all', 'male', 'female'
+
 window.currentUser = currentUser;
 let notificationInitialCheckDone = false;
 
@@ -2212,6 +2219,63 @@ async function showAdminDashboard() {
         displayCompletedRequests(),
         displayAllProfiles()
     ]);
+
+    // Setup search and filter event listeners
+    setupSearchAndFilters();
+}
+
+function setupSearchAndFilters() {
+    // Requests search
+    const requestsSearchInput = document.getElementById('requests-search');
+    if (requestsSearchInput) {
+        requestsSearchInput.addEventListener('input', (e) => {
+            requestsSearch = e.target.value;
+            requestsPagination.currentPage = 1; // Reset to first page
+            displayUnlockRequests();
+        });
+    }
+
+    // Completed search
+    const completedSearchInput = document.getElementById('completed-search');
+    if (completedSearchInput) {
+        completedSearchInput.addEventListener('input', (e) => {
+            completedSearch = e.target.value;
+            completedPagination.currentPage = 1; // Reset to first page
+            displayCompletedRequests();
+        });
+    }
+
+    // Completed status filter
+    const completedFilterBtns = document.querySelectorAll('#completed-tab .filter-btn');
+    completedFilterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            completedFilterBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            completedStatusFilter = btn.dataset.status;
+            completedPagination.currentPage = 1; // Reset to first page
+            displayCompletedRequests();
+        });
+    });
+
+    // Profiles search
+    const profilesSearchInput = document.getElementById('profiles-search');
+    if (profilesSearchInput) {
+        profilesSearchInput.addEventListener('input', (e) => {
+            profilesSearch = e.target.value;
+            displayAllProfiles();
+        });
+    }
+
+    // Profiles gender filter
+    const profilesFilterBtns = document.querySelectorAll('#profiles-tab .filter-btn');
+    profilesFilterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            profilesFilterBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            profilesGenderFilter = btn.dataset.gender;
+            displayAllProfiles();
+        });
+    });
 }
 
 function setupAdminTabs() {
@@ -2257,12 +2321,25 @@ async function displayUnlockRequests(page = null) {
     const noRequests = document.getElementById('no-requests');
     const paginationControls = document.getElementById('requests-pagination');
 
-    const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'admin_approved');
+    let pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'admin_approved');
 
-    // Update pending count
+    // Apply search filter
+    if (requestsSearch) {
+        pendingRequests = pendingRequests.filter(request => {
+            const requester = users.find(u => u.id === request.requesterId);
+            const target = users.find(u => u.id === request.targetId);
+            const requesterName = requester ? requester.name.toLowerCase() : '';
+            const targetName = target ? target.name.toLowerCase() : '';
+            const searchLower = requestsSearch.toLowerCase();
+            return requesterName.includes(searchLower) || targetName.includes(searchLower);
+        });
+    }
+
+    // Update pending count (total, not filtered)
     const pendingCount = document.getElementById('pending-count');
     if (pendingCount) {
-        pendingCount.textContent = pendingRequests.length;
+        const totalPending = requests.filter(r => r.status === 'pending' || r.status === 'admin_approved').length;
+        pendingCount.textContent = totalPending;
     }
 
     if (pendingRequests.length === 0) {
@@ -2379,12 +2456,30 @@ async function displayCompletedRequests(page = null) {
     const noCompleted = document.getElementById('no-completed');
     const paginationControls = document.getElementById('completed-pagination');
 
-    const completedRequests = requests.filter(r => r.status === 'approved' || r.status === 'rejected');
+    let completedRequests = requests.filter(r => r.status === 'approved' || r.status === 'rejected');
 
-    // Update completed count
+    // Apply status filter
+    if (completedStatusFilter !== 'all') {
+        completedRequests = completedRequests.filter(r => r.status === completedStatusFilter);
+    }
+
+    // Apply search filter
+    if (completedSearch) {
+        completedRequests = completedRequests.filter(request => {
+            const requester = users.find(u => u.id === request.requesterId);
+            const target = users.find(u => u.id === request.targetId);
+            const requesterName = requester ? requester.name.toLowerCase() : '';
+            const targetName = target ? target.name.toLowerCase() : '';
+            const searchLower = completedSearch.toLowerCase();
+            return requesterName.includes(searchLower) || targetName.includes(searchLower);
+        });
+    }
+
+    // Update completed count (total, not filtered)
     const completedCount = document.getElementById('completed-count');
     if (completedCount) {
-        completedCount.textContent = completedRequests.length;
+        const totalCompleted = requests.filter(r => r.status === 'approved' || r.status === 'rejected').length;
+        completedCount.textContent = totalCompleted;
     }
 
     if (completedRequests.length === 0) {
@@ -2478,12 +2573,28 @@ async function displayCompletedRequests(page = null) {
 }
 
 async function displayAllProfiles() {
-    const users = await fetchUsers();
+    let users = await fetchUsers();
     const grid = document.getElementById('admin-profiles-grid');
     const totalCount = document.getElementById('total-count');
 
+    // Apply gender filter
+    if (profilesGenderFilter !== 'all') {
+        users = users.filter(u => u.gender === profilesGenderFilter);
+    }
+
+    // Apply search filter
+    if (profilesSearch) {
+        users = users.filter(user => {
+            const name = user.name ? user.name.toLowerCase() : '';
+            const searchLower = profilesSearch.toLowerCase();
+            return name.includes(searchLower);
+        });
+    }
+
+    // Update total count (total, not filtered)
     if (totalCount) {
-        totalCount.textContent = users.length;
+        const allUsers = await fetchUsers();
+        totalCount.textContent = allUsers.length;
     }
 
     grid.innerHTML = users.map(user => `

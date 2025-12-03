@@ -909,6 +909,11 @@
 
                 <!-- Unlock Requests Tab -->
                 <div id="requests-tab" class="admin-tab-content active">
+                    <!-- Search bar -->
+                    <div class="search-filter-container">
+                        <input type="text" id="requests-search" class="search-input" placeholder="🔍 이름으로 검색...">
+                    </div>
+
                     <div id="admin-requests-grid" class="admin-requests-grid"></div>
                     <div id="no-requests" class="no-matches" style="display: none;">
                         <div class="empty-state">
@@ -926,6 +931,16 @@
 
                 <!-- Completed Requests Tab -->
                 <div id="completed-tab" class="admin-tab-content">
+                    <!-- Search and filter bar -->
+                    <div class="search-filter-container">
+                        <input type="text" id="completed-search" class="search-input" placeholder="🔍 이름으로 검색...">
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-status="all">전체</button>
+                            <button class="filter-btn" data-status="approved">승인됨</button>
+                            <button class="filter-btn" data-status="rejected">거절됨</button>
+                        </div>
+                    </div>
+
                     <div id="admin-completed-grid" class="admin-requests-grid"></div>
                     <div id="no-completed" class="no-matches" style="display: none;">
                         <div class="empty-state">
@@ -943,6 +958,16 @@
 
                 <!-- All Profiles Tab -->
                 <div id="profiles-tab" class="admin-tab-content">
+                    <!-- Search and filter bar -->
+                    <div class="search-filter-container">
+                        <input type="text" id="profiles-search" class="search-input" placeholder="🔍 이름으로 검색...">
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-gender="all">전체</button>
+                            <button class="filter-btn" data-gender="male">남자</button>
+                            <button class="filter-btn" data-gender="female">여자</button>
+                        </div>
+                    </div>
+
                     <div id="admin-profiles-grid" class="admin-profiles-grid"></div>
                 </div>
 
