@@ -904,6 +904,7 @@
                             id="pending-count">0</span>)</button>
                     <button class="admin-tab" data-tab="completed">완료된 요청 (<span id="completed-count">0</span>)</button>
                     <button class="admin-tab" data-tab="profiles">전체 프로필 (<span id="total-count">0</span>)</button>
+                    <button class="admin-tab" data-tab="statistics">통계</button>
                 </div>
 
                 <!-- Unlock Requests Tab -->
@@ -931,6 +932,16 @@
                 <!-- All Profiles Tab -->
                 <div id="profiles-tab" class="admin-tab-content">
                     <div id="admin-profiles-grid" class="admin-profiles-grid"></div>
+                </div>
+
+                <!-- Statistics Tab -->
+                <div id="statistics-tab" class="admin-tab-content">
+                    <div class="card" style="max-width: 1200px; margin: 0 auto;">
+                        <h2 style="margin-bottom: 1.5rem;">📊 지역별 가입자 통계</h2>
+                        <div id="statistics-content">
+                            <!-- Statistics will be populated here -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

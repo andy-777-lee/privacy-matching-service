@@ -2187,6 +2187,8 @@ async function showAdminDashboard() {
                 displayAllProfiles();
             } else if (tab.dataset.tab === 'completed') {
                 displayCompletedRequests();
+            } else if (tab.dataset.tab === 'statistics') {
+                displayStatistics();
             } else {
                 displayUnlockRequests();
             }
@@ -2221,6 +2223,8 @@ function setupAdminTabs() {
                 displayAllProfiles();
             } else if (targetTab === 'completed') {
                 displayCompletedRequests();
+            } else if (targetTab === 'statistics') {
+                displayStatistics();
             } else {
                 displayUnlockRequests();
             }
@@ -2251,6 +2255,9 @@ async function displayUnlockRequests() {
 
     grid.style.display = 'grid';
     noRequests.style.display = 'none';
+
+    // Sort by createdAt (most recent first)
+    pendingRequests.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
     grid.innerHTML = pendingRequests.map(request => {
         const requester = users.find(u => u.id === request.requesterId) || { name: '알 수 없음 (삭제됨)', id: request.requesterId };
@@ -2458,6 +2465,101 @@ async function handleDeleteUser(userId, userName) {
         }
     }
 }
+
+async function displayStatistics() {
+    const users = await fetchUsers();
+    const container = document.getElementById('statistics-content');
+
+    // Group users by location and gender
+    const locationStats = {};
+
+    users.forEach(user => {
+        const location = user.location || '미정';
+        const gender = user.gender;
+
+        if (!locationStats[location]) {
+            locationStats[location] = { male: 0, female: 0, total: 0 };
+        }
+
+        if (gender === 'male') {
+            locationStats[location].male++;
+        } else if (gender === 'female') {
+            locationStats[location].female++;
+        }
+        locationStats[location].total++;
+    });
+
+    // Sort locations by total count (descending)
+    const sortedLocations = Object.entries(locationStats).sort((a, b) => b[1].total - a[1].total);
+
+    // Calculate totals
+    const totalMale = users.filter(u => u.gender === 'male').length;
+    const totalFemale = users.filter(u => u.gender === 'female').length;
+    const totalUsers = users.length;
+
+    // Generate HTML
+    container.innerHTML = `
+        <div style="margin-bottom: 2rem; padding: 1.5rem; background: rgba(102, 126, 234, 0.1); border-radius: 12px; border: 1px solid rgba(102, 126, 234, 0.2);">
+            <h3 style="margin-bottom: 1rem; color: var(--primary);">📈 전체 통계</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--primary);">${totalUsers}</div>
+                    <div style="color: var(--text-secondary); margin-top: 0.5rem;">전체 가입자</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #667eea;">${totalMale}</div>
+                    <div style="color: var(--text-secondary); margin-top: 0.5rem;">남성 👨</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #f093fb;">${totalFemale}</div>
+                    <div style="color: var(--text-secondary); margin-top: 0.5rem;">여성 👩</div>
+                </div>
+            </div>
+        </div>
+
+        <h3 style="margin-bottom: 1rem;">📍 지역별 가입자 현황</h3>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: rgba(102, 126, 234, 0.1); border-bottom: 2px solid rgba(102, 126, 234, 0.2);">
+                        <th style="padding: 1rem; text-align: left; font-weight: 600;">지역</th>
+                        <th style="padding: 1rem; text-align: center; font-weight: 600;">남성 👨</th>
+                        <th style="padding: 1rem; text-align: center; font-weight: 600;">여성 👩</th>
+                        <th style="padding: 1rem; text-align: center; font-weight: 600;">전체</th>
+                        <th style="padding: 1rem; text-align: left; font-weight: 600;">비율</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sortedLocations.map(([location, stats]) => {
+        const malePercent = stats.total > 0 ? ((stats.male / stats.total) * 100).toFixed(1) : 0;
+        const femalePercent = stats.total > 0 ? ((stats.female / stats.total) * 100).toFixed(1) : 0;
+
+        return `
+                            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                <td style="padding: 1rem; font-weight: 500;">${location}</td>
+                                <td style="padding: 1rem; text-align: center; color: #667eea; font-weight: 600;">${stats.male}</td>
+                                <td style="padding: 1rem; text-align: center; color: #f093fb; font-weight: 600;">${stats.female}</td>
+                                <td style="padding: 1rem; text-align: center; font-weight: 600;">${stats.total}</td>
+                                <td style="padding: 1rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div style="flex: 1; height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden; display: flex;">
+                                            <div style="width: ${malePercent}%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); transition: width 0.3s;"></div>
+                                            <div style="width: ${femalePercent}%; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); transition: width 0.3s;"></div>
+                                        </div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">
+                                            <span style="color: #667eea;">${malePercent}%</span> / <span style="color: #f093fb;">${femalePercent}%</span>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
 
 async function approveRequest(requestId) {
     // Admin mode: fetch all requests to find the target one
