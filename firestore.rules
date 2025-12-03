@@ -40,5 +40,11 @@ service cloud.firestore {
       // Only Cloud Functions can write (via admin SDK)
       allow write: if false;
     }
+
+    // Settings collection rules - for admin settings like auto-approval
+    match /settings/{settingId} {
+      // Allow authenticated users to read/write settings
+      allow read, write: if request.auth != null;
+    }
   }
 }

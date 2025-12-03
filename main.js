@@ -2342,14 +2342,42 @@ function setupAdminTabs() {
 }
 
 // Auto-approval state
-let autoApprovalEnabled = localStorage.getItem('autoApprovalEnabled') === 'true';
+let autoApprovalEnabled = false;
+
+// Load auto-approval setting from Firestore
+async function loadAutoApprovalSetting() {
+    try {
+        const settingsDoc = await db.collection('settings').doc('autoApproval').get();
+        if (settingsDoc.exists) {
+            autoApprovalEnabled = settingsDoc.data().enabled || false;
+        }
+    } catch (error) {
+        console.error('Error loading auto-approval setting:', error);
+    }
+}
+
+// Save auto-approval setting to Firestore
+async function saveAutoApprovalSetting(enabled) {
+    try {
+        await db.collection('settings').doc('autoApproval').set({
+            enabled: enabled,
+            updatedAt: Date.now()
+        });
+    } catch (error) {
+        console.error('Error saving auto-approval setting:', error);
+        throw error;
+    }
+}
 
 // Initialize auto-approval toggle
-function initAutoApprovalToggle() {
+async function initAutoApprovalToggle() {
     const toggle = document.getElementById('auto-approval-toggle');
     const status = document.getElementById('auto-approval-status');
 
     if (!toggle || !status) return;
+
+    // Load setting from Firestore
+    await loadAutoApprovalSetting();
 
     // Set initial state
     toggle.checked = autoApprovalEnabled;
@@ -2358,7 +2386,6 @@ function initAutoApprovalToggle() {
     // Handle toggle change
     toggle.addEventListener('change', async (e) => {
         autoApprovalEnabled = e.target.checked;
-        localStorage.setItem('autoApprovalEnabled', autoApprovalEnabled);
         updateAutoApprovalStatus(status, autoApprovalEnabled);
 
         if (autoApprovalEnabled) {
@@ -2367,6 +2394,9 @@ function initAutoApprovalToggle() {
 
             if (confirmed) {
                 try {
+                    // Save to Firestore
+                    await saveAutoApprovalSetting(true);
+
                     const requests = await fetchUnlockRequests();
                     const pendingRequests = requests.filter(r => r.status === 'pending');
 
@@ -2411,16 +2441,26 @@ function initAutoApprovalToggle() {
                 } catch (error) {
                     console.error('Error auto-approving pending requests:', error);
                     alert('자동 승인 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+                    // Revert on error
+                    toggle.checked = false;
+                    autoApprovalEnabled = false;
+                    updateAutoApprovalStatus(status, false);
                 }
             } else {
                 // User cancelled, revert toggle
                 toggle.checked = false;
                 autoApprovalEnabled = false;
-                localStorage.setItem('autoApprovalEnabled', 'false');
                 updateAutoApprovalStatus(status, false);
             }
         } else {
-            alert('자동 승인이 비활성화되었습니다.');
+            // Save to Firestore
+            try {
+                await saveAutoApprovalSetting(false);
+                alert('자동 승인이 비활성화되었습니다.');
+            } catch (error) {
+                console.error('Error saving auto-approval setting:', error);
+                alert('설정 저장 중 오류가 발생했습니다.');
+            }
         }
     });
 }
