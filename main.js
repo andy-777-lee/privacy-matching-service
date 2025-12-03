@@ -2356,13 +2356,69 @@ function initAutoApprovalToggle() {
     updateAutoApprovalStatus(status, autoApprovalEnabled);
 
     // Handle toggle change
-    toggle.addEventListener('change', (e) => {
+    toggle.addEventListener('change', async (e) => {
         autoApprovalEnabled = e.target.checked;
         localStorage.setItem('autoApprovalEnabled', autoApprovalEnabled);
         updateAutoApprovalStatus(status, autoApprovalEnabled);
 
         if (autoApprovalEnabled) {
-            alert('자동 승인이 활성화되었습니다. 새로운 요청이 자동으로 승인됩니다.');
+            // Auto-approve all existing pending requests
+            const confirmed = confirm('자동 승인을 활성화하시겠습니까?\n\n현재 대기 중인 모든 요청이 자동으로 승인됩니다.');
+
+            if (confirmed) {
+                try {
+                    const requests = await fetchUnlockRequests();
+                    const pendingRequests = requests.filter(r => r.status === 'pending');
+
+                    if (pendingRequests.length > 0) {
+                        // Approve all pending requests
+                        for (const request of pendingRequests) {
+                            request.status = 'admin_approved';
+                            request.adminApprovedAt = Date.now();
+                            await saveUnlockRequest(request);
+
+                            // Create notification for target user
+                            await saveNotification({
+                                userId: request.targetId,
+                                type: 'approval_request',
+                                message: '누군가 당신의 프로필 공개를 요청했습니다. 승인하시겠습니까?',
+                                requestMessage: request.message,
+                                requestId: request.id,
+                                requesterId: request.requesterId,
+                                read: false,
+                                createdAt: Date.now()
+                            });
+
+                            // Create notification for requester
+                            await saveNotification({
+                                userId: request.requesterId,
+                                type: 'admin_approved',
+                                message: '관리자가 1차 승인했습니다. 상대방의 승인을 기다리는 중입니다.',
+                                targetId: request.targetId,
+                                read: false,
+                                createdAt: Date.now()
+                            });
+                        }
+
+                        // Clear cache and refresh display
+                        clearUnlockRequestsCache();
+                        await displayUnlockRequests();
+
+                        alert(`자동 승인이 활성화되었습니다.\n${pendingRequests.length}개의 대기 중인 요청이 승인되었습니다.`);
+                    } else {
+                        alert('자동 승인이 활성화되었습니다.\n새로운 요청이 자동으로 승인됩니다.');
+                    }
+                } catch (error) {
+                    console.error('Error auto-approving pending requests:', error);
+                    alert('자동 승인 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+                }
+            } else {
+                // User cancelled, revert toggle
+                toggle.checked = false;
+                autoApprovalEnabled = false;
+                localStorage.setItem('autoApprovalEnabled', 'false');
+                updateAutoApprovalStatus(status, false);
+            }
         } else {
             alert('자동 승인이 비활성화되었습니다.');
         }
