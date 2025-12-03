@@ -1325,11 +1325,16 @@ function createMatchCard(match, isUnlocked, sentRequest = null, receivedRequest 
         `;
     }
 
+    // Check if user is new (registered within 24 hours)
+    const isNewUser = user.createdAt && (Date.now() - user.createdAt < 24 * 60 * 60 * 1000);
+    const newBadge = isNewUser ? '<span class="new-badge">NEW</span>' : '';
+
     return `
         <div class="match-card ${isUnlocked ? 'unlocked' : ''}" data-user-id="${user.id}">
             <div class="match-photos">
                 ${matchPercentageHTML}
                 ${requestBadge}
+                ${newBadge}
                 ${isUnlocked
             ? `<img src="${user.photos && user.photos[0] ? user.photos[0] : ''}" alt="Profile">`
             : `

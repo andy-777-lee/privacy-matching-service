@@ -1916,6 +1916,37 @@ textarea:focus {
     }
 }
 
+/* NEW Badge for Recent Users */
+.new-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    z-index: 10;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.6);
+        transform: scale(1.05);
+    }
+}
+
 /* Unlocked Badge */
 .unlocked-badge {
     position: absolute;
@@ -2351,6 +2382,7 @@ textarea:focus {
     color: white;
     box-shadow: var(--shadow-glow);
 }
+
 /* Auto-approval toggle */
 .auto-approval-container {
     display: flex;
@@ -2399,11 +2431,11 @@ textarea:focus {
     border-radius: 50%;
 }
 
-input:checked + .toggle-slider {
+input:checked+.toggle-slider {
     background-color: var(--primary);
 }
 
-input:checked + .toggle-slider:before {
+input:checked+.toggle-slider:before {
     transform: translateX(26px);
 }
 
