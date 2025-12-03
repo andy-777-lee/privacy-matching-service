@@ -7,6 +7,13 @@ let usersCache = {
     duration: 5 * 60 * 1000 // 5 minutes
 };
 
+// In-memory cache for unlock requests
+let unlockRequestsCache = {
+    data: null,
+    timestamp: null,
+    duration: 2 * 60 * 1000 // 2 minutes (shorter than users since requests change more frequently)
+};
+
 // Fetch all users (with in-memory caching)
 async function fetchUsers(forceRefresh = false) {
     try {
@@ -59,17 +66,34 @@ async function saveUser(user) {
     }
 }
 
-// Fetch unlock requests
 // Fetch unlock requests (filtered by userId if provided)
-async function fetchUnlockRequests(userId = null) {
+async function fetchUnlockRequests(userId = null, forceRefresh = false) {
     try {
         if (!userId) {
-            // Admin mode: Fetch all requests
+            // Admin mode: Fetch all requests with caching
+
+            // Check cache first
+            if (!forceRefresh && unlockRequestsCache.data && unlockRequestsCache.timestamp) {
+                const now = Date.now();
+                if (now - unlockRequestsCache.timestamp < unlockRequestsCache.duration) {
+                    console.log('Returning cached unlock requests data (in-memory)');
+                    return unlockRequestsCache.data;
+                }
+            }
+
             console.log('Fetching ALL unlock requests (Admin mode)...');
             const snapshot = await db.collection('unlock_requests').get();
-            return snapshot.docs.map(doc => doc.data());
+            const requests = snapshot.docs.map(doc => doc.data());
+
+            // Update in-memory cache
+            unlockRequestsCache.data = requests;
+            unlockRequestsCache.timestamp = Date.now();
+            console.log(`Fetched ${requests.length} unlock requests, cached in memory`);
+
+            return requests;
         } else {
             // User mode: Fetch only relevant requests (sent by me OR received by me)
+            // Don't cache user-specific requests as they're less frequently accessed
             console.log(`Fetching unlock requests for user ${userId}...`);
 
             // Firestore doesn't support logical OR in a single query easily for different fields
@@ -179,6 +203,13 @@ function clearUsersCache() {
     console.log('Users cache cleared');
 }
 
+// Clear unlock requests cache
+function clearUnlockRequestsCache() {
+    unlockRequestsCache.data = null;
+    unlockRequestsCache.timestamp = null;
+    console.log('Unlock requests cache cleared');
+}
+
 // Export to global scope
 window.fetchUsers = fetchUsers;
 window.saveUser = saveUser;
@@ -188,3 +219,4 @@ window.fetchUnlockedProfiles = fetchUnlockedProfiles;
 window.addUnlockedProfile = addUnlockedProfile;
 window.deleteUser = deleteUser;
 window.clearUsersCache = clearUsersCache;
+window.clearUnlockRequestsCache = clearUnlockRequestsCache;

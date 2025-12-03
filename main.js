@@ -3,6 +3,18 @@
 
 // Global state
 let currentUser = null;
+
+// Pagination state
+let requestsPagination = {
+    currentPage: 1,
+    itemsPerPage: 10
+};
+
+let completedPagination = {
+    currentPage: 1,
+    itemsPerPage: 10
+};
+
 window.currentUser = currentUser;
 let notificationInitialCheckDone = false;
 
@@ -2232,12 +2244,18 @@ function setupAdminTabs() {
     });
 }
 
-async function displayUnlockRequests() {
+async function displayUnlockRequests(page = null) {
+    // Use provided page or current page
+    if (page !== null) {
+        requestsPagination.currentPage = page;
+    }
+
     // Admin mode: pass null or no argument to fetch all requests
     const requests = await fetchUnlockRequests();
     const users = await fetchUsers();
     const grid = document.getElementById('admin-requests-grid');
     const noRequests = document.getElementById('no-requests');
+    const paginationControls = document.getElementById('requests-pagination');
 
     const pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'admin_approved');
 
@@ -2250,6 +2268,7 @@ async function displayUnlockRequests() {
     if (pendingRequests.length === 0) {
         grid.style.display = 'none';
         noRequests.style.display = 'block';
+        paginationControls.style.display = 'none';
         return;
     }
 
@@ -2259,7 +2278,14 @@ async function displayUnlockRequests() {
     // Sort by createdAt (most recent first)
     pendingRequests.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
-    grid.innerHTML = pendingRequests.map(request => {
+    // Pagination logic
+    const totalPages = Math.ceil(pendingRequests.length / requestsPagination.itemsPerPage);
+    const startIndex = (requestsPagination.currentPage - 1) * requestsPagination.itemsPerPage;
+    const endIndex = startIndex + requestsPagination.itemsPerPage;
+    const paginatedRequests = pendingRequests.slice(startIndex, endIndex);
+
+    // Display paginated requests
+    grid.innerHTML = paginatedRequests.map(request => {
         const requester = users.find(u => u.id === request.requesterId) || { name: '알 수 없음 (삭제됨)', id: request.requesterId };
         const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
 
@@ -2303,14 +2329,55 @@ async function displayUnlockRequests() {
             </div>
         `;
     }).join('');
+
+    // Update pagination controls
+    if (pendingRequests.length > requestsPagination.itemsPerPage) {
+        paginationControls.style.display = 'flex';
+
+        const prevBtn = document.getElementById('requests-prev');
+        const nextBtn = document.getElementById('requests-next');
+        const pageInfo = document.getElementById('requests-page-info');
+
+        prevBtn.disabled = requestsPagination.currentPage === 1;
+        nextBtn.disabled = requestsPagination.currentPage === totalPages;
+
+        pageInfo.textContent = `${startIndex + 1}-${Math.min(endIndex, pendingRequests.length)} / ${pendingRequests.length}`;
+
+        // Remove old event listeners by cloning
+        const newPrevBtn = prevBtn.cloneNode(true);
+        const newNextBtn = nextBtn.cloneNode(true);
+        prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+        nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+
+        // Add new event listeners
+        newPrevBtn.addEventListener('click', () => {
+            if (requestsPagination.currentPage > 1) {
+                displayUnlockRequests(requestsPagination.currentPage - 1);
+            }
+        });
+
+        newNextBtn.addEventListener('click', () => {
+            if (requestsPagination.currentPage < totalPages) {
+                displayUnlockRequests(requestsPagination.currentPage + 1);
+            }
+        });
+    } else {
+        paginationControls.style.display = 'none';
+    }
 }
 
-async function displayCompletedRequests() {
+async function displayCompletedRequests(page = null) {
+    // Use provided page or current page
+    if (page !== null) {
+        completedPagination.currentPage = page;
+    }
+
     // Admin mode: pass null or no argument to fetch all requests
     const requests = await fetchUnlockRequests();
     const users = await fetchUsers();
     const grid = document.getElementById('admin-completed-grid');
     const noCompleted = document.getElementById('no-completed');
+    const paginationControls = document.getElementById('completed-pagination');
 
     const completedRequests = requests.filter(r => r.status === 'approved' || r.status === 'rejected');
 
@@ -2323,6 +2390,7 @@ async function displayCompletedRequests() {
     if (completedRequests.length === 0) {
         grid.style.display = 'none';
         noCompleted.style.display = 'block';
+        paginationControls.style.display = 'none';
         return;
     }
 
@@ -2332,7 +2400,14 @@ async function displayCompletedRequests() {
     // Sort by reviewedAt (most recent first)
     completedRequests.sort((a, b) => (b.reviewedAt || 0) - (a.reviewedAt || 0));
 
-    grid.innerHTML = completedRequests.map(request => {
+    // Pagination logic
+    const totalPages = Math.ceil(completedRequests.length / completedPagination.itemsPerPage);
+    const startIndex = (completedPagination.currentPage - 1) * completedPagination.itemsPerPage;
+    const endIndex = startIndex + completedPagination.itemsPerPage;
+    const paginatedRequests = completedRequests.slice(startIndex, endIndex);
+
+    // Display paginated requests
+    grid.innerHTML = paginatedRequests.map(request => {
         const requester = users.find(u => u.id === request.requesterId) || { name: '알 수 없음 (삭제됨)', id: request.requesterId };
         const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
 
@@ -2365,6 +2440,41 @@ async function displayCompletedRequests() {
             </div>
         `;
     }).join('');
+
+    // Update pagination controls
+    if (completedRequests.length > completedPagination.itemsPerPage) {
+        paginationControls.style.display = 'flex';
+
+        const prevBtn = document.getElementById('completed-prev');
+        const nextBtn = document.getElementById('completed-next');
+        const pageInfo = document.getElementById('completed-page-info');
+
+        prevBtn.disabled = completedPagination.currentPage === 1;
+        nextBtn.disabled = completedPagination.currentPage === totalPages;
+
+        pageInfo.textContent = `${startIndex + 1}-${Math.min(endIndex, completedRequests.length)} / ${completedRequests.length}`;
+
+        // Remove old event listeners by cloning
+        const newPrevBtn = prevBtn.cloneNode(true);
+        const newNextBtn = nextBtn.cloneNode(true);
+        prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+        nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+
+        // Add new event listeners
+        newPrevBtn.addEventListener('click', () => {
+            if (completedPagination.currentPage > 1) {
+                displayCompletedRequests(completedPagination.currentPage - 1);
+            }
+        });
+
+        newNextBtn.addEventListener('click', () => {
+            if (completedPagination.currentPage < totalPages) {
+                displayCompletedRequests(completedPagination.currentPage + 1);
+            }
+        });
+    } else {
+        paginationControls.style.display = 'none';
+    }
 }
 
 async function displayAllProfiles() {
@@ -2595,6 +2705,9 @@ async function approveRequest(requestId) {
                 createdAt: Date.now()
             });
 
+            // Clear cache to fetch fresh data
+            clearUnlockRequestsCache();
+
             alert('1차 승인되었습니다. 대상자에게 알림이 전송되었습니다.');
             displayUnlockRequests();
 
@@ -2703,6 +2816,9 @@ async function rejectRequest(requestId) {
         request.reviewedAt = Date.now();
         await saveUnlockRequest(request);
 
+        // Clear cache to fetch fresh data
+        clearUnlockRequestsCache();
+
         alert('거절되었습니다.');
         displayUnlockRequests();
         displayCompletedRequests();
@@ -2751,6 +2867,9 @@ async function adminOverrideApprove(requestId) {
                 createdAt: Date.now()
             });
 
+            // Clear cache to fetch fresh data
+            clearUnlockRequestsCache();
+
             alert('최종 승인되었습니다. 양쪽 모두 프로필을 확인할 수 있습니다.');
             displayUnlockRequests();
             displayCompletedRequests();
@@ -2797,6 +2916,9 @@ async function adminOverrideReject(requestId) {
                 read: false,
                 createdAt: Date.now()
             });
+
+            // Clear cache to fetch fresh data
+            clearUnlockRequestsCache();
 
             alert('최종 거절되었습니다.');
             displayUnlockRequests();

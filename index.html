@@ -916,6 +916,12 @@
                             <h3>대기 중인 요청이 없습니다</h3>
                         </div>
                     </div>
+                    <!-- Pagination for pending requests -->
+                    <div id="requests-pagination" class="pagination-controls" style="display: none;">
+                        <button id="requests-prev" class="pagination-btn">← 이전</button>
+                        <span id="requests-page-info" class="page-info"></span>
+                        <button id="requests-next" class="pagination-btn">다음 →</button>
+                    </div>
                 </div>
 
                 <!-- Completed Requests Tab -->
@@ -926,6 +932,12 @@
                             <span class="empty-icon">📋</span>
                             <h3>완료된 요청이 없습니다</h3>
                         </div>
+                    </div>
+                    <!-- Pagination for completed requests -->
+                    <div id="completed-pagination" class="pagination-controls" style="display: none;">
+                        <button id="completed-prev" class="pagination-btn">← 이전</button>
+                        <span id="completed-page-info" class="page-info"></span>
+                        <button id="completed-next" class="pagination-btn">다음 →</button>
                     </div>
                 </div>
 

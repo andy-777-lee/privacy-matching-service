@@ -2214,3 +2214,44 @@ textarea:focus {
         font-size: 0.85rem;
     }
 }
+/* Pagination Controls */
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+}
+
+.pagination-btn {
+    padding: 0.75rem 1.5rem;
+    background: var(--bg-secondary);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: var(--primary);
+    background: rgba(255, 107, 157, 0.1);
+    transform: translateY(-2px);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.page-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    min-width: 150px;
+    text-align: center;
+}
