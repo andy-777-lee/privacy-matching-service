@@ -1257,6 +1257,21 @@ textarea:focus {
     transition: all var(--transition-fast);
     border-bottom: 3px solid transparent;
     margin-bottom: -2px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.admin-tab .tab-label {
+    text-align: center;
+    line-height: 1.2;
+    font-size: 0.9rem;
+}
+
+.admin-tab .tab-count {
+    font-size: 0.85rem;
+    opacity: 0.8;
 }
 
 .admin-tab:hover {
@@ -1349,21 +1364,33 @@ textarea:focus {
 }
 
 .btn-approve {
-    background: var(--success);
+    background: linear-gradient(135deg, #4CD964 0%, #3DBDB4 100%);
     color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(76, 217, 100, 0.3);
+    transition: all var(--transition-fast);
 }
 
 .btn-approve:hover {
-    background: #3DBDB4;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(76, 217, 100, 0.4);
 }
 
 .btn-reject {
-    background: var(--error);
+    background: linear-gradient(135deg, #FF6B6B 0%, #E55555 100%);
     color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    transition: all var(--transition-fast);
 }
 
 .btn-reject:hover {
-    background: #E55555;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4);
 }
 
 /* Header Content */
@@ -1951,6 +1978,8 @@ textarea:focus {
     border-radius: var(--radius-full);
     font-size: 0.85rem;
     font-weight: 600;
+    white-space: nowrap;
+    display: inline-block;
 }
 
 .status-approved {
@@ -2214,6 +2243,7 @@ textarea:focus {
         font-size: 0.85rem;
     }
 }
+
 /* Pagination Controls */
 .pagination-controls {
     display: flex;
