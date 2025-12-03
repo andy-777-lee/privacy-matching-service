@@ -32,6 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initializeApp() {
+    // Load auto-approval setting early (needed for unlock request auto-approval)
+    await loadAutoApprovalSetting();
+
     // Listen for Auth State Changes globally
     auth.onAuthStateChanged(async (user) => {
         const adminLoggedIn = localStorage.getItem(STORAGE_KEYS.ADMIN_LOGGED_IN);
@@ -1754,7 +1757,9 @@ async function requestUnlock(targetId) {
             await saveUnlockRequest(request);
 
             // Auto-approval check
+            console.log('Checking auto-approval. Enabled:', autoApprovalEnabled);
             if (autoApprovalEnabled) {
+                console.log('Auto-approving unlock request...');
                 // Automatically approve the request
                 request.status = 'admin_approved';
                 request.adminApprovedAt = Date.now();
@@ -1781,6 +1786,7 @@ async function requestUnlock(targetId) {
                     read: false,
                     createdAt: Date.now()
                 });
+                console.log('Auto-approval completed for request:', request.id);
             }
 
             // Send Discord Notification
@@ -2350,6 +2356,9 @@ async function loadAutoApprovalSetting() {
         const settingsDoc = await db.collection('settings').doc('autoApproval').get();
         if (settingsDoc.exists) {
             autoApprovalEnabled = settingsDoc.data().enabled || false;
+            console.log('Auto-approval setting loaded:', autoApprovalEnabled);
+        } else {
+            console.log('Auto-approval setting not found, defaulting to false');
         }
     } catch (error) {
         console.error('Error loading auto-approval setting:', error);
