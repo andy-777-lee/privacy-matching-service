@@ -917,6 +917,16 @@
 
                 <!-- Unlock Requests Tab -->
                 <div id="requests-tab" class="admin-tab-content active">
+                    <!-- Auto-approval toggle -->
+                    <div class="auto-approval-container">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="auto-approval-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">자동 승인</span>
+                        <span class="toggle-status off" id="auto-approval-status">OFF</span>
+                    </div>
+
                     <!-- Search bar -->
                     <div class="search-filter-container">
                         <input type="text" id="requests-search" class="search-input" placeholder="🔍 이름으로 검색...">

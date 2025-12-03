@@ -1753,6 +1753,36 @@ async function requestUnlock(targetId) {
         try {
             await saveUnlockRequest(request);
 
+            // Auto-approval check
+            if (autoApprovalEnabled) {
+                // Automatically approve the request
+                request.status = 'admin_approved';
+                request.adminApprovedAt = Date.now();
+                await saveUnlockRequest(request);
+
+                // Create notification for target user
+                await saveNotification({
+                    userId: request.targetId,
+                    type: 'approval_request',
+                    message: '누군가 당신의 프로필 공개를 요청했습니다. 승인하시겠습니까?',
+                    requestMessage: request.message,
+                    requestId: request.id,
+                    requesterId: request.requesterId,
+                    read: false,
+                    createdAt: Date.now()
+                });
+
+                // Create notification for requester
+                await saveNotification({
+                    userId: request.requesterId,
+                    type: 'admin_approved',
+                    message: '관리자가 1차 승인했습니다. 상대방의 승인을 기다리는 중입니다.',
+                    targetId: request.targetId,
+                    read: false,
+                    createdAt: Date.now()
+                });
+            }
+
             // Send Discord Notification
             try {
                 await sendDiscordNotification(request, currentUser, targetId);
@@ -2220,6 +2250,9 @@ async function showAdminDashboard() {
         displayAllProfiles()
     ]);
 
+    // Initialize auto-approval toggle
+    initAutoApprovalToggle();
+
     // Setup search and filter event listeners
     setupSearchAndFilters();
 }
@@ -2306,6 +2339,46 @@ function setupAdminTabs() {
             }
         });
     });
+}
+
+// Auto-approval state
+let autoApprovalEnabled = localStorage.getItem('autoApprovalEnabled') === 'true';
+
+// Initialize auto-approval toggle
+function initAutoApprovalToggle() {
+    const toggle = document.getElementById('auto-approval-toggle');
+    const status = document.getElementById('auto-approval-status');
+
+    if (!toggle || !status) return;
+
+    // Set initial state
+    toggle.checked = autoApprovalEnabled;
+    updateAutoApprovalStatus(status, autoApprovalEnabled);
+
+    // Handle toggle change
+    toggle.addEventListener('change', (e) => {
+        autoApprovalEnabled = e.target.checked;
+        localStorage.setItem('autoApprovalEnabled', autoApprovalEnabled);
+        updateAutoApprovalStatus(status, autoApprovalEnabled);
+
+        if (autoApprovalEnabled) {
+            alert('자동 승인이 활성화되었습니다. 새로운 요청이 자동으로 승인됩니다.');
+        } else {
+            alert('자동 승인이 비활성화되었습니다.');
+        }
+    });
+}
+
+function updateAutoApprovalStatus(statusElement, enabled) {
+    if (enabled) {
+        statusElement.textContent = 'ON';
+        statusElement.classList.add('on');
+        statusElement.classList.remove('off');
+    } else {
+        statusElement.textContent = 'OFF';
+        statusElement.classList.remove('on');
+        statusElement.classList.add('off');
+    }
 }
 
 async function displayUnlockRequests(page = null) {
