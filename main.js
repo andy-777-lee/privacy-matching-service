@@ -10,6 +10,11 @@ let requestsPagination = {
     itemsPerPage: 10
 };
 
+let finalPagination = {
+    currentPage: 1,
+    itemsPerPage: 10
+};
+
 let completedPagination = {
     currentPage: 1,
     itemsPerPage: 10
@@ -17,6 +22,7 @@ let completedPagination = {
 
 // Search and filter state
 let requestsSearch = '';
+let finalSearch = '';
 let completedSearch = '';
 let completedStatusFilter = 'all'; // 'all', 'approved', 'rejected'
 let profilesSearch = '';
@@ -2252,6 +2258,8 @@ async function showAdminDashboard() {
 
             if (tab.dataset.tab === 'profiles') {
                 displayAllProfiles();
+            } else if (tab.dataset.tab === 'final') {
+                displayFinalRequests();
             } else if (tab.dataset.tab === 'completed') {
                 displayCompletedRequests();
             } else if (tab.dataset.tab === 'statistics') {
@@ -2262,14 +2270,13 @@ async function showAdminDashboard() {
         });
     });
 
+
     await Promise.all([
         displayUnlockRequests(),
+        displayFinalRequests(),
         displayCompletedRequests(),
         displayAllProfiles()
     ]);
-
-    // Initialize auto-approval toggle
-    initAutoApprovalToggle();
 
     // Setup search and filter event listeners
     setupSearchAndFilters();
@@ -2283,6 +2290,16 @@ function setupSearchAndFilters() {
             requestsSearch = e.target.value;
             requestsPagination.currentPage = 1; // Reset to first page
             displayUnlockRequests();
+        });
+    }
+
+    // Final search
+    const finalSearchInput = document.getElementById('final-search');
+    if (finalSearchInput) {
+        finalSearchInput.addEventListener('input', (e) => {
+            finalSearch = e.target.value;
+            finalPagination.currentPage = 1; // Reset to first page
+            displayFinalRequests();
         });
     }
 
@@ -2348,6 +2365,8 @@ function setupAdminTabs() {
             // Refresh data when tab is clicked
             if (targetTab === 'profiles') {
                 displayAllProfiles();
+            } else if (targetTab === 'final') {
+                displayFinalRequests();
             } else if (targetTab === 'completed') {
                 displayCompletedRequests();
             } else if (targetTab === 'statistics') {
@@ -2511,7 +2530,8 @@ async function displayUnlockRequests(page = null) {
     const noRequests = document.getElementById('no-requests');
     const paginationControls = document.getElementById('requests-pagination');
 
-    let pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'waiting_mutual');
+    // Show only 'pending' status (1단계 요청 - A가 B에게 요청, B의 승인 대기)
+    let pendingRequests = requests.filter(r => r.status === 'pending');
 
     // Apply search filter
     if (requestsSearch) {
@@ -2528,7 +2548,7 @@ async function displayUnlockRequests(page = null) {
     // Update pending count (total, not filtered)
     const pendingCount = document.getElementById('pending-count');
     if (pendingCount) {
-        const totalPending = requests.filter(r => r.status === 'pending' || r.status === 'waiting_mutual').length;
+        const totalPending = requests.filter(r => r.status === 'pending').length;
         pendingCount.textContent = totalPending;
     }
 
@@ -2556,16 +2576,11 @@ async function displayUnlockRequests(page = null) {
         const requester = users.find(u => u.id === request.requesterId) || { name: '알 수 없음 (삭제됨)', id: request.requesterId };
         const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
 
-        const isWaitingMutual = request.status === 'waiting_mutual';
-        const statusBadge = isWaitingMutual ?
-            '<span class="status-badge" style="background: rgba(102, 126, 234, 0.2); color: #667eea; border: 1px solid rgba(102, 126, 234, 0.3);">⏳ 1차 승인 완료 (요청자 최종 승인 대기)</span>' :
-            '<span class="status-badge status-pending">대기중 (대상자 승인 대기)</span>';
-
         return `
             <div class="request-card">
                 <div class="request-header">
                     <span class="request-time">${new Date(request.createdAt).toLocaleString()}</span>
-                    ${statusBadge}
+                    <span class="status-badge status-pending">대기중 (B의 승인 대기)</span>
                 </div>
                 <div class="request-users">
                     <div class="request-user">
@@ -2580,10 +2595,7 @@ async function displayUnlockRequests(page = null) {
                     "${request.message}"
                 </div>
                 <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
-                    ${isWaitingMutual ?
-                `${target.name}님이 승인했습니다. ${requester.name}님의 최종 승인을 기다리는 중입니다.` :
-                `${target.name}님의 승인을 기다리는 중입니다.`
-            }
+                    ${target.name}님의 승인을 기다리는 중입니다.
                 </div>
             </div>
         `;
@@ -2618,6 +2630,130 @@ async function displayUnlockRequests(page = null) {
         newNextBtn.addEventListener('click', () => {
             if (requestsPagination.currentPage < totalPages) {
                 displayUnlockRequests(requestsPagination.currentPage + 1);
+            }
+        });
+    } else {
+        paginationControls.style.display = 'none';
+    }
+}
+
+async function displayFinalRequests(page = null) {
+    // Use provided page or current page
+    if (page !== null) {
+        finalPagination.currentPage = page;
+    }
+
+    // Admin mode: pass null or no argument to fetch all requests
+    const requests = await fetchUnlockRequests();
+    const users = await fetchUsers();
+    const grid = document.getElementById('admin-final-grid');
+    const noFinal = document.getElementById('no-final');
+    const paginationControls = document.getElementById('final-pagination');
+
+    // Show only 'waiting_mutual' status (최종 요청 - B가 승인하고 A의 최종 승인 대기)
+    let finalRequests = requests.filter(r => r.status === 'waiting_mutual');
+
+    // Apply search filter
+    if (finalSearch) {
+        finalRequests = finalRequests.filter(request => {
+            const requester = users.find(u => u.id === request.requesterId);
+            const target = users.find(u => u.id === request.targetId);
+            const requesterName = requester ? requester.name.toLowerCase() : '';
+            const targetName = target ? target.name.toLowerCase() : '';
+            const searchLower = finalSearch.toLowerCase();
+            return requesterName.includes(searchLower) || targetName.includes(searchLower);
+        });
+    }
+
+    // Update final count (total, not filtered)
+    const finalCount = document.getElementById('final-count');
+    if (finalCount) {
+        const totalFinal = requests.filter(r => r.status === 'waiting_mutual').length;
+        finalCount.textContent = totalFinal;
+    }
+
+    if (finalRequests.length === 0) {
+        grid.style.display = 'none';
+        noFinal.style.display = 'block';
+        paginationControls.style.display = 'none';
+        return;
+    }
+
+    grid.style.display = 'grid';
+    noFinal.style.display = 'none';
+
+    // Sort by adminApprovedAt or createdAt (most recent first)
+    finalRequests.sort((a, b) => (b.adminApprovedAt || b.createdAt || 0) - (a.adminApprovedAt || a.createdAt || 0));
+
+    // Pagination logic
+    const totalPages = Math.ceil(finalRequests.length / finalPagination.itemsPerPage);
+    const startIndex = (finalPagination.currentPage - 1) * finalPagination.itemsPerPage;
+    const endIndex = startIndex + finalPagination.itemsPerPage;
+    const paginatedRequests = finalRequests.slice(startIndex, endIndex);
+
+    // Display paginated requests
+    grid.innerHTML = paginatedRequests.map(request => {
+        const requester = users.find(u => u.id === request.requesterId) || { name: '알 수 없음 (삭제됨)', id: request.requesterId };
+        const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
+
+        // All requests in this tab are waiting_mutual
+        const statusBadge = '<span class="status-badge" style="background: rgba(102, 126, 234, 0.2); color: #667eea; border: 1px solid rgba(102, 126, 234, 0.3);">⏳ 요청자 최종 승인 대기</span>';
+        const statusMessage = `${target.name}님이 승인했습니다. ${requester.name}님의 최종 승인을 기다리는 중입니다.`;
+
+        return `
+            <div class="request-card">
+                <div class="request-header">
+                    <span class="request-time">${new Date(request.createdAt).toLocaleString()}</span>
+                    ${statusBadge}
+                </div>
+                <div class="request-users">
+                    <div class="request-user">
+                        <strong>요청자:</strong> ${requester.name}
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="request-user">
+                        <strong>대상:</strong> ${target.name}
+                    </div>
+                </div>
+                <div class="request-message">
+                    "${request.message}"
+                </div>
+                <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                    ${statusMessage}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Update pagination controls
+    if (finalRequests.length > finalPagination.itemsPerPage) {
+        paginationControls.style.display = 'flex';
+
+        const prevBtn = document.getElementById('final-prev');
+        const nextBtn = document.getElementById('final-next');
+        const pageInfo = document.getElementById('final-page-info');
+
+        prevBtn.disabled = finalPagination.currentPage === 1;
+        nextBtn.disabled = finalPagination.currentPage === totalPages;
+
+        pageInfo.textContent = `${startIndex + 1}-${Math.min(endIndex, finalRequests.length)} / ${finalRequests.length}`;
+
+        // Remove old event listeners by cloning
+        const newPrevBtn = prevBtn.cloneNode(true);
+        const newNextBtn = nextBtn.cloneNode(true);
+        prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+        nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+
+        // Add new event listeners
+        newPrevBtn.addEventListener('click', () => {
+            if (finalPagination.currentPage > 1) {
+                displayFinalRequests(finalPagination.currentPage - 1);
+            }
+        });
+
+        newNextBtn.addEventListener('click', () => {
+            if (finalPagination.currentPage < totalPages) {
+                displayFinalRequests(finalPagination.currentPage + 1);
             }
         });
     } else {
@@ -2712,8 +2848,15 @@ async function displayCompletedRequests(page = null) {
                     </div>
                 </div>
                 <div class="request-message">
+                    <strong>요청 메시지:</strong><br>
                     "${request.message}"
                 </div>
+                ${request.finalApprovalMessage ? `
+                <div class="request-message" style="margin-top: 0.5rem; background: rgba(102, 126, 234, 0.1); border-left: 3px solid #667eea;">
+                    <strong>최종 승인 메시지:</strong><br>
+                    "${request.finalApprovalMessage}"
+                </div>
+                ` : ''}
             </div>
         `;
     }).join('');
@@ -3041,6 +3184,18 @@ async function targetApproveRequest(requestId) {
                 read: false,
                 createdAt: Date.now()
             });
+
+            // Send Discord notification for waiting_mutual status
+            try {
+                const users = await fetchUsers();
+                const requester = users.find(u => u.id === request.requesterId);
+                const target = users.find(u => u.id === request.targetId);
+                if (requester && target) {
+                    await sendWaitingMutualDiscordNotification(request, requester, target);
+                }
+            } catch (discordError) {
+                console.error('Failed to send Discord notification:', discordError);
+            }
 
             alert('승인되었습니다. 상대방의 최종 승인을 기다리는 중입니다.');
 
@@ -3474,6 +3629,55 @@ async function sendDiscordNotification(request, requester, targetId) {
             ],
             footer: {
                 text: "관리자 페이지에서 승인해주세요"
+            }
+        }]
+    };
+
+    await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+}
+
+async function sendWaitingMutualDiscordNotification(request, requester, target) {
+    const webhookUrl = "https://discord.com/api/webhooks/1442381314396393624/McRV-roltEVoO6x4MQSsWmleG0wYOEK_0XK74ezzTqK4x1jcR62uzxEf4gq6DfqAC9jv";
+    const adminUrl = window.location.origin + '/#admin';
+
+    const payload = {
+        embeds: [{
+            title: "⏳ 최종 승인 대기 중",
+            description: `[👉 관리자 페이지 바로가기](${adminUrl})`,
+            color: 0x667eea, // Purple
+            fields: [
+                {
+                    name: "요청자 (A)",
+                    value: `${requester.name} (${requester.age}세, ${requester.gender === 'male' ? '남성' : '여성'})`,
+                    inline: true
+                },
+                {
+                    name: "대상자 (B)",
+                    value: `${target.name} (${target.age}세, ${target.gender === 'male' ? '남성' : '여성'})`,
+                    inline: true
+                },
+                {
+                    name: "상태",
+                    value: "B가 승인했습니다. A의 최종 승인을 기다리는 중입니다.",
+                    inline: false
+                },
+                {
+                    name: "요청 메시지",
+                    value: request.message || '메시지 없음'
+                },
+                {
+                    name: "B 승인 시간",
+                    value: new Date().toLocaleString('ko-KR')
+                }
+            ],
+            footer: {
+                text: "최종 요청 탭에서 확인하세요"
             }
         }]
     };

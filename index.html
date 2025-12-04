@@ -950,8 +950,12 @@
                 <!-- Tabs -->
                 <div class="admin-tabs">
                     <button class="admin-tab active" data-tab="requests">
-                        <span class="tab-label">대기 중 요청</span>
+                        <span class="tab-label">1단계 요청</span>
                         <span class="tab-count">(<span id="pending-count">0</span>)</span>
+                    </button>
+                    <button class="admin-tab" data-tab="final">
+                        <span class="tab-label">최종 요청</span>
+                        <span class="tab-count">(<span id="final-count">0</span>)</span>
                     </button>
                     <button class="admin-tab" data-tab="completed">
                         <span class="tab-label">완료된 요청</span>
@@ -964,18 +968,8 @@
                     <button class="admin-tab" data-tab="statistics">통계</button>
                 </div>
 
-                <!-- Unlock Requests Tab -->
+                <!-- 1단계 요청 Tab -->
                 <div id="requests-tab" class="admin-tab-content active">
-                    <!-- Auto-approval toggle -->
-                    <div class="auto-approval-container">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="auto-approval-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span class="toggle-label">자동 승인</span>
-                        <span class="toggle-status off" id="auto-approval-status">OFF</span>
-                    </div>
-
                     <!-- Search bar -->
                     <div class="search-filter-container">
                         <input type="text" id="requests-search" class="search-input" placeholder="🔍 이름으로 검색...">
@@ -985,7 +979,7 @@
                     <div id="no-requests" class="no-matches" style="display: none;">
                         <div class="empty-state">
                             <span class="empty-icon">📭</span>
-                            <h3>대기 중인 요청이 없습니다</h3>
+                            <h3>1단계 요청이 없습니다</h3>
                         </div>
                     </div>
                     <!-- Pagination for pending requests -->
@@ -993,6 +987,28 @@
                         <button id="requests-prev" class="pagination-btn">← 이전</button>
                         <span id="requests-page-info" class="page-info"></span>
                         <button id="requests-next" class="pagination-btn">다음 →</button>
+                    </div>
+                </div>
+
+                <!-- 최종 요청 Tab -->
+                <div id="final-tab" class="admin-tab-content">
+                    <!-- Search bar -->
+                    <div class="search-filter-container">
+                        <input type="text" id="final-search" class="search-input" placeholder="🔍 이름으로 검색...">
+                    </div>
+
+                    <div id="admin-final-grid" class="admin-requests-grid"></div>
+                    <div id="no-final" class="no-matches" style="display: none;">
+                        <div class="empty-state">
+                            <span class="empty-icon">📭</span>
+                            <h3>최종 요청이 없습니다</h3>
+                        </div>
+                    </div>
+                    <!-- Pagination for final requests -->
+                    <div id="final-pagination" class="pagination-controls" style="display: none;">
+                        <button id="final-prev" class="pagination-btn">← 이전</button>
+                        <span id="final-page-info" class="page-info"></span>
+                        <button id="final-next" class="pagination-btn">다음 →</button>
                     </div>
                 </div>
 
