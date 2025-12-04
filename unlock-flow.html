@@ -66,19 +66,19 @@
         }
 
         .step-2 {
-            animation-delay: 1.2s;
+            animation-delay: 1.0s;
         }
 
         .step-3 {
-            animation-delay: 2.2s;
+            animation-delay: 2.0s;
         }
 
         .step-4 {
-            animation-delay: 3.2s;
+            animation-delay: 3.0s;
         }
 
         .step-5 {
-            animation-delay: 4.2s;
+            animation-delay: 4.0s;
         }
 
         .step-icon {
@@ -239,7 +239,8 @@
                     <div class="step-title">1. 요청 보내기 (A)</div>
                     <div class="step-desc">
                         A가 B에게 프로필 공개를 요청합니다.<br>
-                        이때 A는 자신의 프로필을 공개하고 메시지를 작성합니다.
+                        이때 A는 자신의 프로필(이름, 사진, 정보)을 공개하고 메시지를 작성합니다.<br>
+                        <span class="highlight">연락처는 숨겨집니다.</span>
                     </div>
                 </div>
             </div>
@@ -248,12 +249,12 @@
 
             <!-- Step 2 -->
             <div class="step step-2 active">
-                <div class="step-icon">👮‍♂️</div>
+                <div class="step-icon">🫣</div>
                 <div class="step-content">
-                    <div class="step-title">2. 관리자 승인 (1차)</div>
+                    <div class="step-title">2. 요청 확인 (B)</div>
                     <div class="step-desc">
-                        관리자가 요청 내용을 검토하고 승인합니다.<br>
-                        (부적절한 메시지나 장난성 요청 필터링)
+                        B는 <span class="highlight">A의 프로필(이름, 사진, 정보)</span>과 메시지를 확인합니다.<br>
+                        단, 연락처는 아직 공개되지 않습니다.
                     </div>
                 </div>
             </div>
@@ -262,12 +263,12 @@
 
             <!-- Step 3 -->
             <div class="step step-3 active">
-                <div class="step-icon">🫣</div>
+                <div class="step-icon">👍</div>
                 <div class="step-content">
-                    <div class="step-title">3. 요청 확인 (B)</div>
+                    <div class="step-title">3. 1차 승인 (B)</div>
                     <div class="step-desc">
-                        B는 <span class="highlight">A의 공개된 프로필</span>과 메시지를 확인합니다.<br>
-                        아직 A는 B의 프로필을 볼 수 없습니다.
+                        B가 A의 프로필이 마음에 들면 승인합니다.<br>
+                        (거절 시 A에게 거절 알림이 전송됩니다)
                     </div>
                 </div>
             </div>
@@ -278,10 +279,10 @@
             <div class="step step-4 active">
                 <div class="step-icon">🤝</div>
                 <div class="step-content">
-                    <div class="step-title">4. 최종 승인 (B)</div>
+                    <div class="step-title">4. 최종 승인 (A)</div>
                     <div class="step-desc">
-                        B가 A의 프로필이 마음에 들면 승인합니다.<br>
-                        (거절 시 A에게 거절 알림이 전송됩니다)
+                        A가 B의 승인 알림을 받고 최종 승인합니다.<br>
+                        (거절 시 B에게 거절 알림이 전송됩니다)
                     </div>
                 </div>
             </div>
@@ -294,8 +295,9 @@
                 <div class="step-content">
                     <div class="step-title">5. 매칭 완료!</div>
                     <div class="step-desc">
-                        이제 <span class="highlight">A도 B의 프로필을 볼 수 있습니다!</span><br>
-                        서로의 카카오톡ID 또는 인스타그램계정이 공개됩니다 ! 대화 시작해보세요 !
+                        <span class="highlight">양방향 승인이 완료되었습니다!</span><br>
+                        이제 서로의 연락처(카카오톡ID, 인스타그램계정)가 공개됩니다!<br>
+                        대화를 시작해보세요!
                     </div>
                 </div>
             </div>

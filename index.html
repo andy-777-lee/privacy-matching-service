@@ -36,23 +36,54 @@
         <div class="modal-content" style="max-width: 600px;">
             <button type="button" class="modal-close"
                 onclick="document.getElementById('patch-notes-modal').classList.remove('active'); document.getElementById('patch-notes-modal').style.display = 'none';">&times;</button>
-            <h2>📢 업데이트 내역 (2025.12.01)</h2>
+            <h2>📢 업데이트 내역 (2025.12.04)</h2>
 
             <div class="patch-note-item"
                 style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <h3 style="color: #667eea; margin-bottom: 0.5rem;">1. 프로필에 선호 조건 표시</h3>
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">🎯 최종 매칭 프로세스 추가</h3>
                 <p style="color: var(--text-secondary); line-height: 1.6;">
-                    • 프로필 모달에서 상대방의 선호 조건을 확인할 수 있습니다.<br>
-                    • 선호 조건은 우선순위 순서대로 표시됩니다.<br>
-                    • 색상으로 중요도를 구분합니다 (빨강: 상위, 주황: 중간, 청록: 하위)
+                    1️⃣ [기존] A가 B에게 요청 → B는 A의 프로필을 확인 후 승인/거절<br>
+                    2️⃣ <strong style="color: #FF6B9D;">[추가]</strong> A도 B의 프로필 확인 후 <strong style="color: #4ECDC4;">[최종
+                        승인]</strong><br>
+                    3️⃣ <strong style="color: #FF6B9D;">[추가]</strong> <strong style="color: #4ECDC4;">[최종 승인]</strong>으로
+                    매칭 후 서로의 연락처 공개
+                </p>
+                <p style="color: #FFB3D1; font-size: 0.85rem; margin-top: 0.75rem; margin-bottom: 0.75rem;">
+                    ※ 변경된 매칭프로세스는 오른쪽 하단 ?도움말 버튼에서 확인가능합니다.
+                </p>
+                <button
+                    onclick="document.getElementById('patch-notes-modal').classList.remove('active'); document.getElementById('patch-notes-modal').style.display = 'none'; document.getElementById('service-info-modal').classList.add('active'); document.getElementById('service-info-modal').style.display = 'flex';"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);"
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(102, 126, 234, 0.3)';">
+                    📋 도움말 바로가기
+                </button>
+            </div>
+
+            <div class="patch-note-item"
+                style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">💌 메시지 기능 추가</h3>
+                <p style="color: var(--text-secondary); line-height: 1.6;">
+                    • 최종 승인 시 메시지 전달 가능 (선택사항)<br>
+                    • 상대방에게 첫인사를 남겨보세요!
+                </p>
+            </div>
+
+            <div class="patch-note-item"
+                style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">👀 프로필 공개 범위 수정</h3>
+                <p style="color: var(--text-secondary); line-height: 1.6;">
+                    • 프로필공개 요청 시 이름과 사진만 공개, 연락처 비공개로 변경되었습니다.<br>
+                    • 최종 매칭 승인 완료 시 연락처 공개
                 </p>
             </div>
 
             <div class="patch-note-item">
-                <h3 style="color: #667eea; margin-bottom: 0.5rem;">2. 사진 블러 효과 조정</h3>
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">🎨 UI/UX 개선</h3>
                 <p style="color: var(--text-secondary); line-height: 1.6;">
-                    • 잠긴 프로필 사진의 블러 효과를 줄여 더 선명하게 볼 수 있습니다.<br>
-                    • 프로필 공개 요청 전에도 상대방의 모습을 더 잘 확인할 수 있습니다.
+                    • 알림 메시지 스타일 개선 (인용 박스 형식)<br>
+                    • 최종 승인 모달 추가 (프로필 공개 요청과 동일한 형식)<br>
+                    • 매칭 상태 배지 업데이트 (대기중, 1차 승인 완료 등)
                 </p>
             </div>
         </div>
@@ -556,7 +587,7 @@
                                         <div class="step-title">1. 요청 보내기 (A)</div>
                                         <div class="step-desc">
                                             A가 B에게 프로필 공개를 요청합니다.<br>
-                                            이때 A는 자신의 프로필을 공개하고 메시지를 작성합니다.
+                                            이때 A의 <span class="highlight">이름과 사진은 공개</span>되지만 연락처는 비공개됩니다.
                                         </div>
                                     </div>
                                 </div>
@@ -565,12 +596,12 @@
 
                                 <!-- Step 2 -->
                                 <div class="step step-2 active">
-                                    <div class="step-icon">👮‍♂️</div>
+                                    <div class="step-icon">👀</div>
                                     <div class="step-content">
-                                        <div class="step-title">2. 관리자 승인 (1차)</div>
+                                        <div class="step-title">2. 프로필 확인 (B)</div>
                                         <div class="step-desc">
-                                            관리자가 요청 내용을 검토하고 승인합니다.<br>
-                                            (부적절한 메시지나 장난성 요청 필터링)
+                                            B는 <span class="highlight">A의 프로필</span>을 확인합니다.<br>
+                                            (이름, 사진, 정보 공개 / 연락처는 비공개)
                                         </div>
                                     </div>
                                 </div>
@@ -579,12 +610,12 @@
 
                                 <!-- Step 3 -->
                                 <div class="step step-3 active">
-                                    <div class="step-icon">🫣</div>
+                                    <div class="step-icon">✅</div>
                                     <div class="step-content">
-                                        <div class="step-title">3. 요청 확인 (B)</div>
+                                        <div class="step-title">3. 1차 승인 (B)</div>
                                         <div class="step-desc">
-                                            B는 <span class="highlight">A의 공개된 프로필</span>과 메시지를 확인합니다.<br>
-                                            아직 A는 B의 프로필을 볼 수 없습니다.
+                                            B가 A의 프로필이 마음에 들면 승인합니다.<br>
+                                            (거절 시 A에게 거절 알림이 전송됩니다)
                                         </div>
                                     </div>
                                 </div>
@@ -595,10 +626,10 @@
                                 <div class="step step-4 active">
                                     <div class="step-icon">🤝</div>
                                     <div class="step-content">
-                                        <div class="step-title">4. 최종 승인 (B)</div>
+                                        <div class="step-title">4. 최종 승인 (A)</div>
                                         <div class="step-desc">
-                                            B가 A의 프로필이 마음에 들면 승인합니다.<br>
-                                            (거절 시 A에게 거절 알림이 전송됩니다)
+                                            A도 <span class="highlight">B의 프로필</span>을 확인 후 최종 승인합니다.<br>
+                                            선택적으로 메시지를 남길 수 있습니다.
                                         </div>
                                     </div>
                                 </div>
@@ -611,8 +642,8 @@
                                     <div class="step-content">
                                         <div class="step-title">5. 매칭 완료!</div>
                                         <div class="step-desc">
-                                            이제 <span class="highlight">A도 B의 프로필을 볼 수 있습니다!</span><br>
-                                            서로의 카카오톡ID 또는 인스타그램계정이 공개됩니다 ! 대화 시작해보세요 !
+                                            양방향 승인 완료! <span class="highlight">서로의 연락처가 공개</span>됩니다!<br>
+                                            카카오톡ID 또는 인스타그램계정으로 대화를 시작해보세요!
                                         </div>
                                     </div>
                                 </div>
@@ -631,9 +662,9 @@
                 <p class="description">상대방에게 전달할 메시지를 작성하세요</p>
                 <p class="description"
                     style="color: #FFB3D1; font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 1rem; line-height: 1.5;">
-                    ※ 프로필 공개 승인은 1차로 관리자가 최종은 상대방이 하게 됩니다.<br>
-                    프로필 공개 요청을 받은 사람은 프로필 공개 요청자의 프로필이 보이게 되고 승인/거절 할 수 있습니다.<br>
-                    프로필 공개 요청을 받은 사람이 승인 하면 서로의 프로필이 보입니다 !
+                    ※ 프로필 공개 요청을 받은 사람은 프로필 공개 요청자의 연락처를 제외한 모든 프로필을 볼 수 있게되고 승인/거절 할 수 있습니다.<br>
+                    프로필 공개 요청을 받은 사람이 승인하면 서로의 연락처를 제외한 프로필이 공개됩니다.<br>
+                    프로필을 보신 후 최종 매칭 승인/거절 하시면 됩니다.
                 </p>
                 <form id="unlock-request-form">
                     <div class="form-group">
@@ -642,6 +673,24 @@
                     </div>
                     <input type="hidden" id="unlock-target-id">
                     <button type="submit" class="btn btn-primary">요청 보내기</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Final Approval Message Modal -->
+        <div id="final-approval-modal" class="modal">
+            <div class="modal-content">
+                <button type="button" class="modal-close">&times;</button>
+                <h2>최종 승인</h2>
+                <p class="description">상대방에게 전달할 메시지를 작성하세요 (선택사항)</p>
+                <form id="final-approval-form">
+                    <div class="form-group">
+                        <label>메시지 (선택사항)</label>
+                        <textarea id="final-approval-message" rows="4"
+                            placeholder="안녕하세요! 연락처 교환하게 되어 기쁩니다 :)"></textarea>
+                    </div>
+                    <input type="hidden" id="final-approval-request-id">
+                    <button type="submit" class="btn btn-primary">최종 승인하기</button>
                 </form>
             </div>
         </div>

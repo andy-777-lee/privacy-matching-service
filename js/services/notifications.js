@@ -109,7 +109,7 @@ async function displayNotifications(notifications) {
     list.innerHTML = notifications.map(n => {
         let actionButtons = '';
 
-        if (n.type === 'unlock_approved') {
+        if (n.type === 'unlock_approved' || n.type === 'mutual_approval_complete') {
             actionButtons = `
                 <div class="notification-action">
                     <button class="notification-btn">프로필 보기</button>
@@ -140,11 +140,48 @@ async function displayNotifications(notifications) {
                         </div>
                     </div>
                 `;
+            } else if (request && request.status === 'waiting_mutual') {
+                actionButtons = `
+                    <div class="notification-action" style="margin-top: 0.5rem;">
+                        <div style="padding: 0.75rem; background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; color: #667eea; text-align: center;">
+                            ⏳ 승인 완료 (상대방 최종 승인 대기)
+                        </div>
+                    </div>
+                `;
             } else {
-                // Still pending - show only profile view button
+                // Still pending - show profile view button
                 actionButtons = `
                     <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                         <button class="notification-btn" onclick="event.stopPropagation(); showRequesterProfile('${n.requesterId}', '${n.requestId}')" style="flex: 1; background: #667eea;">
+                            프로필 보기
+                        </button>
+                    </div>
+                `;
+            }
+        } else if (n.type === 'mutual_approval_needed') {
+            const request = requestsMap[n.requestId];
+
+            if (request && request.status === 'approved') {
+                actionButtons = `
+                    <div class="notification-action" style="margin-top: 0.5rem;">
+                        <div style="padding: 0.75rem; background: rgba(78, 205, 196, 0.2); border: 1px solid rgba(78, 205, 196, 0.3); border-radius: 8px; color: #4ECDC4; text-align: center;">
+                            ✅ 최종 승인 완료
+                        </div>
+                    </div>
+                `;
+            } else if (request && request.status === 'rejected') {
+                actionButtons = `
+                    <div class="notification-action" style="margin-top: 0.5rem;">
+                        <div style="padding: 0.75rem; background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 8px; color: #FF6B6B; text-align: center;">
+                            ❌ 거절됨
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Still waiting_mutual - show profile view button to make final decision
+                actionButtons = `
+                    <div class="notification-action" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="notification-btn" onclick="event.stopPropagation(); showTargetProfileForFinalApproval('${n.targetId}', '${n.requestId}')" style="flex: 1; background: #667eea;">
                             프로필 보기
                         </button>
                     </div>
@@ -161,6 +198,19 @@ async function displayNotifications(notifications) {
                     "${n.requestMessage}"
                 </div>
             `;
+        } else if (n.message && n.message.includes('💌 메시지:')) {
+            // Format mutual approval complete message with user's message
+            const parts = n.message.split('\n\n💌 메시지:');
+            if (parts.length === 2) {
+                const baseMsg = parts[0];
+                const userMsg = parts[1].replace(/^"|"$/g, '').trim();
+                messageContent = `
+                    <div>${baseMsg}</div>
+                    <div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(78, 205, 196, 0.1); border-left: 3px solid #4ECDC4; border-radius: 4px;">
+                        <div style="font-style: italic; color: var(--text-secondary);">"${userMsg}"</div>
+                    </div>
+                `;
+            }
         }
 
         return `
@@ -189,7 +239,7 @@ async function handleNotificationClick(notificationId, type, targetId) {
     if (type === 'patch_notes') {
         document.getElementById('patch-notes-modal').classList.add('active');
         document.getElementById('patch-notes-modal').style.display = 'flex';
-    } else if (type === 'unlock_approved') {
+    } else if (type === 'unlock_approved' || type === 'mutual_approval_complete') {
         document.getElementById('notification-modal').classList.remove('active');
 
         // Fetch the target user and show their profile
@@ -265,6 +315,27 @@ async function handleTargetApproval(requestId, approve, notificationId) {
     }
 }
 
+// Show target user's profile for final approval decision (requester's perspective)
+async function showTargetProfileForFinalApproval(targetId, requestId) {
+    try {
+        const userDoc = await db.collection('users').doc(targetId).get();
+        if (userDoc.exists) {
+            const targetUser = userDoc.data();
+
+            // Close notification modal
+            document.getElementById('notification-modal').classList.remove('active');
+
+            // Show profile modal with final approval buttons
+            window.dispatchEvent(new CustomEvent('showTargetProfileForFinalApproval', {
+                detail: { user: targetUser, requestId: requestId }
+            }));
+        }
+    } catch (error) {
+        console.error('Error fetching target profile:', error);
+        alert('프로필을 불러오는 중 오류가 발생했습니다.');
+    }
+}
+
 // Export to global scope
 window.saveNotification = saveNotification;
 window.fetchNotifications = fetchNotifications;
@@ -273,3 +344,4 @@ window.displayNotifications = displayNotifications;
 window.handleNotificationClick = handleNotificationClick;
 window.showRequesterProfile = showRequesterProfile;
 window.handleTargetApproval = handleTargetApproval;
+window.showTargetProfileForFinalApproval = showTargetProfileForFinalApproval;

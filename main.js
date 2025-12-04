@@ -1177,7 +1177,13 @@ window.addEventListener('showUnlockedProfile', (event) => {
 // Listen for requester profile event (for approval decision)
 window.addEventListener('showRequesterProfile', (event) => {
     const { user, requestId } = event.detail;
-    showProfileModal(user, false, null, false, true, requestId); // Show full profile with approval buttons
+    showProfileModal(user, false, null, false, true, requestId); // Show name/photos, but contact info hidden until approved
+});
+
+// Listen for target profile event (for final approval decision by requester)
+window.addEventListener('showTargetProfileForFinalApproval', (event) => {
+    const { user, requestId } = event.detail;
+    showProfileModal(user, false, null, false, true, null, requestId); // Show name/photos for final decision, contact info hidden
 });
 
 
@@ -1291,17 +1297,17 @@ function createMatchCard(match, isUnlocked, sentRequest = null, receivedRequest 
         requestBadge = '<span class="unlocked-badge">🔓 공개됨</span>';
     } else if (sentRequest) {
         if (sentRequest.status === 'pending') {
-            requestBadge = '<span class="request-badge request-sent-pending">📤 요청 보냄 (대기중)</span>';
-        } else if (sentRequest.status === 'admin_approved') {
-            requestBadge = '<span class="request-badge request-sent-admin-approved">📤 요청 보냄 (상대방 승인 대기)</span>';
+            requestBadge = '<span class="request-badge request-sent-pending">📤 요청 보냄 (상대방 승인 대기)</span>';
+        } else if (sentRequest.status === 'waiting_mutual') {
+            requestBadge = '<span class="request-badge request-sent-waiting">⏳ 상대방 승인 완료 (내 최종 승인 필요)</span>';
         } else if (sentRequest.status === 'rejected') {
             requestBadge = '<span class="request-badge request-rejected">❌ 거절됨</span>';
         }
     } else if (receivedRequest) {
         if (receivedRequest.status === 'pending') {
-            requestBadge = '<span class="request-badge request-received-pending">📥 요청 받음 (관리자 승인 대기)</span>';
-        } else if (receivedRequest.status === 'admin_approved') {
-            requestBadge = '<span class="request-badge request-received-admin-approved">📥 요청 받음 (내 승인 필요)</span>';
+            requestBadge = '<span class="request-badge request-received-pending">📥 요청 받음 (내 승인 필요)</span>';
+        } else if (receivedRequest.status === 'waiting_mutual') {
+            requestBadge = '<span class="request-badge request-received-waiting">⏳ 내가 승인함 (상대방 최종 승인 대기)</span>';
         } else if (receivedRequest.status === 'rejected') {
             requestBadge = '<span class="request-badge request-rejected">❌ 거절됨</span>';
         }
@@ -1407,7 +1413,7 @@ function getPreferenceBorderColor(index, total) {
     return '#4ECDC4'; // Teal for lower priority
 }
 
-async function showProfileModal(user, showUnlockButton = false, matchData = null, isOwnProfile = false, forceUnlocked = false, requestId = null) {
+async function showProfileModal(user, showUnlockButton = false, matchData = null, isOwnProfile = false, forceUnlocked = false, requestId = null, finalApprovalRequestId = null) {
     const modal = document.getElementById('profile-modal');
     const detail = document.getElementById('profile-detail');
 
@@ -1564,7 +1570,7 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
                 </div>
             </div>
         ` : ''}
-        ${isUnlocked ? `
+        ${isUnlocked && !requestId && !finalApprovalRequestId ? `
             <div class="contact-info">
                 <h4>📞 연락처</h4>
                 <div class="contact-item">
@@ -1575,6 +1581,13 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
                     <strong>인스타그램:</strong>
                     <span>${user.contactInstagram}</span>
                 </div>
+            </div>
+        ` : !isOwnProfile && (requestId || finalApprovalRequestId || !isUnlocked) ? `
+            <div class="contact-info" style="background: rgba(255, 255, 255, 0.05); padding: 1.5rem; border-radius: 12px; text-align: center;">
+                <h4 style="margin-bottom: 0.5rem;">📞 연락처</h4>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">
+                    🔒 양방향 승인 완료 시 공개됩니다
+                </p>
             </div>
         ` : ''}
         ${showUnlockButton && !isUnlocked ? `
@@ -1601,6 +1614,19 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
             </div>
             <p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
                 승인하면 양쪽 모두 서로의 프로필을 볼 수 있습니다.
+            </p>
+        ` : ''}
+        ${finalApprovalRequestId ? `
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button class="btn btn-primary btn-large" onclick="requesterFinalApprove('${finalApprovalRequestId}')" style="flex: 1; background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);">
+                    ✅ 최종 승인
+                </button>
+                <button class="btn btn-outline btn-large" onclick="requesterFinalReject('${finalApprovalRequestId}')" style="flex: 1; border-color: #FF6B6B; color: #FF6B6B;">
+                    ❌ 거절
+                </button>
+            </div>
+            <p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
+                최종 승인하면 양쪽 모두 서로의 연락처를 확인할 수 있습니다.
             </p>
         ` : ''}
     `;
@@ -1701,7 +1727,7 @@ async function requestUnlock(targetId) {
         const existingRequest = allRequests.find(r =>
             r.requesterId === currentUser.id &&
             r.targetId === targetId &&
-            (r.status === 'pending' || r.status === 'admin_approved')
+            (r.status === 'pending' || r.status === 'waiting_mutual')
         );
 
         if (existingRequest) {
@@ -1751,48 +1777,29 @@ async function requestUnlock(targetId) {
             requesterId: currentUser.id,
             targetId: targetId,
             message: message,
-            status: 'pending', // pending -> admin_approved -> approved/rejected
-            targetApprovalStatus: 'pending', // pending -> approved/rejected (by target user)
+            status: 'pending', // pending -> waiting_mutual -> approved/rejected
+            requesterApproved: true, // Requester approved by sending request
+            targetApproved: false, // Waiting for target approval
             createdAt: Date.now(),
-            adminApprovedAt: null,
-            targetApprovedAt: null
+            targetApprovedAt: null,
+            requesterFinalApprovedAt: null,
+            mutualApprovedAt: null
         };
 
         try {
             await saveUnlockRequest(request);
 
-            // Auto-approval check
-            console.log('Checking auto-approval. Enabled:', autoApprovalEnabled);
-            if (autoApprovalEnabled) {
-                console.log('Auto-approving unlock request...');
-                // Automatically approve the request
-                request.status = 'admin_approved';
-                request.adminApprovedAt = Date.now();
-                await saveUnlockRequest(request);
-
-                // Create notification for target user
-                await saveNotification({
-                    userId: request.targetId,
-                    type: 'approval_request',
-                    message: '누군가 당신의 프로필 공개를 요청했습니다. 승인하시겠습니까?',
-                    requestMessage: request.message,
-                    requestId: request.id,
-                    requesterId: request.requesterId,
-                    read: false,
-                    createdAt: Date.now()
-                });
-
-                // Create notification for requester
-                await saveNotification({
-                    userId: request.requesterId,
-                    type: 'admin_approved',
-                    message: '관리자가 1차 승인했습니다. 상대방의 승인을 기다리는 중입니다.',
-                    targetId: request.targetId,
-                    read: false,
-                    createdAt: Date.now()
-                });
-                console.log('Auto-approval completed for request:', request.id);
-            }
+            // Send notification directly to target user (no admin approval needed)
+            await saveNotification({
+                userId: request.targetId,
+                type: 'approval_request',
+                message: '누군가 당신의 프로필 공개를 요청했습니다. 프로필을 확인하고 승인하시겠습니까?',
+                requestMessage: request.message,
+                requestId: request.id,
+                requesterId: request.requesterId,
+                read: false,
+                createdAt: Date.now()
+            });
 
             // Send Discord Notification
             try {
@@ -1804,7 +1811,7 @@ async function requestUnlock(targetId) {
             document.getElementById('unlock-modal').classList.remove('active');
             document.getElementById('unlock-message').value = '';
 
-            alert('공개 요청이 전송되었습니다. 관리자 승인 후 프로필을 확인할 수 있습니다.');
+            alert('공개 요청이 전송되었습니다. 상대방의 승인을 기다려주세요.');
         } catch (error) {
             console.error('Error submitting unlock request:', error);
             alert('요청 전송 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -2504,7 +2511,7 @@ async function displayUnlockRequests(page = null) {
     const noRequests = document.getElementById('no-requests');
     const paginationControls = document.getElementById('requests-pagination');
 
-    let pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'admin_approved');
+    let pendingRequests = requests.filter(r => r.status === 'pending' || r.status === 'waiting_mutual');
 
     // Apply search filter
     if (requestsSearch) {
@@ -2521,7 +2528,7 @@ async function displayUnlockRequests(page = null) {
     // Update pending count (total, not filtered)
     const pendingCount = document.getElementById('pending-count');
     if (pendingCount) {
-        const totalPending = requests.filter(r => r.status === 'pending' || r.status === 'admin_approved').length;
+        const totalPending = requests.filter(r => r.status === 'pending' || r.status === 'waiting_mutual').length;
         pendingCount.textContent = totalPending;
     }
 
@@ -2549,10 +2556,10 @@ async function displayUnlockRequests(page = null) {
         const requester = users.find(u => u.id === request.requesterId) || { name: '알 수 없음 (삭제됨)', id: request.requesterId };
         const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
 
-        const isAdminApproved = request.status === 'admin_approved';
-        const statusBadge = isAdminApproved ?
-            '<span class="status-badge" style="background: rgba(102, 126, 234, 0.2); color: #667eea; border: 1px solid rgba(102, 126, 234, 0.3);">대상자 승인 대기중</span>' :
-            '<span class="status-badge status-pending">대기중</span>';
+        const isWaitingMutual = request.status === 'waiting_mutual';
+        const statusBadge = isWaitingMutual ?
+            '<span class="status-badge" style="background: rgba(102, 126, 234, 0.2); color: #667eea; border: 1px solid rgba(102, 126, 234, 0.3);">⏳ 1차 승인 완료 (요청자 최종 승인 대기)</span>' :
+            '<span class="status-badge status-pending">대기중 (대상자 승인 대기)</span>';
 
         return `
             <div class="request-card">
@@ -2572,20 +2579,12 @@ async function displayUnlockRequests(page = null) {
                 <div class="request-message">
                     "${request.message}"
                 </div>
-                ${!isAdminApproved ? `
-                    <div class="request-actions">
-                        <button class="btn-approve" onclick="approveRequest('${request.id}')">승인</button>
-                        <button class="btn-reject" onclick="rejectRequest('${request.id}')">거절</button>
-                    </div>
-                ` : `
-                    <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
-                        관리자 승인 완료. ${target.name}님의 승인을 기다리는 중입니다.
-                    </div>
-                    <div class="request-actions">
-                        <button class="btn-approve" onclick="adminOverrideApprove('${request.id}')">관리자 최종 승인</button>
-                        <button class="btn-reject" onclick="adminOverrideReject('${request.id}')">관리자 최종 거절</button>
-                    </div>
-                `}
+                <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                    ${isWaitingMutual ?
+                `${target.name}님이 승인했습니다. ${requester.name}님의 최종 승인을 기다리는 중입니다.` :
+                `${target.name}님의 승인을 기다리는 중입니다.`
+            }
+                </div>
             </div>
         `;
     }).join('');
@@ -3019,43 +3018,46 @@ async function approveRequest(requestId) {
     }
 }
 
-// Target user approves the unlock request
+// Target user approves the unlock request (Step 1 of mutual approval)
 async function targetApproveRequest(requestId) {
-    // User mode: fetch my requests
-    // Note: We could pass currentUser.id here, but for safety in finding the specific request 
-    // regardless of context, we might want to fetch relevant ones. 
-    // However, since this is called by the target user, fetching their requests is sufficient.
     const requests = await fetchUnlockRequests(currentUser ? currentUser.id : null);
     const request = requests.find(r => r.id === requestId);
 
-    if (request && request.status === 'admin_approved') {
+    if (request && request.status === 'pending') {
         try {
-            // Step 2: Target approval - finalize the request
-            request.status = 'approved';
-            request.targetApprovalStatus = 'approved';
+            // Step 1: Target approves - change status to waiting_mutual
+            request.status = 'waiting_mutual';
+            request.targetApproved = true;
             request.targetApprovedAt = Date.now();
-            request.reviewedAt = Date.now();
             await saveUnlockRequest(request);
 
-            // Add to unlocked profiles (mutual unlock)
-            await addUnlockedProfile(request.requesterId, request.targetId);
-            await addUnlockedProfile(request.targetId, request.requesterId);
-
-            // Notify Requester
+            // Notify Requester that target approved, now waiting for requester's final approval
             await saveNotification({
                 userId: request.requesterId,
-                type: 'unlock_approved',
-                message: '상대방이 프로필 공개를 승인했습니다! 이제 프로필을 확인할 수 있습니다.',
+                type: 'mutual_approval_needed',
+                message: '상대방이 프로필 공개를 승인했습니다! 최종 승인하시겠습니까?',
+                requestId: request.id,
                 targetId: request.targetId,
                 read: false,
                 createdAt: Date.now()
             });
 
-            alert('승인되었습니다. 양쪽 모두 프로필을 확인할 수 있습니다.');
+            alert('승인되었습니다. 상대방의 최종 승인을 기다리는 중입니다.');
+
+            // Close profile modal
+            const profileModal = document.getElementById('profile-modal');
+            if (profileModal) {
+                profileModal.classList.remove('active');
+            }
 
             // Refresh notifications
             if (typeof loadNotifications === 'function') {
                 loadNotifications();
+            }
+
+            // Refresh match results to update status
+            if (typeof displayMatches === 'function') {
+                await displayMatches();
             }
         } catch (error) {
             console.error('Error target approving request:', error);
@@ -3070,10 +3072,10 @@ async function targetRejectRequest(requestId) {
     const requests = await fetchUnlockRequests(currentUser ? currentUser.id : null);
     const request = requests.find(r => r.id === requestId);
 
-    if (request && request.status === 'admin_approved') {
+    if (request && request.status === 'pending') {
         try {
             request.status = 'rejected';
-            request.targetApprovalStatus = 'rejected';
+            request.targetApproved = false;
             request.targetApprovedAt = Date.now();
             request.reviewedAt = Date.now();
             await saveUnlockRequest(request);
@@ -3100,6 +3102,138 @@ async function targetRejectRequest(requestId) {
         }
     }
 }
+
+// Requester final approval (Step 2 of mutual approval - completes the match)
+async function requesterFinalApprove(requestId) {
+    // Show modal for message input
+    const modal = document.getElementById('final-approval-modal');
+    const form = document.getElementById('final-approval-form');
+    const messageInput = document.getElementById('final-approval-message');
+    const requestIdInput = document.getElementById('final-approval-request-id');
+
+    // Set request ID
+    requestIdInput.value = requestId;
+    messageInput.value = '';
+
+    // Show modal
+    modal.classList.add('active');
+    modal.style.display = '';
+}
+
+// Handle final approval form submission
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('final-approval-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const requestId = document.getElementById('final-approval-request-id').value;
+            const message = document.getElementById('final-approval-message').value;
+
+            const requests = await fetchUnlockRequests(currentUser ? currentUser.id : null);
+            const request = requests.find(r => r.id === requestId);
+
+            if (request && request.status === 'waiting_mutual' && request.targetApproved) {
+                try {
+                    // Step 2: Requester final approval - complete mutual approval
+                    request.status = 'approved';
+                    request.requesterFinalApprovedAt = Date.now();
+                    request.mutualApprovedAt = Date.now();
+                    request.reviewedAt = Date.now();
+                    request.finalApprovalMessage = message.trim(); // Save the message
+                    await saveUnlockRequest(request);
+
+                    // Add to unlocked profiles (mutual unlock - contact info now visible)
+                    await addUnlockedProfile(request.requesterId, request.targetId);
+                    await addUnlockedProfile(request.targetId, request.requesterId);
+
+                    // Notify both users of mutual approval completion
+                    const baseMessage = '양방향 승인이 완료되었습니다! 이제 서로의 연락처를 확인할 수 있습니다.';
+                    const messageWithNote = message.trim()
+                        ? `${baseMessage}\n\n💌 메시지: "${message.trim()}"`
+                        : baseMessage;
+
+                    await saveNotification({
+                        userId: request.targetId,
+                        type: 'mutual_approval_complete',
+                        message: messageWithNote,
+                        targetId: request.requesterId,
+                        read: false,
+                        createdAt: Date.now()
+                    });
+
+                    await saveNotification({
+                        userId: request.requesterId,
+                        type: 'mutual_approval_complete',
+                        message: baseMessage,
+                        targetId: request.targetId,
+                        read: false,
+                        createdAt: Date.now()
+                    });
+
+                    // Close modal
+                    document.getElementById('final-approval-modal').classList.remove('active');
+
+                    alert('최종 승인되었습니다! 이제 서로의 연락처를 확인할 수 있습니다.');
+
+                    // Close profile modal
+                    const profileModal = document.getElementById('profile-modal');
+                    if (profileModal) {
+                        profileModal.classList.remove('active');
+                    }
+
+                    // Refresh notifications
+                    if (typeof loadNotifications === 'function') {
+                        loadNotifications();
+                    }
+
+                    // Refresh match results to show unlocked status
+                    if (typeof displayMatches === 'function') {
+                        await displayMatches();
+                    }
+                } catch (error) {
+                    console.error('Error requester final approving request:', error);
+                    alert('최종 승인 처리 중 오류가 발생했습니다.');
+                }
+            }
+        });
+    }
+});
+
+// Requester rejects after target approved (cancels the match)
+async function requesterFinalReject(requestId) {
+    const requests = await fetchUnlockRequests(currentUser ? currentUser.id : null);
+    const request = requests.find(r => r.id === requestId);
+
+    if (request && request.status === 'waiting_mutual') {
+        try {
+            request.status = 'rejected';
+            request.reviewedAt = Date.now();
+            await saveUnlockRequest(request);
+
+            // Notify target user
+            await saveNotification({
+                userId: request.targetId,
+                type: 'unlock_rejected',
+                message: '상대방이 최종 승인을 거절했습니다.',
+                targetId: request.requesterId,
+                read: false,
+                createdAt: Date.now()
+            });
+
+            alert('거절되었습니다.');
+
+            // Refresh notifications
+            if (typeof loadNotifications === 'function') {
+                loadNotifications();
+            }
+        } catch (error) {
+            console.error('Error requester rejecting request:', error);
+            alert('거절 처리 중 오류가 발생했습니다.');
+        }
+    }
+}
+
 
 async function rejectRequest(requestId) {
     const requests = await fetchUnlockRequests();
