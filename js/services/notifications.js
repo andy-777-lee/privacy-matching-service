@@ -21,7 +21,26 @@ async function fetchNotifications(userId) {
             .orderBy('createdAt', 'desc')
             .limit(20)
             .get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // [System Notification] Inject update announcement client-side
+        const UPDATE_ID = 'sys_update_241216';
+        const isUpdateRead = localStorage.getItem(`notif_read_${userId}_${UPDATE_ID}`);
+
+        if (!isUpdateRead) {
+            notifications.unshift({
+                id: UPDATE_ID,
+                userId: userId,
+                type: 'patch_notes',
+                message: '📢 새로운 업데이트가 있습니다! 변경 사항을 확인해보세요.',
+                read: false,
+                createdAt: Date.now(), // Always fresh
+                action: 'view_update_history',
+                isSystem: true // Flag for local handling
+            });
+        }
+
+        return notifications;
     } catch (error) {
         // Handle missing index error
         if (error.code === 'failed-precondition' && error.message.includes('index')) {
@@ -40,6 +59,13 @@ async function fetchNotifications(userId) {
 // Mark notification as read
 async function markNotificationAsRead(notificationId) {
     try {
+        if (notificationId.startsWith('sys_')) {
+            // Local system notification
+            if (window.currentUser) {
+                localStorage.setItem(`notif_read_${window.currentUser.id}_${notificationId}`, 'true');
+            }
+            return;
+        }
         await db.collection('notifications').doc(notificationId).update({ read: true });
     } catch (error) {
         console.error("Error marking notification as read:", error);
@@ -240,39 +266,37 @@ async function handleNotificationClick(notificationId, type, targetId) {
     if (window.currentUser) {
         const notifications = await fetchNotifications(window.currentUser.id);
         displayNotifications(notifications);
-    }
 
-    displayNotifications(notifications);
-}
-
-// Special handling for view_update_history action (from properties or type)
-if (type === 'patch_notes' || (window.notifications && window.notifications.find(n => n.id === notificationId)?.action === 'view_update_history')) {
-    document.getElementById('patch-notes-modal').classList.add('active');
-    document.getElementById('patch-notes-modal').style.display = 'flex';
-    return; // Stop further processing
-}
-
-if (type === 'patch_notes') {
-    document.getElementById('patch-notes-modal').classList.add('active');
-    document.getElementById('patch-notes-modal').style.display = 'flex';
-} else if (type === 'unlock_approved' || type === 'mutual_approval_complete') {
-    document.getElementById('notification-modal').classList.remove('active');
-
-    // Fetch the target user and show their profile
-    try {
-        const userDoc = await db.collection('users').doc(targetId).get();
-        if (userDoc.exists) {
-            const targetUser = userDoc.data();
-            // Trigger event to show profile modal
-            window.dispatchEvent(new CustomEvent('showUnlockedProfile', {
-                detail: { user: targetUser }
-            }));
+        // Check for view_update_history action
+        const clickedNotification = notifications.find(n => n.id === notificationId);
+        if (type === 'patch_notes' || (clickedNotification && clickedNotification.action === 'view_update_history')) {
+            document.getElementById('patch-notes-modal').classList.add('active');
+            document.getElementById('patch-notes-modal').style.display = 'flex';
+            return;
         }
-    } catch (error) {
-        console.error('Error fetching unlocked profile:', error);
-        alert('프로필을 불러오는 중 오류가 발생했습니다.');
     }
-}
+
+    if (type === 'patch_notes') {
+        document.getElementById('patch-notes-modal').classList.add('active');
+        document.getElementById('patch-notes-modal').style.display = 'flex';
+    } else if (type === 'unlock_approved' || type === 'mutual_approval_complete') {
+        document.getElementById('notification-modal').classList.remove('active');
+
+        // Fetch the target user and show their profile
+        try {
+            const userDoc = await db.collection('users').doc(targetId).get();
+            if (userDoc.exists) {
+                const targetUser = userDoc.data();
+                // Trigger event to show profile modal
+                window.dispatchEvent(new CustomEvent('showUnlockedProfile', {
+                    detail: { user: targetUser }
+                }));
+            }
+        } catch (error) {
+            console.error('Error fetching unlocked profile:', error);
+            alert('프로필을 불러오는 중 오류가 발생했습니다.');
+        }
+    }
 }
 
 // Show requester's profile for approval decision
