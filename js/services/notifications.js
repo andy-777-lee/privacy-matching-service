@@ -23,22 +23,8 @@ async function fetchNotifications(userId) {
             .get();
         const notifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // [System Notification] Inject update announcement client-side
-        const UPDATE_ID = 'sys_update_241216';
-        const isUpdateRead = localStorage.getItem(`notif_read_${userId}_${UPDATE_ID}`);
+        // [System Notification] Injection removed at user request
 
-        if (!isUpdateRead) {
-            notifications.unshift({
-                id: UPDATE_ID,
-                userId: userId,
-                type: 'patch_notes',
-                message: '📢 새로운 업데이트가 있습니다! 변경 사항을 확인해보세요.',
-                read: false,
-                createdAt: Date.now(), // Always fresh
-                action: 'view_update_history',
-                isSystem: true // Flag for local handling
-            });
-        }
 
         return notifications;
     } catch (error) {

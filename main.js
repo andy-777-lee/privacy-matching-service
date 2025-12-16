@@ -2933,7 +2933,7 @@ async function displayUnlockRequests(page = null) {
         const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
 
         return `
-                < div class="request-card" >
+                <div class="request-card">
                 <div class="request-header">
                     <span class="request-time">${new Date(request.createdAt).toLocaleString()}</span>
                     <span class="status-badge status-pending">대기중 (B의 승인 대기)</span>
