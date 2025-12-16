@@ -115,6 +115,12 @@ async function displayNotifications(notifications) {
                     <button class="notification-btn">프로필 보기</button>
                 </div>
             `;
+        } else if (n.action === 'view_update_history') {
+            actionButtons = `
+                <div class="notification-action">
+                    <button class="notification-btn" onclick="event.stopPropagation(); document.getElementById('patch-notes-modal').classList.add('active'); document.getElementById('patch-notes-modal').style.display = 'flex';">내역 보기</button>
+                </div>
+            `;
         } else if (n.type === 'patch_notes') {
             actionButtons = `
                 <div class="notification-action">
@@ -236,27 +242,37 @@ async function handleNotificationClick(notificationId, type, targetId) {
         displayNotifications(notifications);
     }
 
-    if (type === 'patch_notes') {
-        document.getElementById('patch-notes-modal').classList.add('active');
-        document.getElementById('patch-notes-modal').style.display = 'flex';
-    } else if (type === 'unlock_approved' || type === 'mutual_approval_complete') {
-        document.getElementById('notification-modal').classList.remove('active');
+    displayNotifications(notifications);
+}
 
-        // Fetch the target user and show their profile
-        try {
-            const userDoc = await db.collection('users').doc(targetId).get();
-            if (userDoc.exists) {
-                const targetUser = userDoc.data();
-                // Trigger event to show profile modal
-                window.dispatchEvent(new CustomEvent('showUnlockedProfile', {
-                    detail: { user: targetUser }
-                }));
-            }
-        } catch (error) {
-            console.error('Error fetching unlocked profile:', error);
-            alert('프로필을 불러오는 중 오류가 발생했습니다.');
+// Special handling for view_update_history action (from properties or type)
+if (type === 'patch_notes' || (window.notifications && window.notifications.find(n => n.id === notificationId)?.action === 'view_update_history')) {
+    document.getElementById('patch-notes-modal').classList.add('active');
+    document.getElementById('patch-notes-modal').style.display = 'flex';
+    return; // Stop further processing
+}
+
+if (type === 'patch_notes') {
+    document.getElementById('patch-notes-modal').classList.add('active');
+    document.getElementById('patch-notes-modal').style.display = 'flex';
+} else if (type === 'unlock_approved' || type === 'mutual_approval_complete') {
+    document.getElementById('notification-modal').classList.remove('active');
+
+    // Fetch the target user and show their profile
+    try {
+        const userDoc = await db.collection('users').doc(targetId).get();
+        if (userDoc.exists) {
+            const targetUser = userDoc.data();
+            // Trigger event to show profile modal
+            window.dispatchEvent(new CustomEvent('showUnlockedProfile', {
+                detail: { user: targetUser }
+            }));
         }
+    } catch (error) {
+        console.error('Error fetching unlocked profile:', error);
+        alert('프로필을 불러오는 중 오류가 발생했습니다.');
     }
+}
 }
 
 // Show requester's profile for approval decision
