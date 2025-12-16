@@ -2627,6 +2627,17 @@ async function showAdminDashboard() {
     });
 
 
+
+    // Pre-fetch data once to populate cache and avoid parallel network requests
+    try {
+        await Promise.all([
+            fetchUsers(),
+            fetchUnlockRequests()
+        ]);
+    } catch (e) {
+        console.error("Error pre-fetching admin data:", e);
+    }
+
     await Promise.all([
         displayUnlockRequests(),
         displayFinalRequests(),
@@ -2716,7 +2727,7 @@ function setupAdminTabs() {
             document.querySelectorAll('.admin-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
-            document.getElementById(`${targetTab} -tab`).classList.add('active');
+            document.getElementById(`${targetTab}-tab`).classList.add('active');
 
             // Refresh data when tab is clicked
             if (targetTab === 'profiles') {
@@ -2727,11 +2738,125 @@ function setupAdminTabs() {
                 displayCompletedRequests();
             } else if (targetTab === 'statistics') {
                 displayStatistics();
+            } else if (targetTab === 'dashboard') {
+                displayDashboardStatistics();
             } else {
                 displayUnlockRequests();
             }
         });
     });
+}
+
+// Admin Dashboard: Statistics
+async function displayDashboardStatistics() {
+    const container = document.getElementById('admin-dashboard-stats');
+    if (!container) return;
+
+    container.innerHTML = '<div class="loading-spinner">데이터 분석 중...</div>';
+
+    try {
+        const users = await fetchUsers();
+        const requests = await fetchUnlockRequests();
+
+        // 1. Most Unresponsive (Most pending received requests)
+        const pendingRequests = requests.filter(r => r.status === 'pending');
+        const targetCounts = {};
+        pendingRequests.forEach(r => {
+            targetCounts[r.targetId] = (targetCounts[r.targetId] || 0) + 1;
+        });
+
+        const topUnresponsive = Object.entries(targetCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([userId, count]) => {
+                const user = users.find(u => u.id === userId);
+                return { name: user ? user.name : '알 수 없음', count };
+            });
+
+        // 2. Most Requests Received (Total requests received)
+        const receivedCounts = {};
+        requests.forEach(r => {
+            receivedCounts[r.targetId] = (receivedCounts[r.targetId] || 0) + 1;
+        });
+
+        const topReceived = Object.entries(receivedCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([userId, count]) => {
+                const user = users.find(u => u.id === userId);
+                return { name: user ? user.name : '알 수 없음', count };
+            });
+
+        // 3. Most Requests Sent
+        const sentCounts = {};
+        requests.forEach(r => {
+            sentCounts[r.requesterId] = (sentCounts[r.requesterId] || 0) + 1;
+        });
+
+        const topSent = Object.entries(sentCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([userId, count]) => {
+                const user = users.find(u => u.id === userId);
+                return { name: user ? user.name : '알 수 없음', count };
+            });
+
+        // 4. Most Matched (Approved both ways)
+        // A match is when status is 'approved' (mutual). 
+        // We count how many unique APPROVED requests a user is part of.
+        // Or simpler: count 'approved' requests where user is requester OR target.
+        const approvedRequests = requests.filter(r => r.status === 'approved');
+        const matchCounts = {};
+
+        approvedRequests.forEach(r => {
+            matchCounts[r.requesterId] = (matchCounts[r.requesterId] || 0) + 1;
+            matchCounts[r.targetId] = (matchCounts[r.targetId] || 0) + 1;
+        });
+
+        const topMatched = Object.entries(matchCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([userId, count]) => {
+                const user = users.find(u => u.id === userId);
+                return { name: user ? user.name : '알 수 없음', count };
+            });
+
+        // Render Cards
+        const renderList = (title, items, icon, unit) => `
+            <div class="stat-card glass" style="padding: 1.5rem; border-radius: 12px; background: rgba(255,255,255,0.05);">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                    <span style="font-size: 1.5rem;">${icon}</span>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-primary);">${title}</h3>
+                </div>
+                ${items.length > 0 ? `
+                    <ul style="list-style: none; padding: 0; margin: 0;">
+                        ${items.map((item, index) => `
+                            <li style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <span style="display: flex; gap: 0.5rem;">
+                                    <span style="color: ${index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'}; font-weight: bold;">${index + 1}위</span>
+                                    <span>${item.name}</span>
+                                </span>
+                                <span style="font-weight: bold; color: var(--primary);">${item.count}${unit}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                ` : '<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">데이터 없음</div>'}
+            </div>
+        `;
+
+        container.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                ${renderList('응답을 안하는 사람 (미응답 건수)', topUnresponsive, '🐢', '건')}
+                ${renderList('인기쟁이 (받은 요청)', topReceived, '💖', '건')}
+                ${renderList('적극적인 사람 (보낸 요청)', topSent, '🔥', '건')}
+                ${renderList('매칭왕 (성사된 매칭)', topMatched, '💑', '회')}
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+        container.innerHTML = '<div class="error-message">데이터를 불러오는 중 오류가 발생했습니다.</div>';
+    }
 }
 
 // Auto-approval state

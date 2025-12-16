@@ -949,6 +949,7 @@
 
                 <!-- Tabs -->
                 <div class="admin-tabs">
+                    <button class="admin-tab" data-tab="dashboard">대시보드</button>
                     <button class="admin-tab active" data-tab="requests">
                         <span class="tab-label">1단계 요청</span>
                         <span class="tab-count">(<span id="pending-count">0</span>)</span>
@@ -966,6 +967,13 @@
                         <span class="tab-count">(<span id="total-count">0</span>)</span>
                     </button>
                     <button class="admin-tab" data-tab="statistics">통계</button>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div id="dashboard-tab" class="admin-tab-content">
+                    <div class="dashboard-stats-grid" id="admin-dashboard-stats">
+                        <!-- Stats will be populated here -->
+                    </div>
                 </div>
 
                 <!-- 1단계 요청 Tab -->
