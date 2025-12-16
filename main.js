@@ -31,6 +31,14 @@ let profilesGenderFilter = 'all'; // 'all', 'male', 'female'
 window.currentUser = currentUser;
 let notificationInitialCheckDone = false;
 
+// Matches pagination state
+let matchesPagination = {
+    currentPage: 1,
+    itemsPerPage: 10,
+    currentMatches: [],
+    currentFilter: 'all' // Default filter
+};
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
@@ -63,6 +71,11 @@ async function initializeApp() {
 
             // Regular user logic
             try {
+                // Update last login time
+                db.collection('users').doc(user.uid).update({
+                    lastLogin: Date.now()
+                }).catch(err => console.error("Error updating lastLogin:", err));
+
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists) {
                     currentUser = userDoc.data();
@@ -893,6 +906,10 @@ function setupRegistrationForm() {
                     window.currentUser = currentUser; // Update global reference
                     console.log('Reloaded currentUser from Firestore:', currentUser);
                     console.log('Final preferences:', currentUser.preferences);
+
+                    // Clear matches cache to force re-calculation with new preferences
+                    matchesPagination.currentMatches = [];
+                    matchesPagination.currentPage = 1;
                 }
 
                 localStorage.setItem(STORAGE_KEYS.CURRENT_USER, currentUser.id);
@@ -1193,104 +1210,437 @@ window.addEventListener('showTargetProfileForFinalApproval', (event) => {
 });
 
 
-async function displayMatches() {
+// Loading Indicator
+function showLoading(message = '매칭 상대를 찾고 있습니다...') {
+    // Disable header buttons
+    const btns = ['notification-btn', 'my-profile-btn', 'contact-button', 'help-button', 'patch-notes-button'];
+    btns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
+        }
+    });
+
+    let loader = document.getElementById('global-loader');
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'global-loader';
+        loader.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000; /* Increased z-index to cover header */
+            color: white;
+            backdrop-filter: blur(5px);
+        `;
+        loader.innerHTML = `
+            <div class="spinner" style="
+                width: 50px;
+                height: 50px;
+                border: 5px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                border-top-color: white;
+                animation: spin 1s ease-in-out infinite;
+                margin-bottom: 20px;
+            "></div>
+            <div class="loading-text" style="font-size: 1.2rem; font-weight: 500;">${message}</div>
+            <style>
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            </style>
+        `;
+        document.body.appendChild(loader);
+    } else {
+        loader.querySelector('.loading-text').textContent = message;
+        loader.style.zIndex = '10000'; // Ensure high z-index
+        loader.style.display = 'flex';
+    }
+}
+
+function hideLoading() {
+    // Enable header buttons
+    const btns = ['notification-btn', 'my-profile-btn', 'contact-button', 'help-button', 'patch-notes-button'];
+    btns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '';
+            btn.style.pointerEvents = '';
+        }
+    });
+
+    const loader = document.getElementById('global-loader');
+    if (loader) {
+        loader.style.display = 'none';
+    }
+}
+
+// Match Filters Logic
+function setupMatchFilters() {
+    const filterSelect = document.getElementById('filter-select');
+    if (!filterSelect) return;
+
+    // Remove existing listener if any (by cloning, simplest way without reference)
+    const newSelect = filterSelect.cloneNode(true);
+    filterSelect.parentNode.replaceChild(newSelect, filterSelect);
+
+    newSelect.addEventListener('change', async (e) => {
+        const filterType = e.target.value;
+        matchesPagination.currentFilter = filterType;
+        matchesPagination.currentPage = 1; // Reset to page 1
+
+        // Refresh display
+        await displayMatches(1);
+    });
+
+    // Set initial value if state exists
+    if (matchesPagination.currentFilter) {
+        newSelect.value = matchesPagination.currentFilter;
+    }
+}
+
+// Filter and Sort Matches
+async function filterMatches(matches) {
+    let filtered = [...matches];
+    const filter = matchesPagination.currentFilter;
+
+    // For specific filters, we need request data
+    const requests = await fetchUnlockRequests(currentUser.id, false) || [];
+    // requests contains { id, requesterId, targetId, status, ... }
+    const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id) || [];
+
+    const sentRequests = requests.filter(r => r.requesterId === currentUser.id);
+    const receivedRequests = requests.filter(r => r.targetId === currentUser.id);
+
+    switch (filter) {
+        case 'sent':
+            const sentTargetIds = sentRequests.map(r => r.targetId);
+            filtered = filtered.filter(m => sentTargetIds.includes(m.user.id));
+            break;
+
+        case 'received':
+            const receivedRequesterIds = receivedRequests.map(r => r.requesterId);
+            filtered = filtered.filter(m => receivedRequesterIds.includes(m.user.id));
+            break;
+
+        case 'no_interaction':
+            const allInteractedIds = [...sentRequests.map(r => r.targetId), ...receivedRequests.map(r => r.requesterId)];
+            filtered = filtered.filter(m => !allInteractedIds.includes(m.user.id));
+            break;
+
+        case 'low_score':
+            // Sort by match score ASC (already sorted DESC by default)
+            filtered.sort((a, b) => a.score - b.score);
+            break;
+
+        case 'matched':
+            // Show only unlocked profiles
+            filtered = filtered.filter(m => unlockedProfiles.includes(m.user.id));
+            break;
+
+        case 'rejected':
+            // Show requests where status is 'rejected'
+            const rejectedIds = requests
+                .filter(r => r.status === 'rejected')
+                .map(r => r.requesterId === currentUser.id ? r.targetId : r.requesterId);
+
+            filtered = filtered.filter(m => rejectedIds.includes(m.user.id));
+            break;
+
+        default:
+            // 'all' - keeps original sort (desc score)
+            // Re-ensure default sort if 'all'
+            filtered.sort((a, b) => b.score - a.score);
+            break;
+    }
+
+    return filtered;
+}
+
+async function displayMatches(page = 1) {
     console.log('--- displayMatches called ---');
     console.log('Current User for matching:', currentUser);
+
+    // Set page
+    matchesPagination.currentPage = page;
+
     if (!currentUser || !currentUser.preferences) {
         console.warn('Current user has no preferences in displayMatches!');
+        // Show empty state immediately? Or let it fall through?
     }
-    const matches = await findMatches(currentUser);
+
     const grid = document.getElementById('matches-grid');
     const noMatches = document.getElementById('no-matches');
+    const paginationContainer = document.getElementById('matches-pagination');
 
-    if (matches.length === 0) {
-        grid.style.display = 'none';
-        noMatches.style.display = 'block';
+    // Show loading ONLY if we are fetching fresh data (usually page 1 or initial load)
+    // Optimization: If we already have matches and just changing page, checking cache
+    // Removed `&& page !== 1` to allow caching for page 1 as well (navigation back)
+    const useCache = matchesPagination.currentMatches && matchesPagination.currentMatches.length > 0;
 
-        // Show mismatch analysis
-        const analysis = await analyzeMismatches(currentUser);
-        const mismatchList = analysis.mismatchDetails
-            .sort((a, b) => b.count - a.count)
-            .map(item => `
-                <div class="mismatch-item">
-                    <span class="mismatch-label">${item.label}</span>
-                    <span class="mismatch-count">${item.count}명 미매칭</span>
+    // If not using cache (fetching fresh), show loading
+    if (!useCache) {
+        showLoading();
+    }
+
+    try {
+        let matches = matchesPagination.currentMatches;
+
+        // Fetch new matches if no cache or cache is empty
+        if (!useCache) {
+            // Always fetch to ensure we have latest, but fetchUsers handles caching (for full list)
+            // But findMatches does calculation. 
+            matches = await findMatches(currentUser);
+            matchesPagination.currentMatches = matches;
+        } else {
+            console.log('Using cached matches for pagination');
+        }
+
+
+        if (matches.length === 0) {
+            grid.style.display = 'none';
+            if (paginationContainer) paginationContainer.style.display = 'none';
+            noMatches.style.display = 'block';
+
+            // Show mismatch analysis (Same as before)
+            const analysis = await analyzeMismatches(currentUser);
+            const mismatchList = analysis.mismatchDetails
+                .sort((a, b) => b.count - a.count)
+                .map(item => `
+                    <div class="mismatch-item">
+                        <span class="mismatch-label">${item.label}</span>
+                        <span class="mismatch-count">${item.count}명 미매칭</span>
+                    </div>
+                `).join('');
+
+            noMatches.innerHTML = `
+                <div class="empty-state">
+                    <span class="empty-icon">💔</span>
+                    <h3>매칭되는 프로필이 없습니다</h3>
+                    <p>총 ${analysis.totalCandidates}명의 프로필이 있지만 조건이 맞지 않습니다</p>
+
+                    <div class="mismatch-analysis">
+                        <h4>조건별 미매칭 분석</h4>
+                        ${mismatchList}
+                    </div>
+
+                    <p class="hint">선호 조건을 수정하거나 범위를 넓혀보세요</p>
+                    <button onclick="window.dispatchEvent(new CustomEvent('editPreferences'))" class="btn-primary" style="
+                        margin-top: 1.5rem;
+                        padding: 1rem 2rem;
+                        font-size: 1.1rem;
+                        font-weight: 600;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        border: none;
+                        border-radius: 12px;
+                        color: white;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                        transition: all 0.3s ease;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';">
+                        <span style="font-size: 1.2rem;">⚙️</span>
+                        선호 조건 수정하기
+                    </button>
                 </div>
-            `).join('');
+            `;
+            paginationContainer.innerHTML = ''; // Clear pagination
+            return;
+        }
 
-        noMatches.innerHTML = `
-            <div class="empty-state">
-                <span class="empty-icon">💔</span>
-                <h3>매칭되는 프로필이 없습니다</h3>
-                <p>총 ${analysis.totalCandidates}명의 프로필이 있지만 조건이 맞지 않습니다</p>
+        grid.style.display = 'grid';
+        noMatches.style.display = 'none';
 
-                <div class="mismatch-analysis">
-                    <h4>조건별 미매칭 분석</h4>
-                    ${mismatchList}
-                </div>
+        // Setup filter listeners if not already (check if element exists and has no listeners? 
+        // Safer to just call it, but we need to avoid duplicate listeners. 
+        // The setupMatchFilters function adds listeners. We should probably call it once.
+        // Let's call it here but we need a flag or idempotent check?
+        // Actually, we can just replace the element to clear listeners or use a flag.
+        // For now, let's call it and rely on it being idempotent or minimal harm if lightweight.
+        // Better: Call it once in `showPage` or similar. But `displayMatches` is called often.
+        // Let's check `setupMatchFilters` implementation again. 
+        // It selects by class. If we run it multiple times, we add multiple listeners.
+        // We should add a check or move it. 
+        // Let's add a global flag or check attribute.
 
-                <p class="hint">선호 조건을 수정하거나 범위를 넓혀보세요</p>
-                <button onclick="window.dispatchEvent(new CustomEvent('editPreferences'))" class="btn-primary" style="
-                    margin-top: 1.5rem;
-                    padding: 1rem 2rem;
-                    font-size: 1.1rem;
-                    font-weight: 600;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border: none;
-                    border-radius: 12px;
-                    color: white;
-                    cursor: pointer;
-                    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-                    transition: all 0.3s ease;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';">
-                    <span style="font-size: 1.2rem;">⚙️</span>
-                    선호 조건 수정하기
-                </button>
-            </div>
+        if (!document.getElementById('match-filters').dataset.initialized) {
+            setupMatchFilters();
+            document.getElementById('match-filters').dataset.initialized = 'true';
+        }
+
+        const filteredMatches = await filterMatches(matches);
+
+        // Pagination Logic on FILTERED results
+        const totalItems = filteredMatches.length;
+        const totalPages = Math.ceil(totalItems / matchesPagination.itemsPerPage);
+
+        // Ensure current page is valid
+        if (page > totalPages) matchesPagination.currentPage = totalPages;
+        if (matchesPagination.currentPage < 1) matchesPagination.currentPage = 1;
+
+        const startIndex = (matchesPagination.currentPage - 1) * matchesPagination.itemsPerPage;
+        const endIndex = startIndex + matchesPagination.itemsPerPage;
+        const matchesToDisplay = filteredMatches.slice(startIndex, endIndex);
+
+        const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
+        const unlockRequests = await fetchUnlockRequests(currentUser.id);
+
+        // Remove duplicates by user ID (in case matches array has duplicates)
+        // Ensure slicedMatches are unique? findMatches already handles uniqueness of candidates.
+        // But let's be safe if we need to.
+        // Actually findMatches returns unique candidates.
+
+        if (matchesToDisplay.length === 0) {
+            // Handle empty page scenario if needed
+        }
+
+        grid.innerHTML = matchesToDisplay.map(match => {
+            const isUnlocked = unlockedProfiles.includes(match.user.id);
+
+            // Check if there's a request between current user and this match
+            const sentRequest = unlockRequests.find(r =>
+                r.requesterId === currentUser.id && r.targetId === match.user.id
+            );
+            const receivedRequest = unlockRequests.find(r =>
+                r.requesterId === match.user.id && r.targetId === currentUser.id
+            );
+
+            return createMatchCard(match, isUnlocked, sentRequest, receivedRequest);
+        }).join('');
+
+        // Add click handlers
+        grid.querySelectorAll('.match-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const userId = card.dataset.userId;
+                const match = matches.find(m => m.user.id === userId); // Find in full list
+                const isUnlocked = unlockedProfiles.includes(userId);
+                showProfileModal(match.user, !isUnlocked, match);
+            });
+        });
+
+        // Render Pagination Controls
+        renderPaginationControls(totalPages);
+
+        // Scroll to top of grid
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) mainContent.scrollTop = 0;
+        window.scrollTo(0, 0);
+
+    } finally {
+        hideLoading();
+    }
+}
+
+function renderPaginationControls(totalPages) {
+    let container = document.getElementById('matches-pagination');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'matches-pagination';
+        container.className = 'pagination-controls';
+        container.style.cssText = `
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
         `;
+        // Insert after grid
+        const grid = document.getElementById('matches-grid');
+        grid.parentNode.insertBefore(container, grid.nextSibling);
+    }
+
+    if (totalPages <= 1) {
+        container.style.display = 'none';
         return;
     }
-    grid.style.display = 'grid';
-    noMatches.style.display = 'none';
 
-    const unlockedProfiles = await fetchUnlockedProfiles(currentUser.id);
-    // Pass currentUser.id to filter requests (optimization)
-    const unlockRequests = await fetchUnlockRequests(currentUser.id);
+    container.style.display = 'flex';
 
-    // Remove duplicates by user ID (in case matches array has duplicates)
-    const uniqueMatches = Array.from(
-        new Map(matches.map(match => [match.user.id, match])).values()
-    );
+    let html = '';
 
-    console.log(`Total matches: ${matches.length}, Unique matches: ${uniqueMatches.length}`);
+    // Prev Button
+    html += `
+        <button class="page-btn prev-btn" ${matchesPagination.currentPage === 1 ? 'disabled' : ''}
+            onclick="displayMatches(${matchesPagination.currentPage - 1})">
+            &lt;
+        </button>
+    `;
 
-    grid.innerHTML = uniqueMatches.map(match => {
-        const isUnlocked = unlockedProfiles.includes(match.user.id);
+    // Page Numbers
+    // Simple logic: Show all if small, or range if large. For now, show reasonable range.
+    // Let's show up to 5 pages around current
+    let startPage = Math.max(1, matchesPagination.currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
 
-        // Check if there's a request between current user and this match
-        const sentRequest = unlockRequests.find(r =>
-            r.requesterId === currentUser.id && r.targetId === match.user.id
-        );
-        const receivedRequest = unlockRequests.find(r =>
-            r.requesterId === match.user.id && r.targetId === currentUser.id
-        );
+    // Adjust start if end is max
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
 
-        return createMatchCard(match, isUnlocked, sentRequest, receivedRequest);
-    }).join('');
+    for (let i = startPage; i <= endPage; i++) {
+        html += `
+            <button class="page-btn ${i === matchesPagination.currentPage ? 'active' : ''}"
+                onclick="displayMatches(${i})">
+                ${i}
+            </button>
+        `;
+    }
 
-    // Add click handlers
-    grid.querySelectorAll('.match-card').forEach(card => {
-        card.addEventListener('click', () => {
-            const userId = card.dataset.userId;
-            const match = uniqueMatches.find(m => m.user.id === userId);
-            const isUnlocked = unlockedProfiles.includes(userId);
-            // Pass the full match object as the 3rd argument instead of just score
-            showProfileModal(match.user, !isUnlocked, match);
-        });
-    });
+    // Next Button
+    html += `
+        <button class="page-btn next-btn" ${matchesPagination.currentPage === totalPages ? 'disabled' : ''}
+            onclick="displayMatches(${matchesPagination.currentPage + 1})">
+            &gt;
+        </button>
+    `;
+
+    container.innerHTML = html;
+
+    // Add pagination styles if not present (inline for simplicity)
+    if (!document.getElementById('pagination-styles')) {
+        const style = document.createElement('style');
+        style.id = 'pagination-styles';
+        style.textContent = `
+            .page-btn {
+                padding: 0.5rem 0.8rem;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                background: rgba(255, 255, 255, 0.05);
+                color: var(--text-secondary);
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-family: inherit;
+            }
+            .page-btn:hover:not(:disabled) {
+                background: rgba(255, 255, 255, 0.15);
+                color: var(--text-primary);
+            }
+            .page-btn.active {
+                background: var(--primary);
+                color: white;
+                border-color: var(--primary);
+                font-weight: bold;
+            }
+            .page-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        `;
+        document.head.appendChild(style);
+    }
 }
 
 function createMatchCard(match, isUnlocked, sentRequest = null, receivedRequest = null) {
@@ -1319,7 +1669,7 @@ function createMatchCard(match, isUnlocked, sentRequest = null, receivedRequest 
         }
     }
 
-    // Create match percentage display with bidirectional info
+    // Create match percentage display with bidirectional data
     let matchPercentageHTML = '';
     if (match.hasMutualPreferences) {
         // Both have preferences - show combined score with breakdown
@@ -1395,9 +1745,9 @@ function formatPreferenceValue(fieldId, pref) {
             const currentYear = new Date().getFullYear();
             const maxAge = currentYear - pref.value.min + 1;
             const minAge = currentYear - pref.value.max + 1;
-            return `${minAge}세 ~ ${maxAge}세 (${pref.value.min}년생 ~ ${pref.value.max}년생)`;
+            return `${minAge}세 ~${maxAge} 세(${pref.value.min}년생 ~${pref.value.max}년생)`;
         }
-        return `${pref.value.min} ~ ${pref.value.max}`;
+        return `${pref.value.min} ~${pref.value.max} `;
     }
 
     // Multi-select (배열)
@@ -1433,7 +1783,7 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
             // Full match object with bidirectional data
             if (matchData.hasMutualPreferences) {
                 matchScoreHTML = `
-                    <div class="match-score-container" style="background: rgba(255, 255, 255, 0.1); padding: 1rem; border-radius: 12px; margin-bottom: 1rem; text-align: center;">
+                <div class="match-score-container" style="background: rgba(255, 255, 255, 0.1); padding: 1rem; border-radius: 12px; margin-bottom: 1rem; text-align: center;">
                         <div class="total-score" style="font-size: 1.5rem; font-weight: bold; color: #FF6B6B; margin-bottom: 0.5rem;">
                             ${matchData.score}% 매칭 ⭐
                         </div>
@@ -1453,17 +1803,17 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
             } else {
                 // Only I have preferences
                 matchScoreHTML = `
-                    <div class="match-percentage" style="position: static; margin-bottom: 1rem;">
-                        ${matchData.score}% 매칭
-                        <div style="font-size: 0.8rem; font-weight: normal; margin-top: 0.2rem; opacity: 0.8;">
+                < div class="match-percentage" style = "position: static; margin-bottom: 1rem;" >
+                    ${matchData.score}% 매칭
+                        < div style = "font-size: 0.8rem; font-weight: normal; margin-top: 0.2rem; opacity: 0.8;" >
                             (상대방 선호 조건 미설정)
-                        </div>
-                    </div>
+                        </div >
+                    </div >
                 `;
             }
         } else {
             // Legacy/Simple score (just a number)
-            matchScoreHTML = `<div class="match-percentage" style="position: static; margin-bottom: 1rem;">${matchData}% 매칭</div>`;
+            matchScoreHTML = `< div class="match-percentage" style = "position: static; margin-bottom: 1rem;" > ${matchData}% 매칭</div > `;
         }
     }
 
@@ -1575,7 +1925,8 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
                 }).join('')}
                 </div>
             </div>
-        ` : ''}
+        ` : ''
+        }
         ${isUnlocked && !requestId && !finalApprovalRequestId ? `
             <div class="contact-info">
                 <h4>📞 연락처</h4>
@@ -1595,12 +1946,14 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
                     🔒 양방향 승인 완료 시 공개됩니다
                 </p>
             </div>
-        ` : ''}
+        ` : ''
+        }
         ${showUnlockButton && !isUnlocked ? `
             <button class="btn btn-primary btn-unlock" onclick="requestUnlock('${user.id}')">
                 프로필 공개 요청
             </button>
-        ` : ''}
+        ` : ''
+        }
         ${isOwnProfile ? `
             <button class="btn btn-secondary btn-large" onclick="document.getElementById('profile-modal').classList.remove('active'); window.dispatchEvent(new CustomEvent('editPreferences'))">
                 선호 조건 수정하기
@@ -1608,7 +1961,8 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
             <button class="btn btn-primary btn-large" onclick="openEditProfileModal()" style="margin-top: 0.5rem;">
                 프로필 수정하기
             </button>
-        ` : ''}
+        ` : ''
+        }
         ${requestId ? `
             <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                 <button class="btn btn-primary btn-large" onclick="handleTargetApproval('${requestId}', true)" style="flex: 1; background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);">
@@ -1621,7 +1975,8 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
             <p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
                 승인하면 양쪽 모두 서로의 프로필을 볼 수 있습니다.
             </p>
-        ` : ''}
+        ` : ''
+        }
         ${finalApprovalRequestId ? `
             <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                 <button class="btn btn-primary btn-large" onclick="requesterFinalApprove('${finalApprovalRequestId}')" style="flex: 1; background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);">
@@ -1634,8 +1989,9 @@ async function showProfileModal(user, showUnlockButton = false, matchData = null
             <p style="text-align: center; color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
                 최종 승인하면 양쪽 모두 서로의 연락처를 확인할 수 있습니다.
             </p>
-        ` : ''}
-    `;
+        ` : ''
+        }
+            `;
 
     modal.classList.add('active');
     modal.style.display = ''; // Ensure display is not none
@@ -1676,7 +2032,7 @@ function editPreferences() {
 
     // Check the selected preferences
     selectedFields.forEach(fieldId => {
-        const checkbox = document.getElementById(`pref-${fieldId}`);
+        const checkbox = document.getElementById(`pref - ${fieldId} `);
         if (checkbox) {
             checkbox.checked = true;
         }
@@ -1694,28 +2050,28 @@ function editPreferences() {
             if (!field || !pref.value) return;
 
             if (field.type === 'range') {
-                const minInput = document.getElementById(`pref-value-${pref.field}-min`);
-                const maxInput = document.getElementById(`pref-value-${pref.field}-max`);
+                const minInput = document.getElementById(`pref - value - ${pref.field} -min`);
+                const maxInput = document.getElementById(`pref - value - ${pref.field} -max`);
                 if (minInput && maxInput && pref.value.min && pref.value.max) {
                     minInput.value = pref.value.min;
                     maxInput.value = pref.value.max;
                 }
             } else if (field.type === 'select') {
-                const select = document.getElementById(`pref-value-${pref.field}`);
+                const select = document.getElementById(`pref - value - ${pref.field} `);
                 if (select && pref.value) {
                     select.value = pref.value;
                 }
             } else if (field.type === 'multi') {
                 if (Array.isArray(pref.value)) {
                     pref.value.forEach(val => {
-                        const checkbox = document.querySelector(`input[name="pref-value-${pref.field}"][value="${val}"]`);
+                        const checkbox = document.querySelector(`input[name = "pref-value-${pref.field}"][value = "${val}"]`);
                         if (checkbox) {
                             checkbox.checked = true;
                         }
                     });
                 }
             } else if (field.type === 'text') {
-                const input = document.getElementById(`pref-value-${pref.field}`);
+                const input = document.getElementById(`pref - value - ${pref.field} `);
                 if (input && pref.value) {
                     input.value = pref.value;
                 }
@@ -1955,15 +2311,15 @@ function populateEditProfileForm() {
 
     // Populate photos
     currentUser.photos.forEach((photo, index) => {
-        const preview = document.querySelector(`.photo-upload-box[data-index="${index}"] .photo-preview-edit`);
+        const preview = document.querySelector(`.photo - upload - box[data - index="${index}"] .photo - preview - edit`);
         if (preview) {
-            preview.innerHTML = `<img src="${photo}" alt="Photo ${index + 1}">`;
+            preview.innerHTML = `< img src = "${photo}" alt = "Photo ${index + 1}" > `;
             preview.classList.add('active');
 
             // Make photo clickable to change
             preview.style.cursor = 'pointer';
             preview.onclick = () => {
-                const input = document.getElementById(`photo-edit-${index}`);
+                const input = document.getElementById(`photo - edit - ${index} `);
                 if (input) input.click();
             };
         }
@@ -2009,7 +2365,7 @@ function populateEditProfileForm() {
     // Populate hobbies
     if (currentUser.hobbies && Array.isArray(currentUser.hobbies)) {
         currentUser.hobbies.forEach(hobby => {
-            const checkbox = document.querySelector(`input[name="edit-hobbies"][value="${hobby}"]`);
+            const checkbox = document.querySelector(`input[name = "edit-hobbies"][value = "${hobby}"]`);
             if (checkbox) checkbox.checked = true;
         });
     }
@@ -2063,8 +2419,8 @@ function setupEditPhotoUpload() {
                         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
 
                         // Display preview
-                        const preview = document.querySelector(`.photo-upload-box[data-index="${index}"] .photo-preview-edit`);
-                        preview.innerHTML = `<img src="${compressedDataUrl}" alt="Photo ${index + 1}">`;
+                        const preview = document.querySelector(`.photo - upload - box[data - index="${index}"] .photo - preview - edit`);
+                        preview.innerHTML = `< img src = "${compressedDataUrl}" alt = "Photo ${index + 1}" > `;
                         preview.classList.add('active');
                     };
                     img.src = event.target.result;
@@ -2079,7 +2435,7 @@ async function handleEditProfileSubmit() {
     // Validate photos (ensure three photos are uploaded)
     const photos = [];
     for (let i = 0; i < 3; i++) {
-        const preview = document.querySelector(`.photo-upload-box[data-index="${i}"] .photo-preview-edit`);
+        const preview = document.querySelector(`.photo - upload - box[data - index="${i}"] .photo - preview - edit`);
         if (!preview.classList.contains('active')) {
             alert('사진 3장을 모두 등록해주세요.');
             return;
@@ -2360,7 +2716,7 @@ function setupAdminTabs() {
             document.querySelectorAll('.admin-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
-            document.getElementById(`${targetTab}-tab`).classList.add('active');
+            document.getElementById(`${targetTab} -tab`).classList.add('active');
 
             // Refresh data when tab is clicked
             if (targetTab === 'profiles') {
@@ -2577,7 +2933,7 @@ async function displayUnlockRequests(page = null) {
         const target = users.find(u => u.id === request.targetId) || { name: '알 수 없음 (삭제됨)', id: request.targetId };
 
         return `
-            <div class="request-card">
+                < div class="request-card" >
                 <div class="request-header">
                     <span class="request-time">${new Date(request.createdAt).toLocaleString()}</span>
                     <span class="status-badge status-pending">대기중 (B의 승인 대기)</span>
@@ -2597,8 +2953,8 @@ async function displayUnlockRequests(page = null) {
                 <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
                     ${target.name}님의 승인을 기다리는 중입니다.
                 </div>
-            </div>
-        `;
+            </div >
+                `;
     }).join('');
 
     // Update pagination controls
@@ -2612,7 +2968,7 @@ async function displayUnlockRequests(page = null) {
         prevBtn.disabled = requestsPagination.currentPage === 1;
         nextBtn.disabled = requestsPagination.currentPage === totalPages;
 
-        pageInfo.textContent = `${startIndex + 1}-${Math.min(endIndex, pendingRequests.length)} / ${pendingRequests.length}`;
+        pageInfo.textContent = `${startIndex + 1} -${Math.min(endIndex, pendingRequests.length)} / ${pendingRequests.length}`;
 
         // Remove old event listeners by cloning
         const newPrevBtn = prevBtn.cloneNode(true);

@@ -15,10 +15,13 @@ class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # Custom log format
         print(f"[{datetime.now().strftime('%H:%M:%S')}] {format % args}")
 
-PORT = 8001
+PORT = 8000
 Handler = NoCacheHTTPRequestHandler
 
-with socketserver.TCPServer(("", PORT), Handler) as httpd:
+class ReusableTCPServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
+
+with ReusableTCPServer(("", PORT), Handler) as httpd:
     print(f"🚀 Server running at http://localhost:{PORT}")
     print(f"📝 Cache disabled - all files will be fresh")
     print(f"Press Ctrl+C to stop")

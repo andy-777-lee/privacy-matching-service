@@ -36,56 +36,36 @@
         <div class="modal-content" style="max-width: 600px;">
             <button type="button" class="modal-close"
                 onclick="document.getElementById('patch-notes-modal').classList.remove('active'); document.getElementById('patch-notes-modal').style.display = 'none';">&times;</button>
-            <h2>📢 업데이트 내역 (2025.12.04)</h2>
+            <h2>📢 업데이트 내역 (2024.12.16)</h2>
 
             <div class="patch-note-item"
                 style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <h3 style="color: #667eea; margin-bottom: 0.5rem;">🎯 최종 매칭 프로세스 추가</h3>
-                <p style="color: var(--text-secondary); line-height: 1.6;">
-                    1️⃣ [기존] A가 B에게 요청 → B는 A의 프로필을 확인 후 승인/거절<br>
-                    2️⃣ <strong style="color: #FF6B9D;">[추가]</strong> A도 B의 프로필 확인 후 <strong style="color: #4ECDC4;">[최종
-                        승인]</strong><br>
-                    3️⃣ <strong style="color: #FF6B9D;">[추가]</strong> <strong style="color: #4ECDC4;">[최종 승인]</strong>으로
-                    매칭 후 서로의 연락처 공개
-                </p>
-                <p style="color: #FFB3D1; font-size: 0.85rem; margin-top: 0.75rem; margin-bottom: 0.75rem;">
-                    ※ 변경된 매칭프로세스는 오른쪽 하단 ?도움말 버튼에서 확인가능합니다.
-                </p>
-                <button
-                    onclick="document.getElementById('patch-notes-modal').classList.remove('active'); document.getElementById('patch-notes-modal').style.display = 'none'; document.getElementById('service-info-modal').classList.add('active'); document.getElementById('service-info-modal').style.display = 'flex';"
-                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);"
-                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.4)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(102, 126, 234, 0.3)';">
-                    📋 도움말 바로가기
-                </button>
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">⚡ 성능 최적화</h3>
+                <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 1.2rem; margin: 0;">
+                    <li style="margin-bottom: 0.3rem;"><strong>매칭 로딩 속도 개선:</strong> 페이지 이동 시 즉각적인 화면 전환</li>
+                    <li><strong>페이지네이션 적용:</strong> 초기 로딩 성능 최적화</li>
+                </ul>
             </div>
 
             <div class="patch-note-item"
                 style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <h3 style="color: #667eea; margin-bottom: 0.5rem;">💌 메시지 기능 추가</h3>
-                <p style="color: var(--text-secondary); line-height: 1.6;">
-                    • 최종 승인 시 메시지 전달 가능 (선택사항)<br>
-                    • 상대방에게 첫인사를 남겨보세요!
-                </p>
-            </div>
-
-            <div class="patch-note-item"
-                style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <h3 style="color: #667eea; margin-bottom: 0.5rem;">👀 프로필 공개 범위 수정</h3>
-                <p style="color: var(--text-secondary); line-height: 1.6;">
-                    • 프로필공개 요청 시 이름과 사진만 공개, 연락처 비공개로 변경되었습니다.<br>
-                    • 최종 매칭 승인 완료 시 연락처 공개
-                </p>
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">🛠 기능 추가 및 개선</h3>
+                <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 1.2rem; margin: 0;">
+                    <li style="margin-bottom: 0.3rem;"><strong>고급 필터 기능:</strong> 매칭, 거절, 보냄/받음 요청 등 상태별 보기</li>
+                    <li><strong>접속 기록 관리:</strong> 사용자 최근 접속 시간 자동 트래킹</li>
+                </ul>
             </div>
 
             <div class="patch-note-item">
                 <h3 style="color: #667eea; margin-bottom: 0.5rem;">🎨 UI/UX 개선</h3>
-                <p style="color: var(--text-secondary); line-height: 1.6;">
-                    • 알림 메시지 스타일 개선 (인용 박스 형식)<br>
-                    • 최종 승인 모달 추가 (프로필 공개 요청과 동일한 형식)<br>
-                    • 매칭 상태 배지 업데이트 (대기중, 1차 승인 완료 등)
-                </p>
+                <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 1.2rem; margin: 0;">
+                    <li style="margin-bottom: 0.3rem;"><strong>필터 UI 개편:</strong> 공간 효율적인 드롭다운 방식 적용</li>
+                    <li style="margin-bottom: 0.3rem;"><strong>디자인 최적화:</strong> 헤더/목록 간격 및 드롭다운 너비 최적화</li>
+                    <li><strong>버그 수정:</strong> 프로필 카드 HTML 코드 노출 문제 해결</li>
+                </ul>
             </div>
+
+
         </div>
     </div>
 
@@ -516,6 +496,22 @@
                     </div>
                 </div>
 
+                <!-- Match Filters -->
+                <div class="filter-bar" id="match-filters"
+                    style="display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem; padding-right: 0;">
+                    <label for="filter-select"
+                        style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">정렬/필터:</label>
+                    <select id="filter-select" class="filter-select">
+                        <option value="all">전체</option>
+                        <option value="matched">✅ 매칭 성공</option>
+                        <option value="rejected">❌ 거절됨</option>
+                        <option value="sent">📤 보낸 요청</option>
+                        <option value="received">📥 받은 요청</option>
+                        <option value="no_interaction">🆕 미교류</option>
+                        <option value="low_score">📉 낮은 점수순</option>
+                    </select>
+                </div>
+
                 <div id="matches-grid" class="matches-grid"></div>
 
 
@@ -530,7 +526,7 @@
                 <!-- Notification Modal -->
                 <div id="notification-modal" class="modal">
                     <div class="modal-content card glass">
-                        <span class="close-modal" id="close-notification-modal">&times;</span>
+                        <button type="button" class="modal-close" id="close-notification-modal">&times;</button>
                         <h2>알림</h2>
                         <div id="notification-list" class="notification-list">
                             <!-- Notifications will be populated here -->

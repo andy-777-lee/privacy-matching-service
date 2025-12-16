@@ -703,11 +703,11 @@ select:focus {
     font-family: monospace;
 }
 
-/* Matches Grid */
+/* Matches Grid - Compact Mode */
 .matches-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--spacing-md);
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--spacing-sm);
 }
 
 .match-card {
@@ -738,11 +738,11 @@ select:focus {
 }
 
 .match-info {
-    padding: var(--spacing-md);
+    padding: var(--spacing-sm);
 }
 
 .match-name {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 600;
     margin-bottom: var(--spacing-xs);
 }
@@ -2460,4 +2460,63 @@ input:checked+.toggle-slider:before {
 .toggle-status.off {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-muted);
+}
+
+/* Header Spacing */
+.header {
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Filter Bar */
+.filter-bar {
+    display: flex;
+    gap: var(--spacing-sm);
+    overflow-x: auto;
+    padding-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+    /* Even tighter for grid connection */
+    /* margin-top: -10px; removed for equal spacing */
+    /* Adjust spacing below header */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+}
+
+.filter-bar::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
+}
+
+.filter-select {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    padding: 0.3rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    /* Remove default arrow */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.2rem center;
+    background-size: 0.8em;
+    padding-right: 1.2rem;
+    width: 125px;
+    /* Fixed width to fit '최근 접속순' */
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.filter-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
+}
+
+.filter-select option {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    padding: 10px;
 }

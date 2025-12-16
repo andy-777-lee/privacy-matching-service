@@ -15,8 +15,34 @@ let unlockRequestsCache = {
 };
 
 // Fetch all users (with in-memory caching)
-async function fetchUsers(forceRefresh = false) {
+// Fetch all users (with in-memory caching)
+// Modified to support filtering to reduce data transfer
+async function fetchUsers(forceRefresh = false, filters = null) {
     try {
+        // If filters are provided, bypass global cache and fetch specific data
+        if (filters && filters.gender) {
+            console.log(`Fetching users with gender: ${filters.gender}...`);
+            const snapshot = await db.collection('users')
+                .where('gender', '==', filters.gender)
+                .get();
+
+            const users = snapshot.docs.map(doc => {
+                const data = doc.data();
+                if (!data.id) data.id = doc.id;
+                return data;
+            });
+
+            // Deduplicate
+            const uniqueUsers = Array.from(
+                new Map(users.map(user => [user.id, user])).values()
+            );
+
+            console.log(`Fetched ${uniqueUsers.length} users (filtered by gender: ${filters.gender})`);
+            return uniqueUsers;
+        }
+
+        // Default behavior (Fetch ALL users) - used for Admin
+
         // Check cache first
         if (!forceRefresh && usersCache.data && usersCache.timestamp) {
             const now = Date.now();

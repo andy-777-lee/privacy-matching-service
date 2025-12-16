@@ -65,7 +65,8 @@ async function findMatches(user) {
     console.log(JSON.stringify(matchingUser.preferences, null, 2));
     console.log('------------------------');
 
-    const allUsers = await window.fetchUsers();
+    const targetGender = matchingUser.gender === 'male' ? 'female' : 'male';
+    const allUsers = await window.fetchUsers(false, { gender: targetGender });
 
     // Remove duplicates by user ID first
     const uniqueUsers = Array.from(
