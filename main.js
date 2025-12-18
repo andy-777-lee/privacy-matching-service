@@ -273,17 +273,36 @@ function setupLoginPage() {
         try {
             // Use Kakao ID to create a synthetic email for Firebase Auth
             // Convert Kakao ID to safe email format using Base64 encoding (same as registration)
-            const safeKakaoId = btoa(encodeURIComponent(kakaoId))
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=/g, '');
-            const email = `${safeKakaoId}@matching.app`;
+            // Trim and lowercase Kakao ID for consistency
+            const trimmedOriginal = kakaoId.trim();
+            const trimmedLower = trimmedOriginal.toLowerCase();
+
+            const getEmail = (id) => {
+                const safeId = btoa(encodeURIComponent(id))
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_')
+                    .replace(/=/g, '');
+                return `${safeId}@matching.app`;
+            };
+
+            const emailLower = getEmail(trimmedLower);
+            const emailOriginal = getEmail(trimmedOriginal);
 
             // Pad password to 6 characters to match registration format
             const paddedPassword = password.padEnd(6, '0');
 
-            // Sign in with Firebase Auth
-            await auth.signInWithEmailAndPassword(email, paddedPassword);
+            try {
+                // First attempt: try lowercased email (normalized)
+                await auth.signInWithEmailAndPassword(emailLower, paddedPassword);
+            } catch (error) {
+                // Second attempt: try original casing if lowercase fails (backwards compatibility)
+                if (trimmedLower !== trimmedOriginal && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email')) {
+                    console.log('Normalized login failed, trying original casing...');
+                    await auth.signInWithEmailAndPassword(emailOriginal, paddedPassword);
+                } else {
+                    throw error; // Re-throw if it's something else (like wrong password)
+                }
+            }
 
             // Note: Navigation will be handled by onAuthStateChanged in initializeApp
         } catch (error) {
@@ -468,6 +487,9 @@ function setupRegistrationForm() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn.disabled) return; // Prevent multiple clicks
+
         // Validate photos (ensure three photos are uploaded)
         const photos = [];
         for (let i = 0; i < 3; i++) {
@@ -487,7 +509,7 @@ function setupRegistrationForm() {
         }
 
         // Validate MBTI (must be 4 characters)
-        const mbti = document.getElementById('mbti').value.toUpperCase();
+        const mbti = document.getElementById('mbti').value.trim().toUpperCase();
         if (mbti.length !== 4) {
             alert('MBTI는 4자리로 입력해주세요 (예: INFP)');
             return;
@@ -500,11 +522,9 @@ function setupRegistrationForm() {
             alert('비밀번호 4자리를 모두 입력해주세요.');
             return;
         }
-        // const hashedPwd = await hashPassword(rawPassword); // No longer hashing password for Firestore
-        // console.log('Hashed password to store:', hashedPwd);
 
         const formData = {
-            name: document.getElementById('name').value,
+            name: document.getElementById('name').value.trim(),
             gender: document.querySelector('input[name="gender"]:checked').value,
             birthYear: parseInt(document.getElementById('birth-year').value),
             religion: document.getElementById('religion').value,
@@ -512,18 +532,18 @@ function setupRegistrationForm() {
             bodyType: document.getElementById('body-type').value,
             drinking: document.getElementById('drinking').value,
             hobbies: hobbies,
-            job: document.getElementById('job').value,
-            workplace: document.getElementById('workplace').value,
-            highSchool: document.getElementById('high-school').value,
-            location: document.getElementById('location').value === '기타'
-                ? document.getElementById('custom-location').value
-                : document.getElementById('location').value,
+            job: document.getElementById('job').value.trim(),
+            workplace: document.getElementById('workplace').value.trim(),
+            highSchool: document.getElementById('high-school').value.trim(),
+            location: (document.getElementById('location').value === '기타'
+                ? document.getElementById('custom-location').value.trim()
+                : document.getElementById('location').value),
             smoking: document.querySelector('input[name="smoking"]:checked').value,
             mbti: mbti,
             marriagePlan: document.getElementById('marriage-plan').value,
             education: document.getElementById('education').value,
-            contactKakao: document.getElementById('kakao-id').value,
-            contactInstagram: document.getElementById('instagram-id').value,
+            contactKakao: document.getElementById('kakao-id').value.trim(),
+            contactInstagram: document.getElementById('instagram-id').value.trim(),
             password: rawPassword, // Use raw password for Firebase Auth
             photos: photos,
         };
@@ -532,10 +552,17 @@ function setupRegistrationForm() {
         formData.age = currentYear - formData.birthYear + 1; // Korean age calculation
 
         try {
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitBtn.innerText = '처리 중...';
+            showLoading('회원가입 처리 중입니다...');
+
             // 1. Create Authentication User
             // Convert Kakao ID to safe email format using Base64 encoding
             // This allows special characters in Kakao ID
-            const safeKakaoId = btoa(encodeURIComponent(formData.contactKakao))
+            // Trim and lowercase Kakao ID for consistency
+            const trimmedKakaoId = formData.contactKakao.toLowerCase();
+            const safeKakaoId = btoa(encodeURIComponent(trimmedKakaoId))
                 .replace(/\+/g, '-')
                 .replace(/\//g, '_')
                 .replace(/=/g, '');
@@ -575,6 +602,7 @@ function setupRegistrationForm() {
             window.currentUser = user;
             localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.id);
 
+            hideLoading();
             alert('회원가입이 완료되었습니다!');
 
             // Navigate to preference page
@@ -585,6 +613,11 @@ function setupRegistrationForm() {
             }, 100);
         } catch (error) {
             console.error('Registration error:', error);
+            // Re-enable button and hide loading
+            submitBtn.disabled = false;
+            submitBtn.innerText = '회원가입 완료';
+            hideLoading();
+
             // 상세 에러 메시지를 포함하여 디버깅을 돕습니다
             let msg = '회원가입 중 오류가 발생했습니다.\n' + (error.message || error);
 
