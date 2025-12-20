@@ -296,11 +296,17 @@ function setupLoginPage() {
                 await auth.signInWithEmailAndPassword(emailLower, paddedPassword);
             } catch (error) {
                 // Second attempt: try original casing if lowercase fails (backwards compatibility)
-                if (trimmedLower !== trimmedOriginal && (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email')) {
+                // Newer Firebase Auth returns 'auth/invalid-login-credentials' for either wrong password or user not found
+                if (trimmedLower !== trimmedOriginal && (
+                    error.code === 'auth/user-not-found' ||
+                    error.code === 'auth/invalid-email' ||
+                    error.code === 'auth/invalid-login-credentials' ||
+                    error.code === 'auth/invalid-credential'
+                )) {
                     console.log('Normalized login failed, trying original casing...');
                     await auth.signInWithEmailAndPassword(emailOriginal, paddedPassword);
                 } else {
-                    throw error; // Re-throw if it's something else (like wrong password)
+                    throw error; // Re-throw if it's something else (like wrong password with already correct casing)
                 }
             }
 
@@ -2344,15 +2350,15 @@ function populateEditProfileForm() {
 
     // Populate photos
     currentUser.photos.forEach((photo, index) => {
-        const preview = document.querySelector(`.photo - upload - box[data - index="${index}"] .photo - preview - edit`);
+        const preview = document.querySelector(`.photo-upload-box[data-index="${index}"] .photo-preview-edit`);
         if (preview) {
-            preview.innerHTML = `< img src = "${photo}" alt = "Photo ${index + 1}" > `;
+            preview.innerHTML = `<img src="${photo}" alt="Photo ${index + 1}">`;
             preview.classList.add('active');
 
             // Make photo clickable to change
             preview.style.cursor = 'pointer';
             preview.onclick = () => {
-                const input = document.getElementById(`photo - edit - ${index} `);
+                const input = document.getElementById(`photo-edit-${index}`);
                 if (input) input.click();
             };
         }
@@ -2398,7 +2404,7 @@ function populateEditProfileForm() {
     // Populate hobbies
     if (currentUser.hobbies && Array.isArray(currentUser.hobbies)) {
         currentUser.hobbies.forEach(hobby => {
-            const checkbox = document.querySelector(`input[name = "edit-hobbies"][value = "${hobby}"]`);
+            const checkbox = document.querySelector(`input[name="edit-hobbies"][value="${hobby}"]`);
             if (checkbox) checkbox.checked = true;
         });
     }
@@ -2452,8 +2458,8 @@ function setupEditPhotoUpload() {
                         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
 
                         // Display preview
-                        const preview = document.querySelector(`.photo - upload - box[data - index="${index}"] .photo - preview - edit`);
-                        preview.innerHTML = `< img src = "${compressedDataUrl}" alt = "Photo ${index + 1}" > `;
+                        const preview = document.querySelector(`.photo-upload-box[data-index="${index}"] .photo-preview-edit`);
+                        preview.innerHTML = `<img src="${compressedDataUrl}" alt="Photo ${index + 1}" />`;
                         preview.classList.add('active');
                     };
                     img.src = event.target.result;
@@ -2468,7 +2474,7 @@ async function handleEditProfileSubmit() {
     // Validate photos (ensure three photos are uploaded)
     const photos = [];
     for (let i = 0; i < 3; i++) {
-        const preview = document.querySelector(`.photo - upload - box[data - index="${i}"] .photo - preview - edit`);
+        const preview = document.querySelector(`.photo-upload-box[data-index="${i}"] .photo-preview-edit`);
         if (!preview.classList.contains('active')) {
             alert('사진 3장을 모두 등록해주세요.');
             return;
