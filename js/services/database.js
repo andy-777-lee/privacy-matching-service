@@ -236,7 +236,77 @@ function clearUnlockRequestsCache() {
     console.log('Unlock requests cache cleared');
 }
 
+// Sync public statistics for the closure page
+async function syncPublicStats() {
+    try {
+        console.log('Syncing public stats...');
+
+        // 1. Fetch Users
+        const usersSnapshot = await db.collection('users').get();
+        const users = usersSnapshot.docs.map(doc => ({
+            createdAt: doc.data().createdAt || doc.data().timestamp
+        })).filter(u => u.createdAt);
+
+        // 2. Fetch Requests
+        const requestsSnapshot = await db.collection('unlock_requests').get();
+        const requests = requestsSnapshot.docs.map(doc => ({
+            timestamp: doc.data().timestamp
+        })).filter(r => r.timestamp);
+
+        const formatDate = (ts) => {
+            const date = new Date(ts);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        };
+
+        const dataByDate = {};
+        users.forEach(u => {
+            const d = formatDate(u.createdAt);
+            if (!dataByDate[d]) dataByDate[d] = { users: 0, requests: 0 };
+            dataByDate[d].users++;
+        });
+        requests.forEach(r => {
+            const d = formatDate(r.timestamp);
+            if (!dataByDate[d]) dataByDate[d] = { users: 0, requests: 0 };
+            dataByDate[d].requests++;
+        });
+
+        const sortedDates = Object.keys(dataByDate).sort((a, b) => {
+            const [m1, d1] = a.split('/').map(Number);
+            const [m2, d2] = b.split('/').map(Number);
+            return m1 !== m2 ? m1 - m2 : d1 - d2;
+        });
+
+        let cumulativeUsers = 0;
+        let cumulativeRequests = 0;
+        const userHistory = [];
+        const requestHistory = [];
+        sortedDates.forEach(date => {
+            cumulativeUsers += dataByDate[date].users;
+            cumulativeRequests += dataByDate[date].requests;
+            userHistory.push(cumulativeUsers);
+            requestHistory.push(cumulativeRequests);
+        });
+
+        // 3. Save to public stats doc
+        await db.collection('stats').doc('growth_trend').set({
+            labels: sortedDates,
+            userHistory: userHistory,
+            requestHistory: requestHistory,
+            totalUsers: usersSnapshot.size,
+            totalRequests: requestsSnapshot.size,
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log('✅ Public stats synced successfully!');
+        return true;
+    } catch (error) {
+        console.error('Error syncing public stats:', error);
+        throw error;
+    }
+}
+
 // Export to global scope
+window.syncPublicStats = syncPublicStats;
 window.fetchUsers = fetchUsers;
 window.saveUser = saveUser;
 window.fetchUnlockRequests = fetchUnlockRequests;

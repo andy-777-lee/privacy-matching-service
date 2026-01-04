@@ -1,50 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users collection rules
-    match /users/{userId} {
-      // Allow anyone to list users (for count), but only authenticated users can read details
-      allow list: if true;
-      allow get: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-    
-    // Unlock requests rules
-    match /unlock_requests/{requestId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-    
-    // Notifications rules
-    match /notifications/{notificationId} {
-      // Allow any authenticated user to read/update notifications
-      // TODO: In production, map app user IDs to Firebase Auth UIDs for better security
-      allow read, update: if request.auth != null;
-      allow create: if request.auth != null;
-    }
-
-    // Unlocked Profiles rules - NEWLY ADDED
-    match /unlockedProfiles/{userId} {
-      // Allow any authenticated user to read (needed for merge operations)
-      // TODO: In production, implement proper UID mapping for better security
-      allow read: if request.auth != null;
-      // Anyone authenticated can write (needed for admin to add to user's list)
-      // In a real app, you'd restrict this to admins only
-      allow write: if request.auth != null;
-    }
-
-    // Stats collection rules - for user count display
+    // Stats collection rules - maintained for the closure page
     match /stats/{statId} {
-      // Allow anyone to read stats (for displaying user count on login page)
+      // Allow anyone to read stats (for displaying user count and trends)
       allow read: if true;
-      // Only Cloud Functions can write (via admin SDK)
+      // Disable all writes
       allow write: if false;
     }
 
-    // Settings collection rules - for admin settings like auto-approval
-    match /settings/{settingId} {
-      // Allow authenticated users to read/write settings
-      allow read, write: if request.auth != null;
+    // Lockdown all other collections
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

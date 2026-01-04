@@ -2477,6 +2477,29 @@ function setupAdminTabs() {
             }
         });
     });
+
+    // Setup sync closure stats button
+    const syncBtn = document.getElementById('sync-closure-stats');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', async () => {
+            const originalText = syncBtn.innerHTML;
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '🔄 동기화 중...';
+
+            try {
+                const success = await syncPublicStats();
+                if (success) {
+                    alert('종료 페이지 통계가 성공적으로 동기화되었습니다!');
+                }
+            } catch (error) {
+                console.error('Sync failed:', error);
+                alert('동기화 중 오류가 발생했습니다: ' + error.message);
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = originalText;
+            }
+        });
+    }
 }
 
 // Admin Dashboard: Statistics

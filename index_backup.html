@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <script>
+        // Service closure redirect (Bypass for admin via #admin hash)
+        if (window.location.hash !== '#admin') {
+            window.location.href = 'closure.html';
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이채혁 지인 소개팅풀 등록 서비스</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Contact Button (Phone Shape) -->
+    <a href="https://open.kakao.com/o/sMTqkM3h" target="_blank" rel="noopener noreferrer" id="contact-button"
+        style="position: fixed; bottom: 80px; right: 20px; z-index: 9998; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #FEE500 0%, #FFD700 100%); color: #3C1E1E; border: none; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; text-decoration: none;"
+        onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(255, 215, 0, 0.6)';"
+        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(255, 215, 0, 0.4)';"
+        title="문의하기">
+        📞
+    </a>
+
+    <!-- Patch Notes Button -->
+    <button id="patch-notes-button"
+        onclick="document.getElementById('patch-notes-modal').classList.add('active'); document.getElementById('patch-notes-modal').style.display = 'flex';"
+        style="position: fixed; bottom: 140px; right: 20px; z-index: 9998; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;"
+        onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)';"
+        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)';"
+        title="업데이트 내역">
+        📢
+    </button>
+
+    <!-- Patch Notes Modal -->
+    <div id="patch-notes-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <button type="button" class="modal-close"
+                onclick="document.getElementById('patch-notes-modal').classList.remove('active'); document.getElementById('patch-notes-modal').style.display = 'none';">&times;</button>
+            <h2>📢 업데이트 내역 (2024.12.16)</h2>
+
+            <div class="patch-note-item"
+                style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">⚡ 성능 최적화</h3>
+                <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 1.2rem; margin: 0;">
+                    <li style="margin-bottom: 0.3rem;"><strong>매칭 로딩 속도 개선:</strong> 페이지 이동 시 즉각적인 화면 전환</li>
+                    <li><strong>페이지네이션 적용:</strong> 초기 로딩 성능 최적화</li>
+                </ul>
+            </div>
+
+            <div class="patch-note-item"
+                style="margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">🛠 기능 추가 및 개선</h3>
+                <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 1.2rem; margin: 0;">
+                    <li style="margin-bottom: 0.3rem;"><strong>고급 필터 기능:</strong> 매칭, 거절, 보냄/받음 요청 등 상태별 보기</li>
+                    <li><strong>접속 기록 관리:</strong> 사용자 최근 접속 시간 자동 트래킹</li>
+                </ul>
+            </div>
+
+            <div class="patch-note-item">
+                <h3 style="color: #667eea; margin-bottom: 0.5rem;">🎨 UI/UX 개선</h3>
+                <ul style="color: var(--text-secondary); line-height: 1.6; padding-left: 1.2rem; margin: 0;">
+                    <li style="margin-bottom: 0.3rem;"><strong>필터 UI 개편:</strong> 공간 효율적인 드롭다운 방식 적용</li>
+                    <li style="margin-bottom: 0.3rem;"><strong>디자인 최적화:</strong> 헤더/목록 간격 및 드롭다운 너비 최적화</li>
+                    <li><strong>버그 수정:</strong> 프로필 카드 HTML 코드 노출 문제 해결</li>
+                </ul>
+            </div>
+
+
+        </div>
+    </div>
+
+    <!-- Help Button (Fixed Position) -->
+    <button id="help-button"
+        onclick="document.getElementById('service-info-modal').classList.add('active'); document.getElementById('service-info-modal').style.display = 'flex';"
+        style="position: fixed; bottom: 20px; right: 20px; z-index: 9998; width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #FF6B9D 0%, #C44569 100%); color: white; border: none; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;"
+        onmouseover="this.style.transform='scale(1.1)'; this.style.boxShadow='0 6px 20px rgba(255, 107, 157, 0.6)';"
+        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(255, 107, 157, 0.4)';"
+        title="서비스 소개">
+        ?
+    </button>
+
+    <div id="app">
+        <!-- Login Page -->
+        <div id="login-page" class="page active">
+            <div class="container">
+                <div class="hero">
+                    <div class="logo">🎄</div>
+                    <h1 class="gradient-text">연말인데 추울걸?</h1>
+                    <p class="subtitle">주변 지인들의 솔크 탈출을 위해서 💪</p>
+                    <p class="user-count" style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
+                        현재 <span id="login-users-count">...</span>명이 등록했습니다
+                    </p>
+                </div>
+
+                <div class="card glass">
+                    <h2>로그인</h2>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label>카카오톡 ID *</label>
+                            <input type="text" id="login-kakao-id" placeholder="카카오톡 ID" required>
+                        </div>
+                        <div class="form-group">
+                            <label>비밀번호 (4자리) *</label>
+                            <div class="password-inputs">
+                                <input type="tel" class="password-digit" maxlength="1" pattern="[0-9]"
+                                    inputmode="numeric" autocomplete="off" required>
+                                <input type="tel" class="password-digit" maxlength="1" pattern="[0-9]"
+                                    inputmode="numeric" autocomplete="off" required>
+                                <input type="tel" class="password-digit" maxlength="1" pattern="[0-9]"
+                                    inputmode="numeric" autocomplete="off" required>
+                                <input type="tel" class="password-digit" maxlength="1" pattern="[0-9]"
+                                    inputmode="numeric" autocomplete="off" required>
+                            </div>
+                            <input type="hidden" id="login-password">
+                        </div>
+                        <div id="login-error" style="color: #ff4444; display: none; margin-bottom: 1rem;"></div>
+                        <button type="submit" class="btn btn-primary btn-large">로그인</button>
+                        <button type="button" id="go-to-register" class="btn btn-secondary btn-large"
+                            style="margin-top: 0.5rem;">회원가입</button>
+                    </form>
+                </div>
+
+                <!-- Service Description -->
+                <div class="service-description card glass">
+                    <h2>🎯 서비스 소개</h2>
+                    <p class="creator">Made by <strong>이채혁</strong></p>
+                    <p class="main-desc">제 지인솔로분들께.. 솔로분들 등록하세요. 등록한다고 이름, 사진은 당신이 오케이하는거 아니면 공개안되니까 일단 조건만 보고 골라보세요 그
+                        다음 제가 연결해드릴게</p>
+
+                    <div class="privacy-guarantee">
+                        <div class="guarantee-badge">
+                            <span class="badge-icon">🛡️</span>
+                            <div class="badge-text">
+                                <strong>프라이버시 100% 보장</strong>
+                                <p>등록해준 정보는 오픈하되, 본인 동의 없이 사진과 이름은 오픈하지 않습니다!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="process-info">
+                        <h3>📋 매칭 프로세스</h3>
+
+                        <div class="process-detail-section">
+                            <div class="process-detail-card">
+                                <div class="process-detail-header">
+                                    <span class="step-badge">1차 선택</span>
+                                    <h4>조건 기반 프로필 확인</h4>
+                                </div>
+                                <div class="process-detail-content">
+                                    <p>조건에 부합하는 순서로 <strong>이름과 사진은 비공개된</strong> 프로필을 나열해드립니다.</p>
+                                    <p>조건만 보고 이름과 사진을 보고 싶은 사람이 있다면 선택해주세요. <strong>상대방에게 허락을 구한 뒤</strong> 풀 프로필과 함께
+                                        추가로 알고 싶은
+                                        정보가 있다면 함께 전달드리겠습니다.</p>
+                                </div>
+                            </div>
+
+                            <div class="process-arrow-vertical">↓</div>
+
+                            <div class="process-detail-card">
+                                <div class="process-detail-header">
+                                    <span class="step-badge">2차 선택</span>
+                                    <h4>최종 매칭 결정</h4>
+                                </div>
+                                <div class="process-detail-content">
+                                    <p><strong>풀 프로필을 보시고도 마음에 드시면</strong> 카카오톡 또는 인스타그램으로 <strong>연락해보세요 !</strong>
+                                    </p>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="features">
+                        <div class="feature-item">
+                            <span class="feature-icon">🔒</span>
+                            <div class="feature-text">
+                                <h4>조건 기반 매칭</h4>
+                                <p>원하는 조건을 설정하고 우선순위를 정하세요</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <span class="feature-icon">💬</span>
+                            <div class="feature-text">
+                                <h4>추가 정보 요청</h4>
+                                <p>궁금한 점이 있다면 관리자를 통해 전달 가능</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registration Page -->
+        <div id="registration-page" class="page">
+            <div class="container">
+                <div class="hero">
+                    <div class="logo">🎄</div>
+                    <h1 class="gradient-text">연말인데 추울걸?</h1>
+                    <p class="subtitle">주변 지인들의 솔크 탈출을 위해서 💪</p>
+                </div>
+
+
+                <form id="registration-form">
+                    <!-- Contact Info -->
+                    <div class="card">
+                        <h3>📞 연락처 정보</h3>
+                        <p style="color: #a0a0b0; font-size: 0.9rem; margin-bottom: 1rem;">카카오톡ID는 로그인 아이디로 사용합니다.</p>
+                        <div class="form-group">
+                            <label>카카오톡 ID *</label>
+                            <input type="text" id="kakao-id" placeholder="카카오톡 ID" required>
+                        </div>
+                        <div class="form-group">
+                            <label>인스타그램 ID (선택)</label>
+                            <input type="text" id="instagram-id" placeholder="@username">
+                        </div>
+                        <div class="form-group">
+                            <label>비밀번호 (4자리) *</label>
+                            <div class="password-inputs">
+                                <input type="tel" class="password-digit-register" maxlength="1" pattern="[0-9]"
+                                    inputmode="numeric" autocomplete="off" required>
+                                <input type="tel" class="password-digit-register" maxlength="1" pattern="[0-9]"
+                                    inputmode="numeric" autocomplete="off" required>
+                                <input type="tel" class="password-digit-register" maxlength="1" pattern="[0-9]"
+                                    inputmode="numeric" autocomplete="off" required>
+                                <input type="tel" class="password-digit-register" maxlength="1" pattern="[0-9]"
+                                    inputmode="numeric" autocomplete="off" required>
+                            </div>
+                            <input type="hidden" id="password">
+                            <small style="color: #888;">로그인 시 사용할 4자리 숫자를 입력하세요</small>
+                        </div>
+                    </div>
+                    <!-- Photo Upload -->
+                    <div class="card">
+                        <h3>📷 사진 등록 (3장 필수)</h3>
+                        <div class="photo-upload-grid">
+                            <div class="photo-upload-box" data-index="0">
+                                <input type="file" accept="image/*" class="photo-input" id="photo-0">
+                                <label for="photo-0" class="photo-label">
+                                    <span class="upload-icon">📷</span>
+                                    <span class="upload-text">사진 추가</span>
+                                </label>
+                                <div class="photo-preview"></div>
+                            </div>
+                            <div class="photo-upload-box" data-index="1">
+                                <input type="file" accept="image/*" class="photo-input" id="photo-1">
+                                <label for="photo-1" class="photo-label">
+                                    <span class="upload-icon">📷</span>
+                                    <span class="upload-text">사진 추가</span>
+                                </label>
+                                <div class="photo-preview"></div>
+                            </div>
+                            <div class="photo-upload-box" data-index="2">
+                                <input type="file" accept="image/*" class="photo-input" id="photo-2">
+                                <label for="photo-2" class="photo-label">
+                                    <span class="upload-icon">📷</span>
+                                    <span class="upload-text">사진 추가</span>
+                                </label>
+                                <div class="photo-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personal Info -->
+                    <div class="card">
+                        <h3>👤 기본 정보</h3>
+                        <div class="form-group">
+                            <label>이름 *</label>
+                            <input type="text" id="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>성별 *</label>
+                            <div class="gender-select">
+                                <input type="radio" name="gender" value="male" id="gender-male" required>
+                                <label for="gender-male" class="gender-option">남성</label>
+                                <input type="radio" name="gender" value="female" id="gender-female" required>
+                                <label for="gender-female" class="gender-option">여성</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>출생년도 *</label>
+                            <input type="number" id="birth-year" min="1920" max="2007" placeholder="예: 1995" required>
+                        </div>
+                        <div class="form-group">
+                            <label>종교 *</label>
+                            <select id="religion" required>
+                                <option value="">선택해주세요</option>
+                                <option value="무교">무교</option>
+                                <option value="기독교">기독교</option>
+                                <option value="천주교">천주교</option>
+                                <option value="불교">불교</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>키 (cm) *</label>
+                            <input type="number" id="height" min="140" max="220" required>
+                        </div>
+                        <div class="form-group">
+                            <label>체격 *</label>
+                            <select id="body-type" required>
+                                <option value="">선택해주세요</option>
+                                <option value="마름">마름</option>
+                                <option value="보통">보통</option>
+                                <option value="통통">통통</option>
+                                <option value="건장">건장</option>
+                                <option value="근육">근육</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>음주 *</label>
+                            <select id="drinking" required>
+                                <option value="">선택해주세요</option>
+                                <option value="안 마심">안 마심</option>
+                                <option value="가끔">가끔</option>
+                                <option value="자주">자주</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>직업/직군 *</label>
+                            <select id="job" required>
+                                <option value="">선택해주세요</option>
+                                <option value="학생">학생</option>
+                                <option value="직장인">직장인</option>
+                                <option value="자영업">자영업</option>
+                                <option value="프리랜서">프리랜서</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>상세 직장명 *</label>
+                            <input type="text" id="workplace" placeholder="예: 삼성전자, 서울대학교" required>
+                        </div>
+                        <div class="form-group">
+                            <label>고등학교 *</label>
+                            <input type="text" id="high-school" placeholder="예: 서울고등학교" required>
+                        </div>
+                        <div class="form-group">
+                            <label>거주 지역 *</label>
+                            <select id="location" required>
+                                <option value="">선택해주세요</option>
+                                <option value="서울">서울</option>
+                                <option value="경기">경기</option>
+                                <option value="인천">인천</option>
+                                <option value="부산">부산</option>
+                                <option value="대구">대구</option>
+                                <option value="광주">광주</option>
+                                <option value="대전">대전</option>
+                                <option value="울산">울산</option>
+                                <option value="김해">김해</option>
+                                <option value="창원">창원</option>
+                                <option value="포항">포항</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="custom-location-group" style="display: none;">
+                            <label>거주 지역 입력 *</label>
+                            <input type="text" id="custom-location" placeholder="거주 지역을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label>흡연 여부 *</label>
+                            <div class="gender-select">
+                                <input type="radio" name="smoking" value="비흡연" id="smoking-no" required>
+                                <label for="smoking-no" class="gender-option">비흡연</label>
+                                <input type="radio" name="smoking" value="흡연" id="smoking-yes" required>
+                                <label for="smoking-yes" class="gender-option">흡연</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>MBTI *</label>
+                            <input type="text" id="mbti" maxlength="4" placeholder="예: INFP" required>
+                        </div>
+                        <div class="form-group">
+                            <label>결혼 계획 *</label>
+                            <select id="marriage-plan" required>
+                                <option value="">선택해주세요</option>
+                                <option value="1년 내">1년 내</option>
+                                <option value="2-3년 내">2-3년 내</option>
+                                <option value="5년 이내">5년 이내</option>
+                                <option value="천천히">천천히</option>
+                                <option value="미정">미정</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>최종학력 *</label>
+                            <select id="education" required>
+                                <option value="">선택해주세요</option>
+                                <option value="고졸">고졸</option>
+                                <option value="초대졸">초대졸</option>
+                                <option value="대졸">대졸</option>
+                                <option value="대학원">대학원</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>취미 (여러 개 선택 가능) *</label>
+                            <div class="hobby-grid">
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="hobbies" value="운동">
+                                    <span>운동</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="hobbies" value="영화">
+                                    <span>영화</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="hobbies" value="음악">
+                                    <span>음악</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="hobbies" value="독서">
+                                    <span>독서</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="hobbies" value="여행">
+                                    <span>여행</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="hobbies" value="요리">
+                                    <span>요리</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="hobbies" value="게임">
+                                    <span>게임</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="hobbies" value="기타">
+                                    <span>기타</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <button type="submit" class="btn btn-primary btn-large">다음: 선호 조건 설정</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Preference Setting Page -->
+        <div id="preference-page" class="page">
+            <div class="container">
+                <div class="header" style="position: relative;">
+                    <button id="close-preference-page" class="close-page-btn"
+                        style="position: absolute; top: 0; right: 0; background: none; border: none; font-size: 2rem; color: var(--text-secondary); cursor: pointer; padding: 0.5rem; line-height: 1; transition: color 0.2s;">&times;</button>
+                    <h1>선호 조건 설정</h1>
+                    <p>원하는 조건을 선택하고 중요도 순서대로 정렬하세요</p>
+                </div>
+
+                <form id="preference-form">
+                    <!-- Step 1: Select Conditions -->
+                    <div class="card">
+                        <h3>1단계: 중요한 조건 선택</h3>
+                        <p class="description">매칭에 고려할 조건들을 선택하세요</p>
+                        <div class="preference-select-grid" id="preference-select">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Step 1.5: Set Preference Values -->
+                    <div class="card" id="preference-values-card" style="display: none;">
+                        <h3>1.5단계: 상세 조건 설정</h3>
+                        <p class="description">선택한 조건의 원하는 값을 입력하세요</p>
+                        <div id="preference-values-container">
+                            <!-- Will be populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Rank by Priority -->
+                    <div class="card" id="priority-card" style="display: none;">
+                        <h3>2단계: 중요도 순서 정렬</h3>
+                        <p class="description">드래그하여 순서를 변경하세요 (위쪽이 더 중요)</p>
+                        <div class="priority-list" id="priority-list">
+                            <!-- Will be populated by JS with draggable items -->
+                        </div>
+                    </div>
+
+                    <button type="button" id="submit-preferences" class="btn btn-primary btn-large">매칭 시작</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Matches Page -->
+        <div id="matches-page" class="page">
+            <div class="container">
+                <div class="header">
+                    <div class="header-content"
+                        style="display: flex; justify-content: space-between; align-items: center;">
+                        <h1>매칭 결과</h1>
+                        <div class="header-actions">
+                            <button id="notification-btn" class="icon-btn" style="position: relative;">
+                                🔔
+                                <span id="notification-badge" class="badge" style="display: none;">0</span>
+                            </button>
+                            <button id="my-profile-btn" class="btn btn-secondary">내 프로필</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Match Filters -->
+                <div class="filter-bar" id="match-filters"
+                    style="display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem; padding-right: 0;">
+                    <label for="filter-select"
+                        style="font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap;">정렬/필터:</label>
+                    <select id="filter-select" class="filter-select">
+                        <option value="all">전체</option>
+                        <option value="matched">✅ 매칭 성공</option>
+                        <option value="rejected">❌ 거절됨</option>
+                        <option value="sent">📤 보낸 요청</option>
+                        <option value="received">📥 받은 요청</option>
+                        <option value="no_interaction">🆕 미교류</option>
+                        <option value="low_score">📉 낮은 점수순</option>
+                    </select>
+                </div>
+
+                <div id="matches-grid" class="matches-grid"></div>
+
+
+                <div id="no-matches" class="no-matches" style="display: none;">
+                    <div class="empty-state">
+                        <span class="empty-icon">💔</span>
+                        <h3>매칭되는 프로필이 없습니다</h3>
+                        <p>조건을 조정해보세요</p>
+                    </div>
+                </div>
+
+                <!-- Notification Modal -->
+                <div id="notification-modal" class="modal">
+                    <div class="modal-content card glass">
+                        <button type="button" class="modal-close" id="close-notification-modal">&times;</button>
+                        <h2>알림</h2>
+                        <div id="notification-list" class="notification-list">
+                            <!-- Notifications will be populated here -->
+                            <div class="empty-notifications">알림이 없습니다.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="#admin" class="admin-link">관리자 로그인</a>
+            </div>
+        </div>
+
+        <!-- Profile Detail Modal -->
+        <div id="profile-modal" class="modal">
+            <div class="modal-content">
+                <button type="button" class="modal-close">&times;</button>
+                <div id="profile-detail"></div>
+            </div>
+        </div>
+
+        <!-- Image Viewer Modal -->
+        <div id="image-viewer-modal" class="modal" style="z-index: 10001;">
+            <div class="modal-content"
+                style="max-width: 90vw; max-height: 90vh; background: transparent; box-shadow: none; padding: 0;">
+                <button type="button" class="modal-close"
+                    style="position: fixed; top: 20px; right: 20px; z-index: 10002; background: rgba(0,0,0,0.7); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 2rem; cursor: pointer;">&times;</button>
+                <img id="image-viewer-img" src="" alt="Full size image"
+                    style="max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            </div>
+        </div>
+
+        <!-- Service Info Modal -->
+        <div id="service-info-modal" class="modal">
+            <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                <button type="button" class="modal-close">&times;</button>
+                <div class="service-description">
+
+                    <h2>🎯 서비스 소개</h2>
+                    <p class="creator">Made by <strong>이채혁</strong></p>
+                    <p
+                        style="color: #a0a0b0; font-size: 0.9rem; margin-top: -0.5rem; margin-bottom: 1.5rem; line-height: 1.6;">
+                        서비스 개발은 처음이지만 주변 지인들을위해 만들어봤어요. 무료 ! 자는시간 빼고 수정, 개선 할테니 문의사항있으면 언제든 오른쪽 하단에 오픈채팅으로 말씀해주세요. 12월
+                        31일까지 오픈예정
+                    </p>
+
+                    <div class="process-info">
+                        <h3>📋 매칭 프로세스</h3>
+                        <div class="flow-container">
+                            <div class="flow-steps">
+                                <!-- Step 1 -->
+                                <div class="step step-1 active">
+                                    <div class="step-icon">🙋‍♂️</div>
+                                    <div class="step-content">
+                                        <div class="step-title">1. 요청 보내기 (A)</div>
+                                        <div class="step-desc">
+                                            A가 B에게 프로필 공개를 요청합니다.<br>
+                                            이때 A의 <span class="highlight">이름과 사진은 공개</span>되지만 연락처는 비공개됩니다.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="arrow-down">↓</div>
+
+                                <!-- Step 2 -->
+                                <div class="step step-2 active">
+                                    <div class="step-icon">👀</div>
+                                    <div class="step-content">
+                                        <div class="step-title">2. 프로필 확인 (B)</div>
+                                        <div class="step-desc">
+                                            B는 <span class="highlight">A의 프로필</span>을 확인합니다.<br>
+                                            (이름, 사진, 정보 공개 / 연락처는 비공개)
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="arrow-down">↓</div>
+
+                                <!-- Step 3 -->
+                                <div class="step step-3 active">
+                                    <div class="step-icon">✅</div>
+                                    <div class="step-content">
+                                        <div class="step-title">3. 1차 승인 (B)</div>
+                                        <div class="step-desc">
+                                            B가 A의 프로필이 마음에 들면 승인합니다.<br>
+                                            (거절 시 A에게 거절 알림이 전송됩니다)
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="arrow-down">↓</div>
+
+                                <!-- Step 4 -->
+                                <div class="step step-4 active">
+                                    <div class="step-icon">🤝</div>
+                                    <div class="step-content">
+                                        <div class="step-title">4. 최종 승인 (A)</div>
+                                        <div class="step-desc">
+                                            A도 <span class="highlight">B의 프로필</span>을 확인 후 최종 승인합니다.<br>
+                                            선택적으로 메시지를 남길 수 있습니다.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="arrow-down">↓</div>
+
+                                <!-- Step 5 -->
+                                <div class="step step-5 active">
+                                    <div class="step-icon">🎉</div>
+                                    <div class="step-content">
+                                        <div class="step-title">5. 매칭 완료!</div>
+                                        <div class="step-desc">
+                                            양방향 승인 완료! <span class="highlight">서로의 연락처가 공개</span>됩니다!<br>
+                                            카카오톡ID 또는 인스타그램계정으로 대화를 시작해보세요!
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unlock Request Modal -->
+        <div id="unlock-modal" class="modal">
+            <div class="modal-content">
+                <button type="button" class="modal-close">&times;</button>
+                <h2>프로필 공개 요청</h2>
+                <p class="description">상대방에게 전달할 메시지를 작성하세요</p>
+                <p class="description"
+                    style="color: #FFB3D1; font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 1rem; line-height: 1.5;">
+                    ※ 프로필 공개 요청을 받은 사람은 프로필 공개 요청자의 연락처를 제외한 모든 프로필을 볼 수 있게되고 승인/거절 할 수 있습니다.<br>
+                    프로필 공개 요청을 받은 사람이 승인하면 서로의 연락처를 제외한 프로필이 공개됩니다.<br>
+                    프로필을 보신 후 최종 매칭 승인/거절 하시면 됩니다.
+                </p>
+                <form id="unlock-request-form">
+                    <div class="form-group">
+                        <label>요청 메시지</label>
+                        <textarea id="unlock-message" rows="4" placeholder="안녕하세요. 전체프로필이 궁금해요!" required></textarea>
+                    </div>
+                    <input type="hidden" id="unlock-target-id">
+                    <button type="submit" class="btn btn-primary">요청 보내기</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Final Approval Message Modal -->
+        <div id="final-approval-modal" class="modal">
+            <div class="modal-content">
+                <button type="button" class="modal-close">&times;</button>
+                <h2>최종 승인</h2>
+                <p class="description">상대방에게 전달할 메시지를 작성하세요 (선택사항)</p>
+                <form id="final-approval-form">
+                    <div class="form-group">
+                        <label>메시지 (선택사항)</label>
+                        <textarea id="final-approval-message" rows="4"
+                            placeholder="안녕하세요! 연락처 교환하게 되어 기쁩니다 :)"></textarea>
+                    </div>
+                    <input type="hidden" id="final-approval-request-id">
+                    <button type="submit" class="btn btn-primary">최종 승인하기</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Profile Modal -->
+        <div id="edit-profile-modal" class="modal">
+            <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+                <button type="button" class="modal-close">&times;</button>
+                <h2>프로필 수정하기</h2>
+                <p class="description">프로필 정보를 수정할 수 있습니다</p>
+                <form id="edit-profile-form">
+                    <!-- Photo Upload -->
+                    <div class="card">
+                        <h3>📷 사진 (3장 필수)</h3>
+                        <div class="photo-upload-grid">
+                            <div class="photo-upload-box" data-index="0">
+                                <input type="file" accept="image/*" class="photo-input-edit" id="photo-edit-0">
+                                <label for="photo-edit-0" class="photo-label">
+                                    <span class="upload-icon">📷</span>
+                                    <span class="upload-text">사진 변경</span>
+                                </label>
+                                <div class="photo-preview-edit"></div>
+                            </div>
+                            <div class="photo-upload-box" data-index="1">
+                                <input type="file" accept="image/*" class="photo-input-edit" id="photo-edit-1">
+                                <label for="photo-edit-1" class="photo-label">
+                                    <span class="upload-icon">📷</span>
+                                    <span class="upload-text">사진 변경</span>
+                                </label>
+                                <div class="photo-preview-edit"></div>
+                            </div>
+                            <div class="photo-upload-box" data-index="2">
+                                <input type="file" accept="image/*" class="photo-input-edit" id="photo-edit-2">
+                                <label for="photo-edit-2" class="photo-label">
+                                    <span class="upload-icon">📷</span>
+                                    <span class="upload-text">사진 변경</span>
+                                </label>
+                                <div class="photo-preview-edit"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Personal Info -->
+                    <div class="card">
+                        <h3>👤 기본 정보</h3>
+                        <div class="form-group">
+                            <label>이름 *</label>
+                            <input type="text" id="edit-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>출생년도 *</label>
+                            <input type="number" id="edit-birth-year" min="1920" max="2007" required>
+                        </div>
+                        <div class="form-group">
+                            <label>종교 *</label>
+                            <select id="edit-religion" required>
+                                <option value="">선택해주세요</option>
+                                <option value="무교">무교</option>
+                                <option value="기독교">기독교</option>
+                                <option value="천주교">천주교</option>
+                                <option value="불교">불교</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>키 (cm) *</label>
+                            <input type="number" id="edit-height" min="140" max="220" required>
+                        </div>
+                        <div class="form-group">
+                            <label>체격 *</label>
+                            <select id="edit-body-type" required>
+                                <option value="">선택해주세요</option>
+                                <option value="마름">마름</option>
+                                <option value="보통">보통</option>
+                                <option value="통통">통통</option>
+                                <option value="건장">건장</option>
+                                <option value="근육">근육</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>음주 *</label>
+                            <select id="edit-drinking" required>
+                                <option value="">선택해주세요</option>
+                                <option value="안 마심">안 마심</option>
+                                <option value="가끔">가끔</option>
+                                <option value="자주">자주</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>직업/직군 *</label>
+                            <select id="edit-job" required>
+                                <option value="">선택해주세요</option>
+                                <option value="학생">학생</option>
+                                <option value="직장인">직장인</option>
+                                <option value="자영업">자영업</option>
+                                <option value="프리랜서">프리랜서</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>상세 직장명 *</label>
+                            <input type="text" id="edit-workplace" required>
+                        </div>
+                        <div class="form-group">
+                            <label>고등학교 *</label>
+                            <input type="text" id="edit-high-school" required>
+                        </div>
+                        <div class="form-group">
+                            <label>거주 지역 *</label>
+                            <select id="edit-location" required>
+                                <option value="">선택해주세요</option>
+                                <option value="서울">서울</option>
+                                <option value="경기">경기</option>
+                                <option value="인천">인천</option>
+                                <option value="부산">부산</option>
+                                <option value="대구">대구</option>
+                                <option value="광주">광주</option>
+                                <option value="대전">대전</option>
+                                <option value="울산">울산</option>
+                                <option value="김해">김해</option>
+                                <option value="창원">창원</option>
+                                <option value="포항">포항</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="edit-custom-location-group" style="display: none;">
+                            <label>거주 지역 입력 *</label>
+                            <input type="text" id="edit-custom-location" placeholder="거주 지역을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label>흡연 여부 *</label>
+                            <div class="gender-select">
+                                <input type="radio" name="edit-smoking" value="비흡연" id="edit-smoking-no" required>
+                                <label for="edit-smoking-no" class="gender-option">비흡연</label>
+                                <input type="radio" name="edit-smoking" value="흡연" id="edit-smoking-yes" required>
+                                <label for="edit-smoking-yes" class="gender-option">흡연</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>MBTI *</label>
+                            <input type="text" id="edit-mbti" maxlength="4" required>
+                        </div>
+                        <div class="form-group">
+                            <label>결혼 계획 *</label>
+                            <select id="edit-marriage-plan" required>
+                                <option value="">선택해주세요</option>
+                                <option value="1년 내">1년 내</option>
+                                <option value="2-3년 내">2-3년 내</option>
+                                <option value="5년 이내">5년 이내</option>
+                                <option value="천천히">천천히</option>
+                                <option value="미정">미정</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>최종학력 *</label>
+                            <select id="edit-education" required>
+                                <option value="">선택해주세요</option>
+                                <option value="고졸">고졸</option>
+                                <option value="초대졸">초대졸</option>
+                                <option value="대졸">대졸</option>
+                                <option value="대학원">대학원</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>취미 (여러 개 선택 가능) *</label>
+                            <div class="hobby-grid" id="edit-hobbies-grid">
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="운동">
+                                    <span>운동</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="영화">
+                                    <span>영화</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="음악">
+                                    <span>음악</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="독서">
+                                    <span>독서</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="여행">
+                                    <span>여행</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="요리">
+                                    <span>요리</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="게임">
+                                    <span>게임</span>
+                                </label>
+                                <label class="hobby-option">
+                                    <input type="checkbox" name="edit-hobbies" value="기타">
+                                    <span>기타</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Info -->
+                    <div class="card">
+                        <h3>📞 연락처 정보</h3>
+                        <div class="form-group">
+                            <label>카카오톡 ID *</label>
+                            <input type="text" id="edit-kakao-id" required disabled>
+                            <small style="color: #888;">카카오톡 ID는 변경할 수 없습니다 (로그인 ID)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>인스타그램 ID (선택)</label>
+                            <input type="text" id="edit-instagram-id" placeholder="@username">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large">저장하기</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Admin Login Page -->
+        <div id="admin-login-page" class="page">
+            <div class="container">
+                <div class="hero">
+                    <div class="logo">🔐</div>
+                    <h1>관리자 로그인</h1>
+                </div>
+
+                <div class="card glass">
+                    <form id="admin-login-form">
+                        <div class="form-group">
+                            <label>아이디</label>
+                            <input type="text" id="admin-email" placeholder="admin" required>
+                        </div>
+                        <div class="form-group">
+                            <label>비밀번호</label>
+                            <input type="text" id="admin-password" placeholder="관리자 비밀번호" inputmode="text" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">로그인</button>
+                    </form>
+                    <div id="admin-error" class="error-message"></div>
+                </div>
+
+                <a href="#" class="btn-link">← 메인으로 돌아가기</a>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="admin-dashboard-page" class="page">
+            <div class="container">
+                <div class="admin-header">
+                    <h1>관리자 대시보드</h1>
+                    <div class="admin-controls" style="display: flex; gap: 0.5rem;">
+                        <button onclick="broadcastUpdateNotification()" class="btn btn-primary"
+                            style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">📢 공지 발송</button>
+                        <button id="admin-logout-btn" class="btn btn-secondary">로그아웃</button>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="admin-tabs">
+                    <button class="admin-tab" data-tab="dashboard">대시보드</button>
+                    <button class="admin-tab active" data-tab="requests">
+                        <span class="tab-label">1단계 요청</span>
+                        <span class="tab-count">(<span id="pending-count">0</span>)</span>
+                    </button>
+                    <button class="admin-tab" data-tab="final">
+                        <span class="tab-label">최종 요청</span>
+                        <span class="tab-count">(<span id="final-count">0</span>)</span>
+                    </button>
+                    <button class="admin-tab" data-tab="completed">
+                        <span class="tab-label">완료된 요청</span>
+                        <span class="tab-count">(<span id="completed-count">0</span>)</span>
+                    </button>
+                    <button class="admin-tab" data-tab="profiles">
+                        <span class="tab-label">전체 프로필</span>
+                        <span class="tab-count">(<span id="total-count">0</span>)</span>
+                    </button>
+                    <button class="admin-tab" data-tab="statistics">통계</button>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div id="dashboard-tab" class="admin-tab-content">
+                    <div class="dashboard-stats-grid" id="admin-dashboard-stats">
+                        <!-- Stats will be populated here -->
+                    </div>
+                </div>
+
+                <!-- 1단계 요청 Tab -->
+                <div id="requests-tab" class="admin-tab-content active">
+                    <!-- Search bar -->
+                    <div class="search-filter-container">
+                        <input type="text" id="requests-search" class="search-input" placeholder="🔍 이름으로 검색...">
+                    </div>
+
+                    <div id="admin-requests-grid" class="admin-requests-grid"></div>
+                    <div id="no-requests" class="no-matches" style="display: none;">
+                        <div class="empty-state">
+                            <span class="empty-icon">📭</span>
+                            <h3>1단계 요청이 없습니다</h3>
+                        </div>
+                    </div>
+                    <!-- Pagination for pending requests -->
+                    <div id="requests-pagination" class="pagination-controls" style="display: none;">
+                        <button id="requests-prev" class="pagination-btn">← 이전</button>
+                        <span id="requests-page-info" class="page-info"></span>
+                        <button id="requests-next" class="pagination-btn">다음 →</button>
+                    </div>
+                </div>
+
+                <!-- 최종 요청 Tab -->
+                <div id="final-tab" class="admin-tab-content">
+                    <!-- Search bar -->
+                    <div class="search-filter-container">
+                        <input type="text" id="final-search" class="search-input" placeholder="🔍 이름으로 검색...">
+                    </div>
+
+                    <div id="admin-final-grid" class="admin-requests-grid"></div>
+                    <div id="no-final" class="no-matches" style="display: none;">
+                        <div class="empty-state">
+                            <span class="empty-icon">📭</span>
+                            <h3>최종 요청이 없습니다</h3>
+                        </div>
+                    </div>
+                    <!-- Pagination for final requests -->
+                    <div id="final-pagination" class="pagination-controls" style="display: none;">
+                        <button id="final-prev" class="pagination-btn">← 이전</button>
+                        <span id="final-page-info" class="page-info"></span>
+                        <button id="final-next" class="pagination-btn">다음 →</button>
+                    </div>
+                </div>
+
+                <!-- Completed Requests Tab -->
+                <div id="completed-tab" class="admin-tab-content">
+                    <!-- Search and filter bar -->
+                    <div class="search-filter-container">
+                        <input type="text" id="completed-search" class="search-input" placeholder="🔍 이름으로 검색...">
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-status="all">전체</button>
+                            <button class="filter-btn" data-status="approved">승인됨</button>
+                            <button class="filter-btn" data-status="rejected">거절됨</button>
+                        </div>
+                    </div>
+
+                    <div id="admin-completed-grid" class="admin-requests-grid"></div>
+                    <div id="no-completed" class="no-matches" style="display: none;">
+                        <div class="empty-state">
+                            <span class="empty-icon">📋</span>
+                            <h3>완료된 요청이 없습니다</h3>
+                        </div>
+                    </div>
+                    <!-- Pagination for completed requests -->
+                    <div id="completed-pagination" class="pagination-controls" style="display: none;">
+                        <button id="completed-prev" class="pagination-btn">← 이전</button>
+                        <span id="completed-page-info" class="page-info"></span>
+                        <button id="completed-next" class="pagination-btn">다음 →</button>
+                    </div>
+                </div>
+
+                <!-- All Profiles Tab -->
+                <div id="profiles-tab" class="admin-tab-content">
+                    <!-- Search and filter bar -->
+                    <div class="search-filter-container">
+                        <input type="text" id="profiles-search" class="search-input" placeholder="🔍 이름으로 검색...">
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-gender="all">전체</button>
+                            <button class="filter-btn" data-gender="male">남자</button>
+                            <button class="filter-btn" data-gender="female">여자</button>
+                        </div>
+                    </div>
+
+                    <div id="admin-profiles-grid" class="admin-profiles-grid"></div>
+                </div>
+
+                <!-- Statistics Tab -->
+                <div id="statistics-tab" class="admin-tab-content">
+                    <div class="card" style="max-width: 1200px; margin: 0 auto; margin-bottom: 1.5rem;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                            <h2 style="margin: 0;">📊 서비스 통계 및 관리</h2>
+                            <button id="sync-closure-stats" class="btn btn-secondary"
+                                style="font-size: 0.9rem; padding: 0.5rem 1rem; border-radius: 8px;">
+                                🔄 종료 페이지 통계 동기화
+                            </button>
+                        </div>
+                        <div id="statistics-content">
+                            <!-- Statistics will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js?v=2"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js?v=2"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js?v=2"></script>
+
+    <!-- Config -->
+    <script src="js/config/firebase.js?v=2"></script>
+    <script src="js/config/constants.js?v=2"></script>
+
+    <!-- Utils -->
+    <script src="js/utils/helpers.js?v=2"></script>
+    <script src="js/utils/dragDrop.js?v=2"></script>
+
+    <!-- Services -->
+    <script src="js/services/database.js?v=5"></script>
+    <script src="js/services/notifications.js?v=5"></script>
+    <script src="js/services/matching.js?v=5"></script>
+    <script src="js/broadcast.js?v=1"></script>
+
+    <!-- UI Components -->
+    <script src="js/ui/modals.js?v=1"></script>
+    <script src="js/ui/forms.js?v=1"></script>
+
+    <!-- Main App -->
+    <script src="main.js?v=5"></script>
+</body>
+
+</html>
