@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서비스 종료 안내 - 이채혁 지인 소개팅풀</title>
+    <link rel="stylesheet" href="closure.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <span class="badge">Service Closed</span>
+            <h1>그동안 감사했습니다</h1>
+
+            <p class="message">
+                '이채혁 지인 소개팅풀' 서비스를 이용해 주신 모든 분들께 진심으로 감사드립니다.<br>
+                주변 지인분들의 소중한 인연을 찾아드리고자 시작했던 프로젝트가 이제 마침표를 찍게 되었습니다.<br><br>
+                짧은 기간이었지만 많은 분들이 관심을 가져주시고 응원해 주셔서 진심으로 행복했습니다.<br>
+                비록 서비스는 여기서 멈추지만, 여러분의 일상에는 늘 건강과 행복, 그리고 아름다운 인연이 가득하기를 진심으로 기원합니다.
+            </p>
+
+            <div class="stats-grid">
+                <div class="stat-item users-count">
+                    <span id="total-users" class="stat-value">...</span>
+                    <span class="stat-label">등록된 지인 수</span>
+                </div>
+                <div class="stat-item match-count">
+                    <span id="final-approved-matches" class="stat-value">...</span>
+                    <span class="stat-label">성사된 총 매칭</span>
+                </div>
+                <div class="stat-item people-count">
+                    <span id="final-matched-people" class="stat-value">...</span>
+                    <span class="stat-label">1명 이상 매칭된 인원</span>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <h3>📈 전체 누적 성장 지표</h3>
+                <div class="chart-container">
+                    <canvas id="growthChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-section" style="margin-top: 2rem;">
+                <h3>📊 일별 활동 기록 (가입/요청)</h3>
+                <div class="chart-container">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="records-section">
+                <h3>🏆 서비스 기록 (Hall of Fame)</h3>
+                <div class="records-grid">
+                    <div class="record-card glass">
+                        <div class="record-icon">🥇</div>
+                        <div class="record-label">2명 이상과 매칭된 우등생</div>
+                        <div id="stat-multi-match" class="record-value">...</div>
+                        <div class="record-unit">명</div>
+                    </div>
+                    <div class="record-card glass">
+                        <div class="record-icon">🏹</div>
+                        <div class="record-label">가장 열정적인 구애자 (최다 요청)</div>
+                        <div id="stat-max-sent" class="record-value">...</div>
+                        <div class="record-unit">회</div>
+                    </div>
+                    <div class="record-card glass">
+                        <div class="record-icon">✨</div>
+                        <div class="record-label">모두가 궁금해한 인기인 (최다 수신)</div>
+                        <div id="stat-max-received" class="record-value">...</div>
+                        <div class="record-unit">회</div>
+                    </div>
+                    <div class="record-card glass">
+                        <div class="record-icon">👑</div>
+                        <div class="record-label">한 사람의 최다 매칭 최고 기록</div>
+                        <div id="stat-max-matches" class="record-value">...</div>
+                        <div class="record-unit">건</div>
+                    </div>
+                </div>
+            </div>
+
+            <p style="color: var(--text-primary); font-weight: 600; margin-top: 3rem; margin-bottom: 0.5rem;">개발자 이채혁 드림
+            </p>
+            <div class="footer">
+                &copy; 2025 Lee Chae-hyuk. All rights reserved.
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="js/config/firebase.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        async function loadStats() {
+            const usersCountEl = document.getElementById('total-users');
+            const matchCountEl = document.getElementById('final-approved-matches');
+            const peopleCountEl = document.getElementById('final-matched-people');
+
+            try {
+                // 1. Fetch Growth Trend and Totals from Public Snapshot
+                const trendDoc = await db.collection('stats').doc('growth_trend').get();
+
+                if (trendDoc.exists) {
+                    const data = trendDoc.data();
+
+                    animateValue(usersCountEl, 0, data.totalUsers || 0, 1500);
+                    animateValue(matchCountEl, 0, data.approvedCount || 0, 1500);
+                    animateValue(peopleCountEl, 0, data.matchedPeopleCount || 0, 1500);
+
+                    // Add animation for new records
+                    animateValue(document.getElementById('stat-multi-match'), 0, data.multiMatchedCount || 0, 2000);
+                    animateValue(document.getElementById('stat-max-matches'), 0, data.maxMatches || 0, 2000);
+                    animateValue(document.getElementById('stat-max-sent'), 0, data.maxSentRequests || 0, 2000);
+                    animateValue(document.getElementById('stat-max-received'), 0, data.maxReceivedRequests || 0, 2000);
+
+                    // Initialize Charts with snapshot data
+                    renderGrowthChart(
+                        data.labels,
+                        data.userHistory,
+                        data.requestHistory
+                    );
+
+                    renderActivityChart(
+                        data.labels,
+                        data.dailyUserHistory,
+                        data.dailyRequestHistory
+                    );
+
+                    if (data.commits) {
+                        renderRoadmap(data.commits);
+                    }
+                } else {
+                    const userCountDoc = await db.collection('stats').doc('userCount').get();
+                    if (userCountDoc.exists) {
+                        animateValue(usersCountEl, 0, userCountDoc.data().count || 0, 1500);
+                    }
+                    console.warn("Public growth_trend doc not found. Please sync as admin.");
+                }
+
+            } catch (error) {
+                console.error("Error loading stats from snapshot:", error);
+            }
+        }
+
+        function renderGrowthChart(labels, userHistory, requestHistory) {
+            const canvas = document.getElementById('growthChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '누적 가입자',
+                            data: userHistory,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#667eea'
+                        },
+                        {
+                            label: '누적 매칭 요청',
+                            data: requestHistory,
+                            borderColor: '#FF6B9D',
+                            backgroundColor: 'rgba(255, 107, 157, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#FF6B9D'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#b0b0d0',
+                                font: { family: "'Inter', sans-serif", size: 11 },
+                                boxWidth: 12,
+                                boxHeight: 12,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(20, 20, 35, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#b0b0d0',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '건';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#666', font: { size: 10 } },
+                            grid: { display: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#666', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderActivityChart(labels, dailyUserHistory, dailyRequestHistory) {
+            const canvas = document.getElementById('activityChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '일일 가입자 수',
+                            data: dailyUserHistory || [],
+                            backgroundColor: 'rgba(72, 187, 120, 0.6)',
+                            borderColor: '#48BB78',
+                            borderWidth: 1,
+                            borderRadius: 2,
+                        },
+                        {
+                            label: '일일 매칭 요청',
+                            data: dailyRequestHistory || [],
+                            backgroundColor: 'rgba(255, 107, 157, 0.6)',
+                            borderColor: '#FF6B9D',
+                            borderWidth: 1,
+                            borderRadius: 2,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#b0b0d0',
+                                font: { family: "'Inter', sans-serif", size: 10 },
+                                boxWidth: 10,
+                                padding: 10
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(20, 20, 35, 0.9)',
+                            padding: 10,
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + (context.datasetIndex === 0 ? '명' : '건');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#666', font: { size: 9 } }, grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#666', font: { size: 9 }, stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start).toLocaleString();
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadStats);
+    </script>
+</body>
+
+</html>
