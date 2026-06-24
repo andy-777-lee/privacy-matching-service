@@ -11,24 +11,25 @@ on:
 jobs:
   update-count:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      
+          node-version: '20'
+          cache: 'npm'
+
       - name: Install dependencies
         run: npm install firebase-admin
-      
+
       - name: Create service account key file
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > serviceAccountKey.json
-      
+
       - name: Update user count
         run: node init-user-count.js
-      
+
       - name: Cleanup
         run: rm serviceAccountKey.json

@@ -2,12 +2,6 @@
 <html lang="ko">
 
 <head>
-    <script>
-        // Service closure redirect (Bypass for admin via #admin hash)
-        if (window.location.hash !== '#admin') {
-            window.location.href = 'closure.html';
-        }
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>이채혁 지인 소개팅풀 등록 서비스</title>
@@ -121,6 +115,16 @@
                         </div>
                         <div id="login-error" style="color: #ff4444; display: none; margin-bottom: 1rem;"></div>
                         <button type="submit" class="btn btn-primary btn-large">로그인</button>
+                        <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem; margin-bottom: 0.5rem;">
+                            <hr style="flex: 1; border: none; border-top: 1px solid rgba(255,255,255,0.15);">
+                            <span style="color: var(--text-secondary); font-size: 0.85rem;">또는</span>
+                            <hr style="flex: 1; border: none; border-top: 1px solid rgba(255,255,255,0.15);">
+                        </div>
+                        <button type="button" id="kakao-login-btn"
+                            style="width: 100%; padding: 0.85rem; border-radius: 8px; border: none; background: #FEE500; color: #3C1E1E; font-size: 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;">
+                            <img src="https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_small.png" style="width: 20px; height: 20px;" alt="kakao">
+                            카카오로 시작하기
+                        </button>
                         <button type="button" id="go-to-register" class="btn btn-secondary btn-large"
                             style="margin-top: 0.5rem;">회원가입</button>
                     </form>
@@ -1092,6 +1096,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js?v=2"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js?v=2"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js?v=2"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js?v=2"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js?v=2"></script>
+    <!-- Kakao JavaScript SDK -->
+    <!-- TODO: YOUR_KAKAO_APP_KEY를 실제 카카오 앱 키로 교체하세요 (developers.kakao.com) -->
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" integrity="sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4" crossorigin="anonymous"></script>
 
     <!-- Config -->
     <script src="js/config/firebase.js?v=2"></script>

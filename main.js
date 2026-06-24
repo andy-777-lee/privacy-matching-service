@@ -41,9 +41,58 @@ let matchesPagination = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
+    initializeKakaoSDK();
     initializeApp();
     setupHashNavigation();
 });
+
+// Initialize Kakao SDK with app key
+// TODO: 'YOUR_KAKAO_APP_KEY'를 실제 JavaScript 앱 키로 교체하세요 (https://developers.kakao.com)
+function initializeKakaoSDK() {
+    if (typeof Kakao === 'undefined') return;
+    if (!Kakao.isInitialized()) {
+        Kakao.init('YOUR_KAKAO_APP_KEY');
+    }
+}
+
+// Kakao OAuth login flow
+async function handleKakaoLogin() {
+    const loginError = document.getElementById('login-error');
+    if (loginError) { loginError.style.display = 'none'; }
+
+    if (typeof Kakao === 'undefined' || !Kakao.isInitialized()) {
+        if (loginError) {
+            loginError.textContent = '카카오 SDK가 초기화되지 않았습니다. 잠시 후 다시 시도해주세요.';
+            loginError.style.display = 'block';
+        }
+        return;
+    }
+
+    try {
+        const authObj = await new Promise((resolve, reject) => {
+            Kakao.Auth.login({ success: resolve, fail: reject });
+        });
+
+        showLoading('카카오 로그인 중...');
+
+        const kakaoLoginFn = window.functions.httpsCallable('kakaoLogin');
+        const result = await kakaoLoginFn({ accessToken: authObj.access_token });
+        const { customToken, nickname, profileImageUrl } = result.data;
+
+        // Store Kakao profile for pre-filling registration if needed
+        window.pendingKakaoProfile = { nickname, profileImageUrl };
+
+        await auth.signInWithCustomToken(customToken);
+        // onAuthStateChanged handles navigation from here
+    } catch (error) {
+        hideLoading();
+        console.error('Kakao login error:', error);
+        if (loginError) {
+            loginError.textContent = '카카오 로그인 중 오류가 발생했습니다.';
+            loginError.style.display = 'block';
+        }
+    }
+}
 
 async function initializeApp() {
     // Load auto-approval setting early (needed for unlock request auto-approval)
@@ -97,7 +146,25 @@ async function initializeApp() {
                         }, 100);
                     }
                 } else {
-                    console.warn("Firestore document not found for user", user.uid);
+                    // New user: Kakao login creates a new Firebase Auth account
+                    // but no Firestore document yet — send to registration
+                    if (user.uid.startsWith('kakao:')) {
+                        console.log('New Kakao user, redirecting to registration');
+                        hideLoading();
+                        showPage('registration-page');
+                        setupRegistrationForm();
+                    } else {
+                        console.warn("Firestore document not found for user", user.uid);
+                    }
+                }
+
+                // Set up FCM push after successful login
+                if (window.requestPushPermission) {
+                    // Delay slightly so currentUser is fully set
+                    setTimeout(() => window.requestPushPermission(), 2000);
+                }
+                if (window.setupForegroundPush) {
+                    window.setupForegroundPush();
                 }
             } catch (error) {
                 console.error("Error fetching user data:", error);
@@ -334,6 +401,12 @@ function setupLoginPage() {
         }
     };
 
+    // Kakao login button
+    const kakaoBtn = document.getElementById('kakao-login-btn');
+    if (kakaoBtn) {
+        kakaoBtn.onclick = () => handleKakaoLogin();
+    }
+
     // Handle go to register
     goToRegisterBtn.onclick = () => {
         showPage('registration-page');
@@ -521,12 +594,15 @@ function setupRegistrationForm() {
             return;
         }
 
-        // Validate password length before hashing
+        // Kakao users don't need a password
+        const isKakaoUser = auth.currentUser && auth.currentUser.uid.startsWith('kakao:');
         const rawPassword = document.getElementById('password').value;
-        console.log('Registration raw password:', rawPassword);
-        if (!rawPassword || rawPassword.length !== 4) {
-            alert('비밀번호 4자리를 모두 입력해주세요.');
-            return;
+        if (!isKakaoUser) {
+            console.log('Registration raw password:', rawPassword);
+            if (!rawPassword || rawPassword.length !== 4) {
+                alert('비밀번호 4자리를 모두 입력해주세요.');
+                return;
+            }
         }
 
         const formData = {
@@ -563,23 +639,23 @@ function setupRegistrationForm() {
             submitBtn.innerText = '처리 중...';
             showLoading('회원가입 처리 중입니다...');
 
-            // 1. Create Authentication User
-            // Convert Kakao ID to safe email format using Base64 encoding
-            // This allows special characters in Kakao ID
-            // Trim and lowercase Kakao ID for consistency
-            const trimmedKakaoId = formData.contactKakao.toLowerCase();
-            const safeKakaoId = btoa(encodeURIComponent(trimmedKakaoId))
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=/g, '');
-            const email = `${safeKakaoId}@matching.app`;
+            let authUser;
 
-            // Firebase Auth requires minimum 6 characters for password
-            // Pad the 4-digit password to meet this requirement
-            const paddedPassword = formData.password.padEnd(6, '0');
-
-            const userCredential = await auth.createUserWithEmailAndPassword(email, paddedPassword);
-            const authUser = userCredential.user;
+            // Kakao users are already authenticated via custom token — skip email/password creation
+            if (auth.currentUser && auth.currentUser.uid.startsWith('kakao:')) {
+                authUser = auth.currentUser;
+            } else {
+                // 1. Create Authentication User (email/password flow)
+                const trimmedKakaoId = formData.contactKakao.toLowerCase();
+                const safeKakaoId = btoa(encodeURIComponent(trimmedKakaoId))
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_')
+                    .replace(/=/g, '');
+                const email = `${safeKakaoId}@matching.app`;
+                const paddedPassword = formData.password.padEnd(6, '0');
+                const userCredential = await auth.createUserWithEmailAndPassword(email, paddedPassword);
+                authUser = userCredential.user;
+            }
 
             // 2. Create Firestore User Document
             // createUserWithEmailAndPassword automatically signs in the user,

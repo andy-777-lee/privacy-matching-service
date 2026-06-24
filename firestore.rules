@@ -1,15 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Stats collection rules - maintained for the closure page
+
+    // Stats - public read only
     match /stats/{statId} {
-      // Allow anyone to read stats (for displaying user count and trends)
       allow read: if true;
-      // Disable all writes
       allow write: if false;
     }
 
-    // Lockdown all other collections
+    // Users - authenticated users can read all, write only own
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // Unlock requests
+    match /unlock_requests/{requestId} {
+      allow read: if request.auth != null && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.targetId == request.auth.uid
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.targetId == request.auth.uid
+      );
+      allow delete: if false;
+    }
+
+    // Unlocked profiles - users can read/write their own
+    match /unlockedProfiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Notifications - users can read/write their own
+    match /notifications/{notifId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // Settings - read only for authenticated users (admin writes via Admin SDK)
+    match /settings/{settingId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Lockdown everything else
     match /{document=**} {
       allow read, write: if false;
     }
