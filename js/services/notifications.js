@@ -362,61 +362,28 @@ async function showTargetProfileForFinalApproval(targetId, requestId) {
     }
 }
 
-// ── FCM Push Notification Support ─────────────────────────────────────────
+// ── SMS Notification Trigger ──────────────────────────────────────────────
 
-// VAPID key from Firebase Console → Project Settings → Cloud Messaging → Web push certificates
-const FCM_VAPID_KEY = 'YOUR_VAPID_KEY_HERE'; // TODO: 교체 필요 (Firebase Console에서 발급)
-
-// Request browser notification permission and save FCM token to Firestore
-async function requestPushPermission() {
-    if (!window.messaging || !window.currentUser) return;
-
+// Ask the server (Vercel function) to send an SMS notification for an unlock
+// request event. Recipient phone numbers stay server-side. Failures are
+// non-fatal — the in-app notification still works regardless.
+async function sendSmsNotification(type, requestId) {
     try {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-            console.log('Push notification permission denied');
-            return;
-        }
-
-        const token = await window.messaging.getToken({ vapidKey: FCM_VAPID_KEY });
-        if (!token) return;
-
-        await db.collection('users').doc(window.currentUser.id).update({ fcmToken: token });
-        console.log('FCM token saved');
+        if (!auth.currentUser) return;
+        const idToken = await auth.currentUser.getIdToken();
+        await fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, type, requestId })
+        });
     } catch (error) {
-        console.warn('Push permission setup failed:', error.message);
+        console.warn('SMS notification failed (non-fatal):', error.message);
     }
-}
-
-// Listen for foreground messages and show in-app toast
-function setupForegroundPush() {
-    if (!window.messaging) return;
-
-    window.messaging.onMessage((payload) => {
-        const { title, body } = payload.notification || {};
-        if (!title) return;
-        showPushToast(title, body || '');
-    });
-}
-
-// Simple in-app toast for foreground push messages
-function showPushToast(title, body) {
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed; top: 20px; right: 20px; z-index: 99999;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white; border-radius: 12px; padding: 1rem 1.5rem;
-        max-width: 320px; box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-        animation: slideIn 0.3s ease; cursor: pointer;
-    `;
-    toast.innerHTML = `<strong>${title}</strong><br><span style="opacity:0.9;font-size:0.9rem;">${body}</span>`;
-    toast.onclick = () => toast.remove();
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 5000);
 }
 
 // Export to global scope
 window.saveNotification = saveNotification;
+window.sendSmsNotification = sendSmsNotification;
 window.fetchNotifications = fetchNotifications;
 window.markNotificationAsRead = markNotificationAsRead;
 window.displayNotifications = displayNotifications;
@@ -424,5 +391,3 @@ window.handleNotificationClick = handleNotificationClick;
 window.showRequesterProfile = showRequesterProfile;
 window.handleTargetApproval = handleTargetApproval;
 window.showTargetProfileForFinalApproval = showTargetProfileForFinalApproval;
-window.requestPushPermission = requestPushPermission;
-window.setupForegroundPush = setupForegroundPush;

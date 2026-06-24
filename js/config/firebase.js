@@ -13,17 +13,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Firebase Cloud Messaging (only in supported browsers)
-let messaging = null;
-if (typeof firebase.messaging !== 'undefined' && firebase.messaging.isSupported()) {
-    messaging = firebase.messaging();
-}
-
-// Firebase Functions (for calling Cloud Functions)
-const functions = firebase.functions();
-
 // Export for use in other modules
 window.db = db;
 window.auth = auth;
-window.messaging = messaging;
-window.functions = functions;

@@ -93,40 +93,25 @@
                 </div>
 
                 <div class="card glass">
-                    <h2>로그인</h2>
+                    <h2>로그인 / 가입</h2>
                     <form id="login-form">
                         <div class="form-group">
-                            <label>카카오톡 ID *</label>
-                            <input type="text" id="login-kakao-id" placeholder="카카오톡 ID" required>
-                        </div>
-                        <div class="form-group">
-                            <label>비밀번호 (4자리) *</label>
-                            <div class="password-inputs">
-                                <input type="tel" class="password-digit" maxlength="1" pattern="[0-9]"
-                                    inputmode="numeric" autocomplete="off" required>
-                                <input type="tel" class="password-digit" maxlength="1" pattern="[0-9]"
-                                    inputmode="numeric" autocomplete="off" required>
-                                <input type="tel" class="password-digit" maxlength="1" pattern="[0-9]"
-                                    inputmode="numeric" autocomplete="off" required>
-                                <input type="tel" class="password-digit" maxlength="1" pattern="[0-9]"
-                                    inputmode="numeric" autocomplete="off" required>
+                            <label>휴대폰 번호 *</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="tel" id="login-phone" placeholder="01012345678"
+                                    inputmode="numeric" autocomplete="tel" required style="flex: 1;">
+                                <button type="button" id="send-otp-btn" class="btn btn-secondary"
+                                    style="white-space: nowrap; padding: 0 1rem;">인증번호 받기</button>
                             </div>
-                            <input type="hidden" id="login-password">
+                        </div>
+                        <div class="form-group" id="otp-group" style="display: none;">
+                            <label>인증번호 (6자리) *</label>
+                            <input type="tel" id="login-otp" placeholder="6자리 숫자" maxlength="6"
+                                inputmode="numeric" autocomplete="one-time-code">
+                            <small id="otp-timer" style="color: var(--text-secondary); display: block; margin-top: 0.3rem;"></small>
                         </div>
                         <div id="login-error" style="color: #ff4444; display: none; margin-bottom: 1rem;"></div>
-                        <button type="submit" class="btn btn-primary btn-large">로그인</button>
-                        <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem; margin-bottom: 0.5rem;">
-                            <hr style="flex: 1; border: none; border-top: 1px solid rgba(255,255,255,0.15);">
-                            <span style="color: var(--text-secondary); font-size: 0.85rem;">또는</span>
-                            <hr style="flex: 1; border: none; border-top: 1px solid rgba(255,255,255,0.15);">
-                        </div>
-                        <button type="button" id="kakao-login-btn"
-                            style="width: 100%; padding: 0.85rem; border-radius: 8px; border: none; background: #FEE500; color: #3C1E1E; font-size: 1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;">
-                            <img src="https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_small.png" style="width: 20px; height: 20px;" alt="kakao">
-                            카카오로 시작하기
-                        </button>
-                        <button type="button" id="go-to-register" class="btn btn-secondary btn-large"
-                            style="margin-top: 0.5rem;">회원가입</button>
+                        <button type="submit" id="verify-otp-btn" class="btn btn-primary btn-large" style="display: none;">인증 확인 후 로그인</button>
                     </form>
                 </div>
 
@@ -214,7 +199,12 @@
                     <!-- Contact Info -->
                     <div class="card">
                         <h3>📞 연락처 정보</h3>
-                        <p style="color: #a0a0b0; font-size: 0.9rem; margin-bottom: 1rem;">카카오톡ID는 로그인 아이디로 사용합니다.</p>
+                        <p style="color: #a0a0b0; font-size: 0.9rem; margin-bottom: 1rem;">인증된 휴대폰 번호로 매칭 알림이 발송됩니다.</p>
+                        <div class="form-group">
+                            <label>휴대폰 번호 (인증 완료)</label>
+                            <input type="tel" id="reg-phone" disabled>
+                            <small style="color: #888;">로그인 시 사용한 인증된 번호입니다.</small>
+                        </div>
                         <div class="form-group">
                             <label>카카오톡 ID *</label>
                             <input type="text" id="kakao-id" placeholder="카카오톡 ID" required>
@@ -222,21 +212,6 @@
                         <div class="form-group">
                             <label>인스타그램 ID (선택)</label>
                             <input type="text" id="instagram-id" placeholder="@username">
-                        </div>
-                        <div class="form-group">
-                            <label>비밀번호 (4자리) *</label>
-                            <div class="password-inputs">
-                                <input type="tel" class="password-digit-register" maxlength="1" pattern="[0-9]"
-                                    inputmode="numeric" autocomplete="off" required>
-                                <input type="tel" class="password-digit-register" maxlength="1" pattern="[0-9]"
-                                    inputmode="numeric" autocomplete="off" required>
-                                <input type="tel" class="password-digit-register" maxlength="1" pattern="[0-9]"
-                                    inputmode="numeric" autocomplete="off" required>
-                                <input type="tel" class="password-digit-register" maxlength="1" pattern="[0-9]"
-                                    inputmode="numeric" autocomplete="off" required>
-                            </div>
-                            <input type="hidden" id="password">
-                            <small style="color: #888;">로그인 시 사용할 4자리 숫자를 입력하세요</small>
                         </div>
                     </div>
                     <!-- Photo Upload -->
@@ -1096,11 +1071,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js?v=2"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js?v=2"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js?v=2"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js?v=2"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js?v=2"></script>
-    <!-- Kakao JavaScript SDK -->
-    <!-- TODO: YOUR_KAKAO_APP_KEY를 실제 카카오 앱 키로 교체하세요 (developers.kakao.com) -->
-    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" integrity="sha384-TiCUE00h649CAMonG018J2ujOgDKW/kVWlChEuu4jK2vxfAAD0eZxzCKakxg55G4" crossorigin="anonymous"></script>
 
     <!-- Config -->
     <script src="js/config/firebase.js?v=2"></script>
