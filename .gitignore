@@ -5,4 +5,5 @@ __pycache__/
 *.log
 serviceAccountKey.json
 *service-account*.json
+*firebase-adminsdk*.json
 node_modules/

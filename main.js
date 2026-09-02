@@ -45,6 +45,118 @@ document.addEventListener('DOMContentLoaded', () => {
     setupHashNavigation();
 });
 
+// Phone number normalization (digits only)
+function normalizePhone(phone) {
+    return String(phone || '').replace(/[^0-9]/g, '');
+}
+
+// Send SMS OTP to the entered phone number
+async function handleSendOtp() {
+    const loginError = document.getElementById('login-error');
+    loginError.style.display = 'none';
+
+    const phone = normalizePhone(document.getElementById('login-phone').value);
+    if (!/^01[0-9]{8,9}$/.test(phone)) {
+        loginError.textContent = '올바른 휴대폰 번호를 입력해주세요.';
+        loginError.style.display = 'block';
+        return;
+    }
+
+    const sendBtn = document.getElementById('send-otp-btn');
+    sendBtn.disabled = true;
+    sendBtn.textContent = '발송 중...';
+
+    try {
+        const res = await fetch('/api/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || '인증번호 발송에 실패했습니다.');
+        }
+
+        // Reveal OTP input + verify button
+        document.getElementById('otp-group').style.display = 'block';
+        document.getElementById('verify-otp-btn').style.display = 'block';
+        document.getElementById('login-otp').focus();
+        startOtpTimer();
+
+        sendBtn.textContent = '재전송';
+        sendBtn.disabled = false;
+    } catch (error) {
+        console.error('send OTP error:', error);
+        loginError.textContent = error.message;
+        loginError.style.display = 'block';
+        sendBtn.textContent = '인증번호 받기';
+        sendBtn.disabled = false;
+    }
+}
+
+// 5-minute countdown for OTP validity
+let otpTimerInterval = null;
+function startOtpTimer() {
+    const timerEl = document.getElementById('otp-timer');
+    let remaining = 5 * 60;
+    if (otpTimerInterval) clearInterval(otpTimerInterval);
+
+    const tick = () => {
+        const m = Math.floor(remaining / 60);
+        const s = String(remaining % 60).padStart(2, '0');
+        timerEl.textContent = `인증번호 유효시간 ${m}:${s}`;
+        if (remaining <= 0) {
+            clearInterval(otpTimerInterval);
+            timerEl.textContent = '인증번호가 만료되었습니다. 재전송해주세요.';
+        }
+        remaining--;
+    };
+    tick();
+    otpTimerInterval = setInterval(tick, 1000);
+}
+
+// Verify OTP and sign in with the returned Firebase custom token
+async function handleVerifyOtp() {
+    const loginError = document.getElementById('login-error');
+    loginError.style.display = 'none';
+
+    const phone = normalizePhone(document.getElementById('login-phone').value);
+    const code = document.getElementById('login-otp').value.trim();
+
+    if (!/^[0-9]{6}$/.test(code)) {
+        loginError.textContent = '인증번호 6자리를 입력해주세요.';
+        loginError.style.display = 'block';
+        return;
+    }
+
+    try {
+        showLoading('인증 확인 중...');
+        const res = await fetch('/api/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, code })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || '인증에 실패했습니다.');
+        }
+
+        // Remember the verified phone for registration prefilling
+        window.verifiedPhone = phone;
+
+        await auth.signInWithCustomToken(data.customToken);
+        hideLoading();
+        // onAuthStateChanged handles navigation (existing user -> matches, new -> registration)
+    } catch (error) {
+        hideLoading();
+        console.error('verify OTP error:', error);
+        loginError.textContent = error.message;
+        loginError.style.display = 'block';
+    }
+}
+
 async function initializeApp() {
     // Load auto-approval setting early (needed for unlock request auto-approval)
     await loadAutoApprovalSetting();
@@ -97,7 +209,16 @@ async function initializeApp() {
                         }, 100);
                     }
                 } else {
-                    console.warn("Firestore document not found for user", user.uid);
+                    // New user: phone OTP created a Firebase Auth account but no
+                    // Firestore document yet — send to registration
+                    if (user.uid.startsWith('phone:')) {
+                        console.log('New phone user, redirecting to registration');
+                        hideLoading();
+                        showPage('registration-page');
+                        setupRegistrationForm();
+                    } else {
+                        console.warn("Firestore document not found for user", user.uid);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching user data:", error);
@@ -230,114 +351,20 @@ function setupHashNavigation() {
 // Note: showPage and hashPassword are now in js/utils/helpers.js
 
 
-// Login Page Setup
+// Login Page Setup (phone number + SMS OTP)
 function setupLoginPage() {
     const loginForm = document.getElementById('login-form');
-    const goToRegisterBtn = document.getElementById('go-to-register');
-    const loginError = document.getElementById('login-error');
+    const sendBtn = document.getElementById('send-otp-btn');
 
-    // Setup password input auto-focus
-    const passwordDigits = document.querySelectorAll('.password-digit');
-    const passwordHidden = document.getElementById('login-password');
+    // Send OTP
+    if (sendBtn) {
+        sendBtn.onclick = () => handleSendOtp();
+    }
 
-    passwordDigits.forEach((input, index) => {
-        input.addEventListener('input', (e) => {
-            if (e.target.value.length === 1) {
-                // Move to next input
-                if (index < passwordDigits.length - 1) {
-                    passwordDigits[index + 1].focus();
-                }
-            }
-            // Combine all digits into hidden field
-            passwordHidden.value = Array.from(passwordDigits).map(d => d.value).join('');
-        });
-
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && e.target.value === '') {
-                // Move to previous input on backspace
-                if (index > 0) {
-                    passwordDigits[index - 1].focus();
-                }
-            }
-        });
-    });
-
-    // Handle login
+    // Verify OTP on form submit
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
-        loginError.style.display = 'none';
-
-        const kakaoId = document.getElementById('login-kakao-id').value.trim();
-        const password = passwordHidden.value;
-
-        try {
-            // Use Kakao ID to create a synthetic email for Firebase Auth
-            // Convert Kakao ID to safe email format using Base64 encoding (same as registration)
-            // Trim and lowercase Kakao ID for consistency
-            const trimmedOriginal = kakaoId.trim();
-            const trimmedLower = trimmedOriginal.toLowerCase();
-
-            const getEmail = (id) => {
-                const safeId = btoa(encodeURIComponent(id))
-                    .replace(/\+/g, '-')
-                    .replace(/\//g, '_')
-                    .replace(/=/g, '');
-                return `${safeId}@matching.app`;
-            };
-
-            const emailLower = getEmail(trimmedLower);
-            const emailOriginal = getEmail(trimmedOriginal);
-
-            // Pad password to 6 characters to match registration format
-            const paddedPassword = password.padEnd(6, '0');
-
-            try {
-                // First attempt: try lowercased email (normalized)
-                await auth.signInWithEmailAndPassword(emailLower, paddedPassword);
-            } catch (error) {
-                // Second attempt: try original casing if lowercase fails (backwards compatibility)
-                // Newer Firebase Auth returns 'auth/invalid-login-credentials' for either wrong password or user not found
-                if (trimmedLower !== trimmedOriginal && (
-                    error.code === 'auth/user-not-found' ||
-                    error.code === 'auth/invalid-email' ||
-                    error.code === 'auth/invalid-login-credentials' ||
-                    error.code === 'auth/invalid-credential'
-                )) {
-                    console.log('Normalized login failed, trying original casing...');
-                    await auth.signInWithEmailAndPassword(emailOriginal, paddedPassword);
-                } else {
-                    throw error; // Re-throw if it's something else (like wrong password with already correct casing)
-                }
-            }
-
-            // Note: Navigation will be handled by onAuthStateChanged in initializeApp
-        } catch (error) {
-            console.error('Login error:', error);
-            let msg = '로그인 중 오류가 발생했습니다.';
-            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                msg = '아이디 또는 비밀번호가 올바르지 않습니다.';
-            } else if (error.code === 'auth/invalid-email') {
-                msg = '유효하지 않은 아이디 형식입니다.';
-            }
-            loginError.textContent = msg;
-            loginError.style.display = 'block';
-
-            // Clear password fields on login failure
-            passwordDigits.forEach(input => {
-                input.value = '';
-            });
-            passwordHidden.value = '';
-            // Focus on first password digit
-            if (passwordDigits.length > 0) {
-                passwordDigits[0].focus();
-            }
-        }
-    };
-
-    // Handle go to register
-    goToRegisterBtn.onclick = () => {
-        showPage('registration-page');
-        setupRegistrationForm();
+        await handleVerifyOtp();
     };
 
     // Update user count on login page
@@ -446,31 +473,14 @@ function setupRegistrationForm() {
     setupPhotoUpload();
     updateUserCount(); // Update user count on page load
 
-    // Setup registration password input auto-focus
-    const passwordDigits = document.querySelectorAll('.password-digit-register');
-    const passwordHidden = document.getElementById('password');
-
-    passwordDigits.forEach((input, index) => {
-        input.addEventListener('input', (e) => {
-            if (e.target.value.length === 1) {
-                // Move to next input
-                if (index < passwordDigits.length - 1) {
-                    passwordDigits[index + 1].focus();
-                }
-            }
-            // Combine all digits into hidden field
-            passwordHidden.value = Array.from(passwordDigits).map(d => d.value).join('');
-        });
-
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && e.target.value === '') {
-                // Move to previous input on backspace
-                if (index > 0) {
-                    passwordDigits[index - 1].focus();
-                }
-            }
-        });
-    });
+    // Prefill the verified phone number (read-only)
+    const regPhoneInput = document.getElementById('reg-phone');
+    if (regPhoneInput) {
+        const phone = window.verifiedPhone
+            || (auth.currentUser && auth.currentUser.uid.startsWith('phone:')
+                ? auth.currentUser.uid.slice('phone:'.length) : '');
+        regPhoneInput.value = phone;
+    }
 
     // Location dropdown handler
     const locationSelect = document.getElementById('location');
@@ -521,13 +531,7 @@ function setupRegistrationForm() {
             return;
         }
 
-        // Validate password length before hashing
-        const rawPassword = document.getElementById('password').value;
-        console.log('Registration raw password:', rawPassword);
-        if (!rawPassword || rawPassword.length !== 4) {
-            alert('비밀번호 4자리를 모두 입력해주세요.');
-            return;
-        }
+        // Phone-OTP users are already authenticated; no separate password needed.
 
         const formData = {
             name: document.getElementById('name').value.trim(),
@@ -550,7 +554,6 @@ function setupRegistrationForm() {
             education: document.getElementById('education').value,
             contactKakao: document.getElementById('kakao-id').value.trim(),
             contactInstagram: document.getElementById('instagram-id').value.trim(),
-            password: rawPassword, // Use raw password for Firebase Auth
             photos: photos,
         };
 
@@ -563,31 +566,25 @@ function setupRegistrationForm() {
             submitBtn.innerText = '처리 중...';
             showLoading('회원가입 처리 중입니다...');
 
-            // 1. Create Authentication User
-            // Convert Kakao ID to safe email format using Base64 encoding
-            // This allows special characters in Kakao ID
-            // Trim and lowercase Kakao ID for consistency
-            const trimmedKakaoId = formData.contactKakao.toLowerCase();
-            const safeKakaoId = btoa(encodeURIComponent(trimmedKakaoId))
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=/g, '');
-            const email = `${safeKakaoId}@matching.app`;
+            // User is already authenticated via phone OTP (custom token) before
+            // reaching registration. Reuse that auth account.
+            const authUser = auth.currentUser;
+            if (!authUser) {
+                throw new Error('인증 세션이 만료되었습니다. 다시 로그인해주세요.');
+            }
 
-            // Firebase Auth requires minimum 6 characters for password
-            // Pad the 4-digit password to meet this requirement
-            const paddedPassword = formData.password.padEnd(6, '0');
+            // Derive the verified phone number from the auth uid (phone:01012345678)
+            const verifiedPhone = window.verifiedPhone
+                || (authUser.uid.startsWith('phone:') ? authUser.uid.slice('phone:'.length) : '');
 
-            const userCredential = await auth.createUserWithEmailAndPassword(email, paddedPassword);
-            const authUser = userCredential.user;
-
-            // 2. Create Firestore User Document
-            // createUserWithEmailAndPassword automatically signs in the user,
-            // so we can now write to Firestore with proper authentication
+            // Create Firestore User Document linked to the phone auth account.
+            // NOTE: the phone number is NOT stored here — the users collection is
+            // readable by all authenticated users, so the phone goes in a private
+            // doc (see below) to keep it from being exposed.
             const user = {
                 id: authUser.uid, // IMPORTANT: Link Auth ID to Firestore ID
                 ...formData,
-                password: null, // Don't store password in Firestore! Auth handles it.
+                password: null,
                 createdAt: Date.now()
             };
 
@@ -595,6 +592,15 @@ function setupRegistrationForm() {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             await saveUser(user);
+
+            // Store the verified phone number privately (only owner + server can read)
+            if (verifiedPhone) {
+                try {
+                    await db.collection('user_private').doc(authUser.uid).set({ phone: verifiedPhone });
+                } catch (e) {
+                    console.error('Failed to save private phone:', e);
+                }
+            }
 
             // Send Discord Notification
             try {
@@ -2108,6 +2114,9 @@ async function requestUnlock(targetId) {
                 console.error('Failed to send Discord notification:', error);
             }
 
+            // Send SMS notification to the target (non-fatal if it fails)
+            sendSmsNotification('new_request', request.id);
+
             document.getElementById('unlock-modal').classList.remove('active');
             document.getElementById('unlock-message').value = '';
 
@@ -3433,6 +3442,9 @@ async function targetApproveRequest(requestId) {
                 console.error('Failed to send Discord notification:', discordError);
             }
 
+            // Notify requester via SMS that the target approved
+            sendSmsNotification('target_approved', request.id);
+
             alert('승인되었습니다. 상대방의 최종 승인을 기다리는 중입니다.');
 
             // Close profile modal
@@ -3480,6 +3492,9 @@ async function targetRejectRequest(requestId) {
                 read: false,
                 createdAt: Date.now()
             });
+
+            // Notify requester via SMS of the rejection
+            sendSmsNotification('rejected', request.id);
 
             alert('거절되었습니다.');
 
@@ -3561,6 +3576,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         read: false,
                         createdAt: Date.now()
                     });
+
+                    // Notify the target via SMS that the match is complete
+                    sendSmsNotification('mutual_complete', request.id);
 
                     // Close modal
                     document.getElementById('final-approval-modal').classList.remove('active');

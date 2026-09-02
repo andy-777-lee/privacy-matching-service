@@ -1,15 +1,71 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Stats collection rules - maintained for the closure page
+
+    // Admin is identified by the fixed admin auth account email.
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'admin@matching.app';
+    }
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Stats - public read only (written by server / GitHub Actions via Admin SDK)
     match /stats/{statId} {
-      // Allow anyone to read stats (for displaying user count and trends)
       allow read: if true;
-      // Disable all writes
       allow write: if false;
     }
 
-    // Lockdown all other collections
+    // Users - any signed-in user can read (needed for matching); writes restricted
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == userId;
+      allow update: if isAdmin() || (signedIn() && request.auth.uid == userId);
+      allow delete: if isAdmin();
+    }
+
+    // Unlock requests
+    match /unlock_requests/{requestId} {
+      allow read: if isAdmin() || (signedIn() && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.targetId == request.auth.uid
+      ));
+      allow create: if signedIn();
+      allow update: if isAdmin() || (signedIn() && (
+        resource.data.requesterId == request.auth.uid ||
+        resource.data.targetId == request.auth.uid
+      ));
+      allow delete: if isAdmin();
+    }
+
+    // Unlocked profiles - mutual unlock requires each side to write the other's
+    // doc, so allow any signed-in user to read/write. Contains only profile-id
+    // lists (low sensitivity).
+    match /unlockedProfiles/{userId} {
+      allow read, write: if signedIn();
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if signedIn();
+      allow update: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // Settings - readable by signed-in users, writable by admin only
+    match /settings/{settingId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // Private user data (phone number) - only the owner. Server (Admin SDK)
+    // bypasses these rules to send SMS notifications.
+    match /user_private/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    // Everything else (incl. otp_codes, accessed only by the server) is locked.
     match /{document=**} {
       allow read, write: if false;
     }

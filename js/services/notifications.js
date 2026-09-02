@@ -362,8 +362,28 @@ async function showTargetProfileForFinalApproval(targetId, requestId) {
     }
 }
 
+// ── SMS Notification Trigger ──────────────────────────────────────────────
+
+// Ask the server (Vercel function) to send an SMS notification for an unlock
+// request event. Recipient phone numbers stay server-side. Failures are
+// non-fatal — the in-app notification still works regardless.
+async function sendSmsNotification(type, requestId) {
+    try {
+        if (!auth.currentUser) return;
+        const idToken = await auth.currentUser.getIdToken();
+        await fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken, type, requestId })
+        });
+    } catch (error) {
+        console.warn('SMS notification failed (non-fatal):', error.message);
+    }
+}
+
 // Export to global scope
 window.saveNotification = saveNotification;
+window.sendSmsNotification = sendSmsNotification;
 window.fetchNotifications = fetchNotifications;
 window.markNotificationAsRead = markNotificationAsRead;
 window.displayNotifications = displayNotifications;
