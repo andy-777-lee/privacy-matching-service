@@ -46,9 +46,19 @@ module.exports = async (req, res) => {
         await otpRef.delete();
 
         const uid = `phone:${phone}`;
+
+        // An SMS code proves ownership of the number, so it doubles as the
+        // recovery path for a PIN that got locked out. Clear the lock and
+        // report whether a PIN exists, so the client can offer to set one.
+        const pinRef = db.collection('user_auth').doc(uid);
+        const pinSnap = await pinRef.get();
+        if (pinSnap.exists) {
+            await pinRef.update({ failCount: 0, lockedUntil: 0 });
+        }
+
         const customToken = await admin.auth().createCustomToken(uid, { provider: 'phone', phone });
 
-        return res.status(200).json({ customToken, phone });
+        return res.status(200).json({ customToken, phone, hasPin: pinSnap.exists });
     } catch (error) {
         console.error('verify-otp error:', error);
         return res.status(500).json({ error: '인증 처리 중 오류가 발생했습니다.' });

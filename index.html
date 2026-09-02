@@ -31,6 +31,32 @@
         📢
     </button>
 
+    <!-- PIN Setup Modal - offered to members who signed in with an SMS code
+         but have no PIN yet (e.g. they registered before PIN login existed). -->
+    <div id="pin-setup-modal" class="modal">
+        <div class="modal-content card glass" style="max-width: 420px;">
+            <h2>🔐 비밀번호 설정</h2>
+            <p style="color: #a0a0b0; font-size: 0.9rem; margin-bottom: 1rem;">
+                숫자 4자리 비밀번호를 설정하면 다음부터 인증번호 없이 로그인할 수 있습니다.
+            </p>
+            <div class="form-group">
+                <label>비밀번호 (숫자 4자리)</label>
+                <input type="password" id="setup-pin" placeholder="숫자 4자리" maxlength="4"
+                    inputmode="numeric" autocomplete="new-password">
+            </div>
+            <div class="form-group">
+                <label>비밀번호 확인</label>
+                <input type="password" id="setup-pin-confirm" placeholder="숫자 4자리 다시 입력" maxlength="4"
+                    inputmode="numeric" autocomplete="new-password">
+            </div>
+            <div id="setup-pin-error" style="color: #ff4444; display: none; margin-bottom: 1rem;"></div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="button" id="setup-pin-save" class="btn btn-primary" style="flex: 1;">설정하기</button>
+                <button type="button" id="setup-pin-skip" class="btn btn-secondary" style="flex: 1;">나중에</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Patch Notes Modal -->
     <div id="patch-notes-modal" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
@@ -101,9 +127,16 @@
                                 <input type="tel" id="login-phone" placeholder="01012345678"
                                     inputmode="numeric" autocomplete="tel" required style="flex: 1;">
                                 <button type="button" id="send-otp-btn" class="btn btn-secondary"
-                                    style="white-space: nowrap; padding: 0 1rem;">인증번호 받기</button>
+                                    style="white-space: nowrap; padding: 0 1rem; display: none;">인증번호 받기</button>
                             </div>
                         </div>
+                        <!-- PIN login (default) -->
+                        <div class="form-group" id="pin-group">
+                            <label>비밀번호 (숫자 4자리) *</label>
+                            <input type="password" id="login-pin" placeholder="숫자 4자리" maxlength="4"
+                                inputmode="numeric" autocomplete="current-password">
+                        </div>
+                        <!-- SMS code login (first-time sign-up / forgotten PIN) -->
                         <div class="form-group" id="otp-group" style="display: none;">
                             <label>인증번호 (6자리) *</label>
                             <input type="tel" id="login-otp" placeholder="6자리 숫자" maxlength="6"
@@ -111,7 +144,12 @@
                             <small id="otp-timer" style="color: var(--text-secondary); display: block; margin-top: 0.3rem;"></small>
                         </div>
                         <div id="login-error" style="color: #ff4444; display: none; margin-bottom: 1rem;"></div>
+                        <button type="submit" id="pin-login-btn" class="btn btn-primary btn-large">로그인</button>
                         <button type="submit" id="verify-otp-btn" class="btn btn-primary btn-large" style="display: none;">인증 확인 후 로그인</button>
+                        <p style="text-align: center; margin-top: 1rem; margin-bottom: 0;">
+                            <a href="#" id="toggle-login-mode"
+                                style="color: var(--text-secondary); font-size: 0.9rem; text-decoration: underline;">처음이신가요? 비밀번호를 잊으셨나요?</a>
+                        </p>
                     </form>
                 </div>
 
@@ -204,6 +242,17 @@
                             <label>휴대폰 번호 (인증 완료)</label>
                             <input type="tel" id="reg-phone" disabled>
                             <small style="color: #888;">로그인 시 사용한 인증된 번호입니다.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>비밀번호 (숫자 4자리) *</label>
+                            <input type="password" id="reg-pin" placeholder="숫자 4자리" maxlength="4"
+                                inputmode="numeric" autocomplete="new-password" required>
+                            <small style="color: #888;">다음 로그인부터는 인증번호 없이 이 비밀번호로 접속합니다.</small>
+                        </div>
+                        <div class="form-group">
+                            <label>비밀번호 확인 *</label>
+                            <input type="password" id="reg-pin-confirm" placeholder="숫자 4자리 다시 입력" maxlength="4"
+                                inputmode="numeric" autocomplete="new-password" required>
                         </div>
                         <div class="form-group">
                             <label>카카오톡 ID *</label>

@@ -50,6 +50,144 @@ function normalizePhone(phone) {
     return String(phone || '').replace(/[^0-9]/g, '');
 }
 
+// Log in with phone number + 4-digit PIN (no SMS involved)
+async function handlePinLogin() {
+    const loginError = document.getElementById('login-error');
+    loginError.style.display = 'none';
+
+    const phone = normalizePhone(document.getElementById('login-phone').value);
+    const pin = document.getElementById('login-pin').value.trim();
+
+    if (!/^01[0-9]{8,9}$/.test(phone)) {
+        loginError.textContent = '올바른 휴대폰 번호를 입력해주세요.';
+        loginError.style.display = 'block';
+        return;
+    }
+    if (!/^[0-9]{4}$/.test(pin)) {
+        loginError.textContent = '비밀번호 4자리를 입력해주세요.';
+        loginError.style.display = 'block';
+        return;
+    }
+
+    try {
+        showLoading('로그인 중...');
+        const res = await fetch('/api/login-pin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, pin })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || '로그인에 실패했습니다.');
+        }
+
+        window.verifiedPhone = phone;
+        await auth.signInWithCustomToken(data.customToken);
+        hideLoading();
+        // onAuthStateChanged handles navigation
+    } catch (error) {
+        hideLoading();
+        console.error('PIN login error:', error);
+        loginError.textContent = error.message;
+        loginError.style.display = 'block';
+    }
+}
+
+// Switch the login card between PIN mode and SMS-code mode
+function setLoginMode(mode) {
+    const isOtp = mode === 'otp';
+    const loginError = document.getElementById('login-error');
+    const toggle = document.getElementById('toggle-login-mode');
+
+    if (loginError) loginError.style.display = 'none';
+
+    document.getElementById('pin-group').style.display = isOtp ? 'none' : 'block';
+    document.getElementById('pin-login-btn').style.display = isOtp ? 'none' : 'block';
+    document.getElementById('send-otp-btn').style.display = isOtp ? 'block' : 'none';
+
+    // The OTP input and its confirm button stay hidden until a code is sent.
+    if (!isOtp) {
+        document.getElementById('otp-group').style.display = 'none';
+        document.getElementById('verify-otp-btn').style.display = 'none';
+        if (otpTimerInterval) clearInterval(otpTimerInterval);
+    }
+
+    if (toggle) {
+        toggle.textContent = isOtp
+            ? '비밀번호로 로그인하기'
+            : '처음이신가요? 비밀번호를 잊으셨나요?';
+    }
+
+    window.loginMode = isOtp ? 'otp' : 'pin';
+}
+
+// Save a 4-digit PIN for the currently signed-in user
+async function savePin(pin) {
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch('/api/set-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, pin })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.error || '비밀번호 설정에 실패했습니다.');
+    }
+}
+
+// Offer PIN setup to members who signed in with an SMS code but have none yet
+function showPinSetupModal() {
+    const modal = document.getElementById('pin-setup-modal');
+    if (!modal) return;
+
+    const pinInput = document.getElementById('setup-pin');
+    const confirmInput = document.getElementById('setup-pin-confirm');
+    const errorEl = document.getElementById('setup-pin-error');
+    const saveBtn = document.getElementById('setup-pin-save');
+    const skipBtn = document.getElementById('setup-pin-skip');
+
+    pinInput.value = '';
+    confirmInput.value = '';
+    errorEl.style.display = 'none';
+    modal.classList.add('active');
+
+    const close = () => modal.classList.remove('active');
+
+    skipBtn.onclick = close;
+
+    saveBtn.onclick = async () => {
+        const pin = pinInput.value.trim();
+        const confirmPin = confirmInput.value.trim();
+        errorEl.style.display = 'none';
+
+        if (!/^[0-9]{4}$/.test(pin)) {
+            errorEl.textContent = '비밀번호는 숫자 4자리여야 합니다.';
+            errorEl.style.display = 'block';
+            return;
+        }
+        if (pin !== confirmPin) {
+            errorEl.textContent = '비밀번호가 일치하지 않습니다.';
+            errorEl.style.display = 'block';
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = '저장 중...';
+        try {
+            await savePin(pin);
+            close();
+            alert('비밀번호가 설정되었습니다. 다음부터는 인증번호 없이 로그인할 수 있습니다.');
+        } catch (error) {
+            errorEl.textContent = error.message;
+            errorEl.style.display = 'block';
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = '설정하기';
+        }
+    };
+}
+
 // Send SMS OTP to the entered phone number
 async function handleSendOtp() {
     const loginError = document.getElementById('login-error');
@@ -146,6 +284,10 @@ async function handleVerifyOtp() {
         // Remember the verified phone for registration prefilling
         window.verifiedPhone = phone;
 
+        // Existing members with no PIN yet get offered one after they land.
+        // New sign-ups set theirs on the registration form instead.
+        window.promptPinSetup = data.hasPin === false;
+
         await auth.signInWithCustomToken(data.customToken);
         hideLoading();
         // onAuthStateChanged handles navigation (existing user -> matches, new -> registration)
@@ -207,6 +349,12 @@ async function initializeApp() {
                         setTimeout(() => {
                             window.dispatchEvent(new CustomEvent('showMatches'));
                         }, 100);
+                    }
+
+                    // Member signed in with an SMS code and has no PIN yet
+                    if (window.promptPinSetup) {
+                        window.promptPinSetup = false;
+                        setTimeout(showPinSetupModal, 600);
                     }
                 } else {
                     // New user: phone OTP created a Firebase Auth account but no
@@ -355,16 +503,31 @@ function setupHashNavigation() {
 function setupLoginPage() {
     const loginForm = document.getElementById('login-form');
     const sendBtn = document.getElementById('send-otp-btn');
+    const toggle = document.getElementById('toggle-login-mode');
+
+    // Start in PIN mode; SMS is the fallback for sign-up and forgotten PINs.
+    setLoginMode('pin');
+
+    if (toggle) {
+        toggle.onclick = (e) => {
+            e.preventDefault();
+            setLoginMode(window.loginMode === 'otp' ? 'pin' : 'otp');
+        };
+    }
 
     // Send OTP
     if (sendBtn) {
         sendBtn.onclick = () => handleSendOtp();
     }
 
-    // Verify OTP on form submit
+    // Both submit buttons live in the same form, so route on the active mode
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
-        await handleVerifyOtp();
+        if (window.loginMode === 'otp') {
+            await handleVerifyOtp();
+        } else {
+            await handlePinLogin();
+        }
     };
 
     // Update user count on login page
@@ -506,6 +669,18 @@ function setupRegistrationForm() {
         const submitBtn = form.querySelector('button[type="submit"]');
         if (submitBtn.disabled) return; // Prevent multiple clicks
 
+        // Validate the 4-digit login PIN before doing any other work
+        const regPin = document.getElementById('reg-pin').value.trim();
+        const regPinConfirm = document.getElementById('reg-pin-confirm').value.trim();
+        if (!/^[0-9]{4}$/.test(regPin)) {
+            alert('비밀번호는 숫자 4자리로 입력해주세요.');
+            return;
+        }
+        if (regPin !== regPinConfirm) {
+            alert('비밀번호가 일치하지 않습니다.');
+            return;
+        }
+
         // Validate photos (ensure three photos are uploaded)
         const photos = [];
         for (let i = 0; i < 3; i++) {
@@ -602,6 +777,16 @@ function setupRegistrationForm() {
                 }
             }
 
+            // Store the login PIN. The account already exists at this point, so a
+            // failure here must not undo registration — fall back to SMS login.
+            let pinSaved = true;
+            try {
+                await savePin(regPin);
+            } catch (e) {
+                pinSaved = false;
+                console.error('Failed to save login PIN:', e);
+            }
+
             // Send Discord Notification
             try {
                 await sendNewUserDiscordNotification(user);
@@ -615,7 +800,9 @@ function setupRegistrationForm() {
             localStorage.setItem(STORAGE_KEYS.CURRENT_USER, user.id);
 
             hideLoading();
-            alert('회원가입이 완료되었습니다!');
+            alert(pinSaved
+                ? '회원가입이 완료되었습니다!'
+                : '회원가입이 완료되었습니다!\n\n비밀번호 설정에 실패했습니다. 다음 로그인은 인증번호로 진행해주세요.');
 
             // Navigate to preference page
             showPage('preference-page');
